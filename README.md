@@ -31,12 +31,14 @@ Xong. Từ đó bấm biểu tượng là vào thẳng, không cần trình qu�
 
 ## Khi có bản mới
 
-1. Thay `index.html` bằng file mới (vào repo → bấm vào `index.html` → biểu tượng bút
-   chì → xoá hết dán bản mới; hoặc **Add file → Upload files** rồi ghi đè).
-2. Mở `sw.js`, sửa dòng `const PHIEN = 'tcdt-v1';` thành `'tcdt-v2'` (lần sau `v3`…).
-3. Commit. Mở app trên điện thoại hai lần là ăn bản mới.
+Vào repo → **Add file** → **Upload files** → kéo lại các file mới (kéo cả 7 file cũng
+được, GitHub tự ghi đè) → **Commit changes**.
 
-Không đổi số `PHIEN` thì máy vẫn dùng bản cũ đã lưu.
+Mở app trên điện thoại khi có mạng là nó tự lấy bản mới: `sw.js` để chế độ *ưu tiên
+bản trên mạng, rớt mạng mới dùng bản đã lưu*, nên không phải sửa số phiên bản.
+
+Chỉ khi nào **đổi biểu tượng hoặc manifest** thì mới cần mở `sw.js` sửa
+`const PHIEN = 'tcdt-v1';` thành `'tcdt-v2'` để máy nạp lại bộ file đã lưu.
 
 ## Các file trong thư mục
 

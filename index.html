@@ -185,6 +185,79 @@ html,body{height:100%;overflow:hidden}
   #printout .ptab th,#printout .ptab td{border:.2mm solid #000;padding:.8mm 1.5mm;text-align:right}
   #printout .ptab th:first-child,#printout .ptab td:first-child{text-align:center}
 }
+
+
+/* ===== Điện thoại: bản đồ toàn màn hình, nút nổi, khay trượt ===== */
+@media(max-width:900px){
+  #stage{position:relative;overflow:hidden}
+  #mapwrap{position:absolute;inset:0;height:auto;min-height:0}
+  #toolbar{position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px;left:auto;width:auto;
+    padding:0;background:none;border:0;z-index:6}
+  #toolbar .mini{flex-direction:column;gap:8px;align-items:flex-end;margin:0}
+  #tmore,#sfold{display:none!important}
+  #fabbr{position:absolute;right:10px;bottom:10px;z-index:6;display:flex;flex-direction:column;gap:8px}
+  #toolbar .mini>button,#fabbr>button{
+    width:46px;height:46px;flex:0 0 auto;padding:0!important;font-size:0!important;
+    border:1px solid var(--rule);border-radius:13px;cursor:pointer;
+    background-color:#fffdf8;background-repeat:no-repeat;background-position:center;background-size:23px 23px;
+    box-shadow:0 2px 9px rgba(22,33,28,.24)}
+  #toolbar .mini>button:active,#fabbr>button:active{background-color:#eceade}
+  #bnen{order:1}#mfit{order:2}#mzin{order:3}#mzout{order:4}
+  #bnen{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203%203%207.5l9%204.5%209-4.5L12%203Z%22%2F%3E%3Cpath%20d%3D%22M3%2012.5%2012%2017l9-4.5%22%2F%3E%3Cpath%20d%3D%22M3%2017.5%2012%2022l9-4.5%22%2F%3E%3C%2Fsvg%3E")}
+  #mfit{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%209V5.6A1.6%201.6%200%200%201%205.6%204H9%22%2F%3E%3Cpath%20d%3D%22M15%204h3.4A1.6%201.6%200%200%201%2020%205.6V9%22%2F%3E%3Cpath%20d%3D%22M20%2015v3.4a1.6%201.6%200%200%201-1.6%201.6H15%22%2F%3E%3Cpath%20d%3D%22M9%2020H5.6A1.6%201.6%200%200%201%204%2018.4V15%22%2F%3E%3C%2Fsvg%3E")}
+  #mzin{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%206v12%22%2F%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E")}
+  #mzout{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E")}
+  #bgps{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%226.2%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221.6%22%20fill%3D%22%2316211c%22%2F%3E%3Cpath%20d%3D%22M12%202v2.4M12%2019.6V22M2%2012h2.4M19.6%2012H22%22%2F%3E%3C%2Fsvg%3E")}
+  #msheet{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%207h10%22%2F%3E%3Cpath%20d%3D%22M18%207h2%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%227%22%20r%3D%222%22%2F%3E%3Cpath%20d%3D%22M4%2017h4%22%2F%3E%3Cpath%20d%3D%22M12%2017h8%22%2F%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2217%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E")}
+  /* thông báo và thẻ thửa nổi ở đáy, không chiếm chỗ cố định */
+  #mapfoot{position:absolute;left:10px;right:66px;bottom:10px;top:auto;max-height:46dvh;
+    padding:0;border:0;background:none;z-index:5;overflow-y:auto;pointer-events:none;
+    display:flex;flex-direction:column;gap:6px}
+  #mapfoot>*{pointer-events:auto}
+  #mapfoot .warn,#mapfoot .ok,#mapfoot .caution{margin:0;border-radius:10px;
+    box-shadow:0 2px 9px rgba(22,33,28,.2)}
+  #gpsmsg:empty{display:none}
+  /* khay trượt */
+  #sheetbg{position:fixed;inset:0;background:rgba(22,33,28,.34);z-index:20}
+  #sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--field);
+    border-top:1px solid var(--rule);border-radius:16px 16px 0 0;
+    box-shadow:0 -6px 26px rgba(22,33,28,.3);
+    max-height:78dvh;display:flex;flex-direction:column;
+    transform:translateY(102%);transition:transform .22s ease-out;
+    padding-bottom:env(safe-area-inset-bottom)}
+  body.sheet #sheet{transform:none}
+  body:not(.sheet) #sheetbg{display:none}
+  body.sheet #msheet{background-color:var(--moss)}
+  #sheetbar{flex:0 0 auto;padding:10px 14px 8px;border-bottom:1px solid var(--rule);
+    display:flex;align-items:center;gap:10px;touch-action:none}
+  #sheetbar b{flex:1;font-size:14px}
+  #sheetbar::before{content:"";position:absolute;left:50%;top:5px;transform:translateX(-50%);
+    width:40px;height:4px;border-radius:2px;background:var(--rule)}
+  #sheetx{padding:6px 12px;font-size:13px;border:1px solid var(--rule);background:#fff;
+    border-radius:16px;cursor:pointer;font-weight:600}
+  #sheetbody{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:10px 14px 16px}
+  #sheetbody>*{margin-top:10px}
+  #sheetbody>*:first-child{margin-top:0}
+  #sheetbody #tools2{display:flex;flex-wrap:wrap;gap:7px}
+  #sheetbody #tools2>button{flex:1 1 44%;padding:11px 8px;font-size:13.5px;font-weight:600;
+    border:1px solid var(--rule);background:#fff;border-radius:9px;cursor:pointer}
+  #sheetbody #tools2>button.on{background:var(--moss);color:#fff;border-color:var(--moss)}
+  #sheetbody #basewrap{border:1px solid var(--rule);border-radius:9px;background:#fff;padding:8px 10px}
+  #sheetbody #basewrap>summary{padding:2px 0}
+  #sheetbody #locrow,#sheetbody #printbox{margin-top:10px!important}
+  #mtoggle{display:none!important}
+}
+@media(min-width:901px){
+  #msheet,#fabbr,#sheet,#sheetbg{display:none}
+}
+/* thẻ thửa đang chỏ tới */
+#mapchip{display:none;align-items:center;gap:9px;background:#fffdf8;border:1px solid var(--rule);
+  border-radius:10px;padding:8px 10px;font-size:13px;box-shadow:0 2px 9px rgba(22,33,28,.18)}
+#mapchip.on{display:flex}
+#mapchip b{font-family:ui-monospace,Menlo,Consolas,monospace}
+#mapchip span{flex:1;color:var(--dim);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mapchip button{flex:0 0 auto;border:0;background:none;color:var(--dim);font-size:17px;
+  line-height:1;padding:2px 4px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -325,9 +398,11 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
       <button id="mfit">Vừa màn hình</button>
       <button id="mzin">Phóng to +</button>
       <button id="mzout">Thu nhỏ −</button>
+      <button id="bnen" title="Đổi nguồn ảnh nền">🛰 Nguồn ảnh</button>
       <button id="bgps">📍 Vị trí của tôi</button>
+      <button id="msheet" title="Tuỳ chọn bản đồ">⚙ Tuỳ chọn</button>
       <button id="tmore" class="hide">⋯ Thêm</button>
-      <span id="tools2"><button id="bnen" title="Đổi nguồn ảnh nền">🛰 Nguồn ảnh</button>
+      <span id="tools2">
       <button id="mlab" class="on">Số thửa &amp; chủ</button>
       <button id="mdim">Kích thước cạnh</button>
       <button id="mgoto" class="on">Chỏ tới thửa</button>
@@ -364,6 +439,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 </details>
   </div>
   <div id="mapwrap"><canvas id="map"></canvas></div>
+  <div id="fabbr"></div>
   <div id="mapfoot">
 <div id="locrow" class="hide" style="display:flex;gap:8px;margin-top:8px;align-items:flex-end;flex-wrap:wrap">
   <div style="flex:2 1 220px"><label for="mloc" style="margin-top:0">Hoặc dán toạ độ (WGS-84 hay VN-2000)</label>
@@ -371,6 +447,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div style="flex:0 0 130px"><button id="bloc" style="width:100%;padding:11px 8px;font-size:14px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;font-weight:600">Đặt vị trí</button></div>
 </div>
 <div id="gpsmsg"></div>
+<div id="mapchip"><b></b><span></span><button id="chipx" title="Bỏ chọn">×</button></div>
 <div id="printbox" class="hide" style="border:1px solid var(--rule);border-radius:3px;padding:10px;margin-top:8px;background:#fff">
   <p class="note" id="pscale" style="margin:0 0 8px">Kéo một khung trên bản đồ để chọn vùng in.</p>
   <div class="row">
@@ -386,6 +463,11 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 <p class="note" style="margin-top:8px">Kéo để di chuyển, chụm hai ngón hoặc lăn chuột để thu phóng, chạm một cái để chọn thửa. Bấm số thửa trong danh sách để chỏ tới đúng thửa đó; bấm lần nữa phóng sát, lần nữa bỏ chọn. Lớp nền tải ảnh từ Internet nên cần có mạng — toạ độ thửa đất không gửi đi đâu.</p>
   </div>
 </main>
+</div>
+<div id="sheetbg"></div>
+<div id="sheet">
+  <div id="sheetbar"><b>Tuỳ chọn bản đồ</b><button id="sheetx">Đóng</button></div>
+  <div id="sheetbody"></div>
 </div>
 <div id="mobtab">
   <button id="tside" class="on">Bảng điều khiển <span class="dem" id="demsel"></span></button>
@@ -1733,7 +1815,7 @@ function drawMap(){
   if(!VWok)VW=null;                    // lần đầu có khung thật thì khớp lại cho vừa
   VWok=true;
   const L=ringsAll();
-  if(!L.length){const{x,W,H}=setupCanvas();x.clearRect(0,0,W,H);VW=null;return}
+  if(!L.length){const{x,W,H}=setupCanvas();x.clearRect(0,0,W,H);VW=null;chipThua();return}
   if(!VW)fitView(L);
   const {x,W,H}=setupCanvas();
   x.clearRect(0,0,W,H);
@@ -1751,6 +1833,7 @@ function drawMap(){
     x.strokeStyle='#b4241f';x.lineWidth=2;x.setLineDash([7,5]);
     x.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);x.restore();
   }
+  chipThua();
 }
 function paint(x,W,H,vw,opt){
   const T=p=>[W/2+(p[0]-vw.cx)*vw.sc, H/2-(p[1]-vw.cy)*vw.sc];
@@ -1864,6 +1947,7 @@ $('mprint').onclick=e=>{
   PRINTMODE=!PRINTMODE;e.currentTarget.classList.toggle('on',PRINTMODE);
   $('printbox').classList.toggle('hide',!PRINTMODE);
   if(!PRINTMODE)PRECT=null;
+  if(PRINTMODE)khay(false);        /* thu khay lại để kéo khung trên bản đồ */
   drawMap();
 };
 $('porient').onchange=()=>{PORIENT=$('porient').value;
@@ -2314,6 +2398,7 @@ function foldSide(an){
 $('sfold').onclick=()=>{if(heptay())return;foldSide(!APP().classList.contains('nosid'))};
 try{if(localStorage.getItem('nosid')==='1'&&!matchMedia('(max-width:900px)').matches)foldSide(true)}catch(e){}
 function tab(m){
+  khay(false);
   if(heptay())APP().classList.remove('nosid');   // gập bảng chỉ dùng trên máy tính
   document.body.classList.toggle('tmap',m==='map');
   document.body.classList.toggle('tside',m!=='map');
@@ -2329,7 +2414,15 @@ capNhatDau();
 if(heptay())tab('side');
 /* trên điện thoại: chỏ tới thửa thì tự nhảy sang tab bản đồ */
 const _goto=gotoParcel;
-gotoParcel=function(t,zoom){ if(heptay())tab('map'); return _goto(t,zoom) };
+gotoParcel=function(t,zoom){
+  if(heptay()){
+    tab('map');
+    /* khung bản đồ vừa hiện ra: vẽ một lần cho có kích thước thật, nếu không
+       lượt vẽ hoãn lại sẽ xoá mất khung nhìn mà lệnh chỏ tới vừa đặt */
+    drawMap();
+  }
+  return _goto(t,zoom);
+};
 
 /* khung bản đồ đổi kích thước (kéo thanh, gập bảng, xoay máy) thì vẽ lại */
 if(window.ResizeObserver&&$('mapwrap')){
@@ -2337,6 +2430,77 @@ if(window.ResizeObserver&&$('mapwrap')){
 }
 
 $('tmore').onclick=()=>{document.body.classList.toggle('more');clearTimeout(window.__rz);window.__rz=setTimeout(drawMap,60)};
+
+/* ===== Điện thoại: khay trượt và nút nổi ===== */
+function khay(mo){
+  document.body.classList.toggle('sheet',mo===undefined?!document.body.classList.contains('sheet'):!!mo);
+}
+$('msheet').onclick=()=>khay();
+$('sheetx').onclick=()=>khay(false);
+$('sheetbg').onclick=()=>khay(false);
+/* kéo thanh tiêu đề xuống để đóng */
+(()=>{let y0=null;const b=$('sheetbar');
+  b.addEventListener('touchstart',e=>{y0=e.touches[0].clientY},{passive:true});
+  b.addEventListener('touchmove',e=>{
+    if(y0===null)return;
+    const d=e.touches[0].clientY-y0;
+    if(d>55){y0=null;khay(false)}
+  },{passive:true});
+  b.addEventListener('touchend',()=>{y0=null},{passive:true});
+})();
+
+/* Các khối điều khiển: trên máy tính nằm trong thanh công cụ và dưới bản đồ,
+   trên điện thoại dồn vào khay trượt / cụm nút nổi. Giữ nguyên phần tử nên
+   mọi trình xử lý sự kiện vẫn còn. */
+const CHO=[];
+['tools2','basewrap','locrow','printbox','bgps','msheet'].forEach(id=>{
+  const e=$(id); if(e)CHO.push({id,el:e,cha:e.parentNode,ke:e.nextSibling});
+});
+function dungKhay(){
+  const dt=heptay(), th=$('sheetbody'), fb=$('fabbr');
+  CHO.forEach(c=>{
+    const dich = !dt ? c.cha : (c.id==='bgps'||c.id==='msheet') ? fb : th;
+    if(c.el.parentNode===dich)return;
+    if(!dt)dich.insertBefore(c.el,c.ke&&c.ke.parentNode===dich?c.ke:null);
+    else dich.appendChild(c.el);
+  });
+  if(dt&&$('basewrap'))$('basewrap').open=true;
+  if(!dt)khay(false);
+}
+dungKhay();
+let __bk=heptay();
+window.addEventListener('resize',()=>{
+  const b=heptay();
+  if(b!==__bk){__bk=b;dungKhay();clearTimeout(window.__rz2);window.__rz2=setTimeout(drawMap,120)}
+});
+
+/* ===== Thẻ thửa đang chỏ tới ===== */
+let CHIPID=null;
+function chipThua(){
+  const id=FLASH?FLASH.id:null;
+  if(id===CHIPID)return;
+  CHIPID=id;
+  const box=$('mapchip');
+  if(!id){box.classList.remove('on');return}
+  const t=allThua().find(x=>x.id===id);
+  if(!t){box.classList.remove('on');return}
+  box.querySelector('b').textContent=(coSo(t)?'Thửa '+t.s:'Thửa chưa rõ số')+(t.tong>1?' ('+t.stt+'/'+t.tong+')':'');
+  box.querySelector('span').textContent=[
+    t.to==='tay'?'nhập tay':'tờ '+t.to,
+    t.d?fmt(t.d,1)+' m²':(t.a?fmt(t.a,1)+' m² (từ ranh)':''),
+    t.l||'', t.chu||''
+  ].filter(Boolean).join(' · ');
+  box.classList.add('on');
+}
+$('chipx').onclick=()=>{
+  if(FLASH){SEL.delete(FLASH.id);FLASH=null}
+  drawResults();
+};
+$('mapchip').onclick=e=>{
+  if(e.target.id==='chipx'||!FLASH)return;
+  const t=allThua().find(x=>x.id===FLASH.id);
+  if(t)gotoParcel(t,true);
+};
 
 
 /* ===== Quét bảng toạ độ từ ảnh (chụp trích lục, trích đo) ===== */

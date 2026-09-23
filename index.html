@@ -331,6 +331,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
         <div class="mini" style="margin-top:8px">
           <button id="qocr">Đọc số bằng máy</button>
           <button id="qai">Đọc bằng AI</button>
+          <button id="qkey" title="Đổi API key Google AI Studio">🔑 Đổi API key</button>
         </div>
         <div class="bar hide" id="qbar"><i></i></div>
       </div>
@@ -698,13 +699,14 @@ function parseDGN7(buf){
   const readGeom=e=>{
     if(e.type===3){
       if(e.off+HDR+2*PS>e.off+e.size)return;
-      geo.push([[rd(e.off+HDR),rd(e.off+HDR+4)],[rd(e.off+HDR+PS),rd(e.off+HDR+PS+4)]]);
+      const p=[[rd(e.off+HDR),rd(e.off+HDR+4)],[rd(e.off+HDR+PS),rd(e.off+HDR+PS+4)]];
+      p.lv=e.level; geo.push(p);
     }else if([4,6,11,12,13].includes(e.type)){
       const n=dv.getUint16(e.off+HDR,true);
       if(n<2||n>5000||HDR+2+n*PS>e.size)return;
       const p=[];
       for(let i=0;i<n;i++)p.push([rd(e.off+HDR+2+i*PS),rd(e.off+HDR+2+i*PS+4)]);
-      geo.push(p);
+      p.lv=e.level; geo.push(p);
     }
   };
   for(let i=0;i<els.length;i++){
@@ -771,7 +773,7 @@ function calibrate(src){
 }
 function applyCal(src,cal){
   const f=(p)=>[(p[0]/cal.div)+cal.offE,(p[1]/cal.div)+cal.offN];
-  return {geo:src.geo.map(p=>p.map(f)),
+  return {geo:src.geo.map(p=>{const q=p.map(f); q.lv=p.lv; return q}),
     cells:src.cells.map(c=>c.map(t=>({...t,x:t.x/cal.div+cal.offE,y:t.y/cal.div+cal.offN}))),
     labels:src.labels.map(t=>({...t,x:t.x/cal.div+cal.offE,y:t.y/cal.div+cal.offN}))};
 }
@@ -828,51 +830,99 @@ function parseDXF(text){
 
 /* Hàn khe hở ranh: gộp đầu mút sát nhau, và nối đầu mút lơ lửng vào cạnh gần nhất.
    Chỉ thêm đoạn nối, không xoá hay chia nhỏ dữ liệu gốc. */
-function weld(geo,snap,dang){
+function weld(geo,snap,dang,doSplit){
   snap=snap||0.05; dang=dang||1.0;
-  const segs=[];
+  const EPS=1e-6;
+  let segs=[];
   for(const p of geo) for(let i=0;i+1<p.length;i++){
     if(Math.hypot(p[i+1][0]-p[i][0],p[i+1][1]-p[i][1])>1e-9) segs.push([p[i].slice(),p[i+1].slice()]);
   }
+  /* 1) hàn các đầu mút nằm sát nhau (sai số vẽ/số hoá) — như cũ */
   const q=p=>Math.round(p[0]/snap)+'|'+Math.round(p[1]/snap);
   const rep={};
   for(const s of segs) for(const p of s){const k=q(p); if(!rep[k])rep[k]=p}
   for(const s of segs) for(let i=0;i<2;i++){const r=rep[q(s[i])]; s[i]=[r[0],r[1]]}
+  segs=segs.filter(s=>Math.hypot(s[1][0]-s[0][0],s[1][1]-s[0][1])>1e-9);
   const deg={};
   for(const s of segs){deg[q(s[0])]=(deg[q(s[0])]||0)+1;deg[q(s[1])]=(deg[q(s[1])]||0)+1}
+  if(!doSplit){ segs.fixed=0; segs.tJunc=0; segs.xCross=0; return segs; }
+
+  /* 2) CHỈ dùng cho vá cục bộ (buildParcels gọi có kiểm chứng diện tích trước khi
+     nhận): chẻ đoạn tại điểm chạm (T-junction) và điểm cắt chéo (X-crossing) thay
+     vì chỉ hàn đầu mút — cho phép khép các vòng nhỏ khi vách ngăn không chạm khít
+     cạnh biên. Không dùng cho hàn toàn tờ vì dễ chẻ nhầm vào đối tượng không phải
+     ranh (chữ, kích thước, gạch chú thích) nằm gần đó. */
   const G=Math.max(dang,2),grid={};
-  segs.forEach((s,i)=>{
+  const oOf=s=>{
     const x0=Math.min(s[0][0],s[1][0]),x1=Math.max(s[0][0],s[1][0]);
     const y0=Math.min(s[0][1],s[1][1]),y1=Math.max(s[0][1],s[1][1]);
+    const c=[];
     for(let gx=Math.floor(x0/G);gx<=Math.floor(x1/G);gx++)
-      for(let gy=Math.floor(y0/G);gy<=Math.floor(y1/G);gy++)
-        (grid[gx+'|'+gy]=grid[gx+'|'+gy]||[]).push(i);
-  });
-  const extra=[];let fixed=0;
+      for(let gy=Math.floor(y0/G);gy<=Math.floor(y1/G);gy++)c.push(gx+'|'+gy);
+    return c;
+  };
+  segs.forEach((s,i)=>{ for(const c of oOf(s))(grid[c]=grid[c]||[]).push(i) });
+  const cuts=segs.map(()=>[]);
+  const addCut=(i,t,pt)=>{ if(t>EPS&&t<1-EPS) cuts[i].push({t,pt}) };
+  const near=p=>{
+    const gx0=Math.floor(p[0]/G),gy0=Math.floor(p[1]/G),out=new Set();
+    for(let gx=-1;gx<=1;gx++)for(let gy=-1;gy<=1;gy++){
+      const cl=grid[(gx0+gx)+'|'+(gy0+gy)]; if(cl)for(const i of cl)out.add(i);
+    }
+    return out;
+  };
+  const moveTo={};let tJunc=0;
   for(let si=0;si<segs.length;si++) for(let e=0;e<2;e++){
     const p=segs[si][e];
     if((deg[q(p)]||0)>1)continue;
-    let bd=dang,bp=null;
-    const gx0=Math.floor(p[0]/G),gy0=Math.floor(p[1]/G);
-    for(let gx=-1;gx<=1;gx++)for(let gy=-1;gy<=1;gy++){
-      const cl=grid[(gx0+gx)+'|'+(gy0+gy)];
-      if(!cl)continue;
-      for(const i of cl){
-        if(i===si)continue;
-        const t=segs[i],dx=t[1][0]-t[0][0],dy=t[1][1]-t[0][1],L2=dx*dx+dy*dy;
-        if(L2<1e-12)continue;
-        const u=((p[0]-t[0][0])*dx+(p[1]-t[0][1])*dy)/L2;
-        let cx,cy;
-        if(u<0){cx=t[0][0];cy=t[0][1]} else if(u>1){cx=t[1][0];cy=t[1][1]}
-        else {cx=t[0][0]+u*dx;cy=t[0][1]+u*dy}
-        const d=Math.hypot(p[0]-cx,p[1]-cy);
-        if(d>1e-9&&d<bd){bd=d;bp=[cx,cy]}
-      }
+    let bd=dang,bi=-1,bt=0,bp=null;
+    for(const i of near(p)){
+      if(i===si)continue;
+      const t=segs[i],dx=t[1][0]-t[0][0],dy=t[1][1]-t[0][1],L2=dx*dx+dy*dy;
+      if(L2<1e-12)continue;
+      const u=Math.max(0,Math.min(1,((p[0]-t[0][0])*dx+(p[1]-t[0][1])*dy)/L2));
+      const cx=t[0][0]+u*dx,cy=t[0][1]+u*dy,d=Math.hypot(p[0]-cx,p[1]-cy);
+      if(d>1e-9&&d<bd){bd=d;bi=i;bt=u;bp=[cx,cy]}
     }
-    if(bp){extra.push([[p[0],p[1]],bp]);fixed++}
+    if(bi>=0){
+      if(bt>EPS&&bt<1-EPS){addCut(bi,bt,bp);tJunc++}
+      moveTo[q(p)]=bp;
+    }
   }
-  const out=segs.concat(extra);
-  out.fixed=fixed;
+  for(const s of segs) for(let e=0;e<2;e++){
+    const k=q(s[e]); if(moveTo[k])s[e]=moveTo[k].slice();
+  }
+  let xCross=0;
+  const seenPair=new Set();
+  for(let si=0;si<segs.length;si++){
+    const cand=new Set();
+    for(const c of oOf(segs[si])){const cl=grid[c]; if(cl)for(const j of cl)if(j>si)cand.add(j)}
+    for(const sj of cand){
+      const key=si+','+sj; if(seenPair.has(key))continue; seenPair.add(key);
+      const a0=segs[si][0],a1=segs[si][1],b0=segs[sj][0],b1=segs[sj][1];
+      if(q(a0)===q(b0)||q(a0)===q(b1)||q(a1)===q(b0)||q(a1)===q(b1))continue;
+      const dax=a1[0]-a0[0],day=a1[1]-a0[1],dbx=b1[0]-b0[0],dby=b1[1]-b0[1];
+      const den=dax*dby-day*dbx; if(Math.abs(den)<1e-9)continue;
+      const t=((b0[0]-a0[0])*dby-(b0[1]-a0[1])*dbx)/den;
+      const u=((b0[0]-a0[0])*day-(b0[1]-a0[1])*dax)/den;
+      if(t<=EPS||t>=1-EPS||u<=EPS||u>=1-EPS)continue;
+      const pt=[a0[0]+t*dax,a0[1]+t*day];
+      addCut(si,t,pt);addCut(sj,u,pt);xCross++;
+    }
+  }
+  const out=[];
+  for(let i=0;i<segs.length;i++){
+    const s=segs[i];
+    if(!cuts[i].length){out.push(s);continue}
+    cuts[i].sort((a,b)=>a.t-b.t);
+    let prev=s[0];
+    for(const c of cuts[i]){
+      if(Math.hypot(c.pt[0]-prev[0],c.pt[1]-prev[1])>1e-9)out.push([prev,c.pt]);
+      prev=c.pt;
+    }
+    if(Math.hypot(s[1][0]-prev[0],s[1][1]-prev[1])>1e-9)out.push([prev,s[1]]);
+  }
+  out.fixed=tJunc+xCross; out.tJunc=tJunc; out.xCross=xCross;
   return out;
 }
 function topo(geo,tol,amin,amax){
@@ -1040,6 +1090,80 @@ function buildParcels(src,to){
     const m=cen.filter(q=>!taken.has(fid.get(q.f))&&Math.abs(q.f.a-p.d)/p.d<0.02
       &&Math.hypot(q.cx-p.c[0],q.cy-p.c[1])<60);
     if(m.length===1){setRing(p,m[0].f,true);taken.set(fid.get(m[0].f),p);p.rec=1}
+  }
+  /* 3.4) nhãn nằm ngoài ranh (kiểu bảng ghi chú có mũi tên chỉ vào một ký hiệu
+     "chấm chủ sử dụng" bên trong thửa, thường gặp ở khối nhiều chủ liền kề): tâm
+     nhãn không nằm trong ranh thật nên đối chiếu theo điểm sẽ luôn trật. Ký hiệu
+     chấm chủ vẽ bằng vài nét rất ngắn tạo hình ngôi sao/dấu cộng — gom các nét
+     ngắn đó thành từng "điểm neo", nếu nhãn không khớp bằng toạ độ của chính nó
+     thì thử điểm neo gần nhất; CHỈ nhận khi diện tích khớp lại đúng. */
+  const shortSeg=[];
+  for(const p of src.geo) for(let i=0;i+1<p.length;i++){
+    const a=p[i],b=p[i+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    if(len<1.5) shortSeg.push({mx:(a[0]+b[0])/2,my:(a[1]+b[1])/2});
+  }
+  const GM=2.5, gridS={};
+  shortSeg.forEach((s,i)=>{const k=Math.floor(s.mx/GM)+'|'+Math.floor(s.my/GM);(gridS[k]=gridS[k]||[]).push(i)});
+  const nearS=k0=>{
+    const [gx,gy]=k0.split('|').map(Number),out=[];
+    for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
+      const cl=gridS[(gx+dx)+'|'+(gy+dy)]; if(cl)out.push(...cl);
+    }
+    return out;
+  };
+  const usedS=new Array(shortSeg.length).fill(false), markers=[];
+  for(let i=0;i<shortSeg.length;i++){
+    if(usedS[i])continue;
+    const stack=[i];usedS[i]=true;const grp=[i];
+    while(stack.length){
+      const k=stack.pop(), s=shortSeg[k];
+      const k0=Math.floor(s.mx/GM)+'|'+Math.floor(s.my/GM);
+      for(const j of nearS(k0)){
+        if(usedS[j])continue;
+        if(Math.hypot(shortSeg[j].mx-s.mx,shortSeg[j].my-s.my)<GM){usedS[j]=true;stack.push(j);grp.push(j)}
+      }
+    }
+    if(grp.length>=3){
+      let x=0,y=0;for(const k of grp){x+=shortSeg[k].mx;y+=shortSeg[k].my}
+      markers.push({c:[x/grp.length,y/grp.length],used:false});
+    }
+  }
+  const needHelp=cands.filter(p=>p.d>0&&(!p.r||(!p.ok&&p.bad>50)));
+  for(const p of needHelp){
+    const near=markers.filter(m=>!m.used&&Math.hypot(m.c[0]-p.c[0],m.c[1]-p.c[1])<35)
+      .sort((a,b)=>Math.hypot(a.c[0]-p.c[0],a.c[1]-p.c[1])-Math.hypot(b.c[0]-p.c[0],b.c[1]-p.c[1]));
+    for(const m of near){
+      const fit=T.faces.filter(f=>inRing(m.c,f.r,T.node)&&Math.abs(f.a-p.d)/p.d<0.02);
+      if(fit.length){
+        const f=fit.reduce((a,b)=>b.a<a.a?b:a);
+        setRing(p,f,true);m.used=true;p.va=1;delete p.tranh;delete p.rec;delete p.chuaKt;
+        break;
+      }
+    }
+  }
+  /* 3.5) vá cục bộ các thửa lệch diện tích quá nặng (>50%): thường do vách ngăn
+     không chạm khít cạnh biên (khe hở vài mét, lớn hơn ngưỡng hàn chung của cả tờ),
+     khiến nhiều thửa dồn chung vào một vòng bao lớn. Không thể nới ngưỡng hàn cho
+     cả tờ (sẽ làm hỏng các thửa khác đang đúng), nên chỉ dò lại trong bán kính hẹp
+     quanh từng thửa bị lỗi, thử nới dần ngưỡng, và CHỈ nhận nếu diện tích khớp lại
+     đúng — không đụng tới thửa nào đang đúng sẵn. */
+  const suspects=cands.filter(p=>p.r&&p.d>0&&!p.ok&&p.bad>50);
+  for(const p of suspects){
+    const cx=p.c[0],cy=p.c[1],R=45;
+    const g=src.geo.filter(pl=>pl.some(pt=>Math.hypot(pt[0]-cx,pt[1]-cy)<R));
+    if(g.length<2)continue;
+    let fixed=null;
+    for(const dg of [1.6,2.0,2.4,3.0]){
+      const Tl=topo(weld(g,0.05,dg,true),0.02);
+      const fit=Tl.faces.filter(f=>inRing(p.c,f.r,Tl.node)&&Math.abs(f.a-p.d)/p.d<0.02);
+      if(fit.length){fixed={T:Tl,f:fit.reduce((a,b)=>b.a<a.a?b:a)};break}
+    }
+    if(fixed){
+      p.r=fixed.f.r.map(k=>[Math.round(fixed.T.node[k][0]*100)/100,Math.round(fixed.T.node[k][1]*100)/100]);
+      p.a=Math.round(fixed.f.a*10)/10;p.ok=true;p._f=fixed.f;
+      delete p.bad;delete p.tranh;delete p.rec;delete p.chuaKt;
+      p.va=1;   // đánh dấu đã vá cục bộ — nên kiểm tra lại thực địa
+    }
   }
   /* 4) gắn chủ sử dụng và ghi chú: nhãn chữ dài nằm trong lòng thửa, không thì lấy thửa gần nhất */
   const names=lab.filter(t=>t.s.length>=4&&/[A-Za-zÀ-ỹ]/.test(t.s)&&!isCode(t.s)&&!isDt(t.s)
@@ -2621,15 +2745,27 @@ $('qocr').onclick=async()=>{
     qmsg((n?`Đọc được <b>${n} đỉnh</b>. Bắt buộc dò lại từng chữ số với bản gốc — sai một số là lệch hàng chục mét.`:'Không tách được cặp toạ độ nào. Thử chụp rõ hơn, dùng nút đọc bằng AI, hoặc gõ tay.')+them,n?'caution':'warn');
   }catch(e){qbar(-1);qmsg('Không tải được bộ đọc chữ (máy đang không có mạng?). Dùng nút đọc bằng AI hoặc gõ tay.','warn')}
 };
+const layGKey=(doiMoi)=>{
+  let key=null;try{key=localStorage.getItem('gkey')}catch(e){}
+  if(!key||doiMoi){
+    key=prompt(doiMoi?'Dán API key Google AI Studio mới (thay key cũ đã lưu):':'Dán API key Google AI Studio (lưu trong máy, chỉ nhập một lần):', doiMoi?'':undefined);
+    if(!key)return doiMoi?null:(key=null);
+    try{localStorage.setItem('gkey',key)}catch(e){}
+  }
+  return key;
+};
+$('qkey').onclick=()=>{
+  const k=layGKey(true);
+  if(k)qmsg('Đã lưu API key mới.','caution');
+};
 $('qai').onclick=async()=>{
   if(!QIMG)return;
-  let key=null;try{key=localStorage.getItem('gkey')}catch(e){}
-  if(!key){key=prompt('Dán API key Google AI Studio (lưu trong máy, chỉ nhập một lần):');
-    if(!key)return;try{localStorage.setItem('gkey',key)}catch(e){}}
+  const key=layGKey(false);
+  if(!key)return;
   qmsg('Đang gửi ảnh cho AI đọc…');qbar(0.3);
   try{
     const b64=QIMG.split(',')[1],mt=QIMG.split(';')[0].split(':')[1];
-    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(key),{
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key='+encodeURIComponent(key),{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts:[
         {inline_data:{mime_type:mt,data:b64}},

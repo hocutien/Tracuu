@@ -269,6 +269,7 @@ html,body{height:100%;overflow:hidden}
 #mapchip span{flex:1;color:var(--dim);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #mapchip button{flex:0 0 auto;border:0;background:none;color:var(--dim);font-size:17px;
   line-height:1;padding:2px 4px;cursor:pointer}
+#mapchip #chipdir{font-size:13px;font-weight:600;color:#fff;background:var(--moss);border-radius:6px;padding:7px 10px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -468,7 +469,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div style="flex:0 0 130px"><button id="bloc" style="width:100%;padding:11px 8px;font-size:14px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;font-weight:600">Đặt vị trí</button></div>
 </div>
 <div id="gpsmsg"></div>
-<div id="mapchip"><b></b><span></span><button id="chipx" title="Bỏ chọn">×</button></div>
+<div id="mapchip"><b></b><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button></div>
 <div id="printbox" class="hide" style="border:1px solid var(--rule);border-radius:3px;padding:10px;margin-top:8px;background:#fff">
   <p class="note" id="pscale" style="margin:0 0 8px">Kéo một khung trên bản đồ để chọn vùng in.</p>
   <div class="row">
@@ -2734,8 +2735,43 @@ $('chipx').onclick=()=>{
   if(FLASH){SEL.delete(FLASH.id);FLASH=null}
   drawResults();
 };
+/* Chỉ đường Google Maps tới thửa đang chọn: lấy một điểm chắc chắn nằm trong ranh,
+   đổi sang kinh vĩ độ rồi mở Google Maps. Chỉ gửi toạ độ điểm đến, không gửi số thửa
+   hay tên chủ. Trên điện thoại sẽ mở thẳng ứng dụng Google Maps. */
+function diemTrongThua(t){
+  if(!t.r||t.r.length<3)return t.c||null;
+  const r=t.r;let A=0,cx=0,cy=0;
+  for(let i=0;i<r.length;i++){const p=r[i],q=r[(i+1)%r.length],k=p[0]*q[1]-q[0]*p[1];A+=k;cx+=(p[0]+q[0])*k;cy+=(p[1]+q[1])*k}
+  const ds=[];
+  if(Math.abs(A)>1e-9)ds.push([cx/(3*A),cy/(3*A)]);
+  if(t.c)ds.push(t.c);
+  ds.push([r.reduce((s,p)=>s+p[0],0)/r.length,r.reduce((s,p)=>s+p[1],0)/r.length]);
+  for(const d of ds)if(inPoly(d,r))return d;
+  // hình lõm: dò lưới trong khung bao, lấy điểm bên trong gần tâm nhất
+  const xs=r.map(p=>p[0]),ys=r.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  let best=null,bd=1e18;const c=ds[0];
+  for(let i=1;i<20;i++)for(let j=1;j<20;j++){
+    const p=[x0+(x1-x0)*i/20,y0+(y1-y0)*j/20];
+    if(inPoly(p,r)){const d=Math.hypot(p[0]-c[0],p[1]-c[1]);if(d<bd){bd=d;best=p}}
+  }
+  return best||ds[0];
+}
+$('chipdir').onclick=e=>{
+  e.stopPropagation();
+  if(!FLASH)return;
+  const t=allThua().find(x=>x.id===FLASH.id);
+  if(!t)return;
+  if(LON0==null)return $('gpsmsg').innerHTML='<div class="warn">Chưa xác định được kinh tuyến trục nên chưa đổi được toạ độ — chọn tỉnh ở mục Kinh tuyến trục.</div>';
+  const p=diemTrongThua(t);
+  if(!p)return $('gpsmsg').innerHTML='<div class="warn">Thửa này chưa có toạ độ để chỉ đường.</div>';
+  const [la,lo]=conv(p[0],p[1],LON0,K0);
+  const url=`https://www.google.com/maps/dir/?api=1&destination=${la.toFixed(7)},${lo.toFixed(7)}&travelmode=driving`;
+  const a=document.createElement('a');   // mở thẻ mới, không rời trang để khỏi mất dữ liệu đã nạp
+  a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+};
 $('mapchip').onclick=e=>{
-  if(e.target.id==='chipx'||!FLASH)return;
+  if(e.target.id==='chipx'||e.target.id==='chipdir'||!FLASH)return;
   const t=allThua().find(x=>x.id===FLASH.id);
   if(t)gotoParcel(t,true);
 };

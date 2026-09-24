@@ -1785,6 +1785,7 @@ function drawResults(){
     if(!SEL.has(k)){                 // lần 1: chọn và chỏ tới
       SEL.add(k);
       if(GOTO&&t){gotoParcel(t,false);FLASH.z=0}
+      else if(t)FLASH={id:t.id,z:0};
     }else if(cur&&FLASH.z===0){      // lần 2: phóng sát vào thửa
       if(GOTO&&t){gotoParcel(t,true);FLASH.z=1}
     }else{                           // lần 3: bỏ chọn
@@ -2096,7 +2097,10 @@ function bindMap(){
     if(moved<7&&downPt&&VW){
       const w=S2W(downPt.x,downPt.y);let best=null;
       for(const t of ringsAll())if(inPoly(w,t.r)&&(!best||t.a<best.a))best=t;
-      if(best){SEL.has(best.id)?SEL.delete(best.id):SEL.add(best.id);drawResults()}
+      if(best){
+        if(SEL.has(best.id)){SEL.delete(best.id);if(FLASH&&FLASH.id===best.id)FLASH=null}
+        else{SEL.add(best.id);FLASH={id:best.id,z:0}}   // chạm chọn trên bản đồ cũng hiện thanh thông tin + nút chỉ đường
+        drawResults()}
     }
     downPt=null;
   };

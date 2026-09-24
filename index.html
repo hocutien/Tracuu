@@ -1680,8 +1680,81 @@ $('manskipall').onclick=()=>{
 };
 
 /* ===== Kinh tuyến trục ===== */
+/* ===== Kinh tuyến trục cho thửa quét ảnh / nhập tay =====
+   Cùng một cặp X, Y nhưng gắn kinh tuyến trục khác thì rơi vào chỗ khác cả trăm km,
+   nên không được lấy đại kinh tuyến đã lưu lần trước. Dò mọi kinh tuyến, chỉ giữ
+   phương án mà điểm rơi đúng vào tỉnh dùng kinh tuyến đó; có tên tỉnh trong địa chỉ
+   (kể cả tên tỉnh mới sau sáp nhập 2025) thì lọc tiếp theo tỉnh. */
+const TINHMOI={'Tuyên Quang':['Tuyên Quang','Hà Giang'],'Lào Cai':['Lào Cai','Yên Bái'],
+ 'Thái Nguyên':['Thái Nguyên','Bắc Kạn'],'Phú Thọ':['Phú Thọ','Vĩnh Phúc','Hòa Bình'],
+ 'Bắc Ninh':['Bắc Ninh','Bắc Giang'],'Hưng Yên':['Hưng Yên','Thái Bình'],'Hải Phòng':['Hải Phòng','Hải Dương'],
+ 'Ninh Bình':['Ninh Bình','Hà Nam','Nam Định'],'Quảng Trị':['Quảng Trị','Quảng Bình'],'Đà Nẵng':['Đà Nẵng','Quảng Nam'],
+ 'Quảng Ngãi':['Quảng Ngãi','Kon Tum'],'Gia Lai':['Gia Lai','Bình Định'],'Khánh Hòa':['Khánh Hòa','Ninh Thuận'],
+ 'Lâm Đồng':['Lâm Đồng','Đắk Nông','Bình Thuận'],'Đắk Lắk':['Đắk Lắk','Phú Yên'],
+ 'TP. Hồ Chí Minh':['TP. Hồ Chí Minh','Bình Dương','Bà Rịa – Vũng Tàu'],'Đồng Nai':['Đồng Nai','Bình Phước'],
+ 'Tây Ninh':['Tây Ninh','Long An'],'Cần Thơ':['Cần Thơ','Sóc Trăng','Hậu Giang'],'Vĩnh Long':['Vĩnh Long','Bến Tre','Trà Vinh'],
+ 'Đồng Tháp':['Đồng Tháp','Tiền Giang'],'Cà Mau':['Cà Mau','Bạc Liêu'],'An Giang':['An Giang','Kiên Giang']};
+function tinhTuDiaChi(dc){
+  if(!dc)return null;
+  const chuan=x=>(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const s=' '+chuan(dc)+' ';
+  const bi={'TP. Hồ Chí Minh':['ho chi minh','hcm','sai gon'],'Thừa Thiên Huế':['thua thien hue','hue'],'Bà Rịa – Vũng Tàu':['ba ria','vung tau']};
+  let best=null,pos=-1;
+  for(const n of new Set([...PROV.map(p=>p[0]),...Object.keys(TINHMOI)])){
+    for(const k of (bi[n]||[chuan(n)])){const i=s.lastIndexOf(' '+k+' ');if(i>pos){pos=i;best=n}}
+  }
+  return best;
+}
+function kttChoDiem(E,N,dc){
+  const k0=(E>335000&&E<665000)?0.9999:0.9996;
+  const zones=k0===0.9999?KTTSET:[105,111];
+  const ds=[];
+  for(const l of zones){
+    const [la,lo]=conv(E,N,l,k0);
+    if(!onLand(la,lo))continue;
+    const dist=p=>Math.hypot(la-p[2],(lo-p[3])*Math.cos(la*Math.PI/180));
+    let best=1e9;for(const p of PROV)best=Math.min(best,dist(p));
+    const own=PROV.filter(p=>k0!==0.9999||p[1]===l).map(p=>({ten:p[0],d:dist(p)})).sort((a,b)=>a.d-b.d);
+    if(!own.length)continue;
+    ds.push({lon0:l,k0,la,lo,ten:own[0].ten,d:own[0].d,lech:own[0].d-best});
+  }
+  let hop=ds.filter(c=>c.d<0.85&&c.lech<0.35).sort((a,b)=>(a.lech-b.lech)||(a.d-b.d));
+  const tinh=tinhTuDiaChi(dc);let chon=null,lyDo='';
+  if(tinh){
+    const nhom=TINHMOI[tinh]||[tinh],theo=[];
+    for(const c of ds){
+      let g=null;
+      for(const p of PROV){if(p[1]!==c.lon0||!nhom.includes(p[0]))continue;
+        const d=Math.hypot(c.la-p[2],(c.lo-p[3])*Math.cos(c.la*Math.PI/180));
+        if(d<1.0&&(!g||d<g.d))g={...c,ten:p[0],d}}
+      if(g)theo.push(g);
+    }
+    theo.sort((a,b)=>a.d-b.d);
+    if(theo.length){
+      hop=theo;
+      if(theo.length===1||theo[0].d<0.6*theo[1].d){chon=theo[0];
+        lyDo='theo địa chỉ ghi '+tinh+(theo[0].ten!==tinh?' — phần '+theo[0].ten+' cũ trước sáp nhập':'')}
+    }
+  }
+  if(!chon&&hop.length===1){chon=hop[0];lyDo='chỉ có một phương án hợp lý'}
+  if(!hop.length)hop=ds.slice().sort((a,b)=>a.d-b.d).slice(0,5);
+  const lechDc=tinh&&!hop.some(c=>(TINHMOI[tinh]||[tinh]).includes(c.ten))?tinh:null;
+  return {ds:hop,chon,lyDo,tinh,lechDc};
+}
+let KTTTAY=null;                // kết quả dò cho tờ nhập tay đang dùng
 function autoKTT(){
   const t=allThua().find(x=>x.c);if(!t)return;
+  const shT=SHEETS.find(s=>s.to===t.to);
+  if(shT&&shT.tay){
+    const kq=kttChoDiem(t.c[0],t.c[1],shT.dc||'');
+    KTTTAY={kq,sh:shT};
+    CAND=kq.ds.map(c=>({lon0:c.lon0,k0:c.k0,lat:c.la,lon:c.lo,near:c.d,who:[c.ten]}));
+    if(shT.lon0){LON0=shT.lon0;K0=shT.k0||0.9999}
+    else if(kq.chon){LON0=kq.chon.lon0;K0=kq.chon.k0}
+    else if(CAND.length&&!CAND.some(c=>c.lon0===LON0)){LON0=CAND[0].lon0;K0=CAND[0].k0}
+    KTTTAM=false;drawKTT();return;
+  }
+  KTTTAY=null;
   const [E,N]=t.c;
   const k0=(E>335000&&E<665000)?0.9999:0.9996;
   const zones=k0===0.9999?KTTSET:[105,111];
@@ -1707,6 +1780,7 @@ function drawKTT(){
     <em>${c.lat.toFixed(5)}, ${c.lon.toFixed(5)}${c.lon0===SAVED?' · đã dùng lần trước':''} · ${c.who.join(', ')||'—'}</em></button>`).join('');
   $('cands').querySelectorAll('.cand').forEach(b=>b.onclick=e=>{
     const c=CAND[+e.currentTarget.dataset.i];LON0=c.lon0;K0=c.k0;SAVED=LON0;KTTTAM=false;
+    if(KTTTAY){KTTTAY.sh.lon0=c.lon0;KTTTAY.sh.k0=c.k0}
     try{localStorage.setItem('lon0',LON0)}catch(x){}
     drawKTT();
   });
@@ -3257,10 +3331,37 @@ $('qadd').onclick=()=>{
   if(!t.chu)thieu.push('chủ sử dụng');
   if(!sh.dc)thieu.push('địa chỉ');
   const nhac=thieu.length?`<br/>Còn trống: ${thieu.join(', ')} — vẫn xuất KMZ được, chỉ là file sẽ không ghi mấy dòng đó.${tuDat?` Thửa đang mang tên tạm <b>${s}</b>, điền số thửa rồi thêm lại nếu muốn đúng tên.`:''}`:'';
-  qmsg(`Đã thêm <b>thửa ${s}, tờ ${to}</b> — ${p.length} đỉnh, ${t.a?fmt(t.a,1)+' m²':'không tính được diện tích'}, ${ok}.${dan.length?'<br/>Lấy thêm từ văn bản dán vào: '+dan.join(', ')+'.':''}${nhac}`,'ok');
+  const kt=hopKTT(t,sh);
+  qmsg(`Đã thêm <b>thửa ${s}, tờ ${to}</b> — ${p.length} đỉnh, ${t.a?fmt(t.a,1)+' m²':'không tính được diện tích'}, ${ok}.${dan.length?'<br/>Lấy thêm từ văn bản dán vào: '+dan.join(', ')+'.':''}${kt.html}${nhac}`,kt.canChon?'caution':'ok');
+  $('qmsg').querySelectorAll('.kttq').forEach(b=>b.onclick=()=>{
+    LON0=+b.dataset.l;K0=+b.dataset.k;sh.lon0=LON0;sh.k0=K0;KTTTAM=false;
+    $('qmsg').querySelectorAll('.kttq').forEach(x=>x.classList.toggle('on',x===b));
+    const nh=$('qmsg').querySelector('.kttnow');if(nh)nh.innerHTML=b.textContent+' (anh đã chọn)';
+    drawKTT();drawResults();
+    if(!BASEKEY)datNen('esri',0);           // cần ảnh vệ tinh để đối chiếu vị trí
+    if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
+    gotoParcel(t,true);drawMap();
+  });
   $('qso').value='';$('qtxt').value='';$('qres').innerHTML='';
-  if($('dquet'))$('dquet').open=false;
+  if(!kt.html&&$('dquet'))$('dquet').open=false;   // có báo kinh tuyến trục thì giữ bảng mở cho anh đọc
 };
+/* báo kinh tuyến trục đang gán cho thửa vừa thêm, kèm nút chọn lại nếu chưa chắc */
+function hopKTT(t,sh){
+  if(!t.c)return {html:'',canChon:false};
+  const kq=kttChoDiem(t.c[0],t.c[1],sh.dc||'');
+  const dangTay=KTTTAY&&KTTTAY.sh===sh;
+  if(!dangTay){
+    if(LON0==null||kq.ds.some(c=>c.lon0===LON0))return {html:'',canChon:false};
+    return {canChon:true,html:`<br/><b>Chú ý:</b> với kinh tuyến trục ${dms(LON0)} của các tờ đã nạp, toạ độ vừa thêm không rơi vào tỉnh nào hợp lý — nhiều khả năng thửa này thuộc tỉnh khác (${kq.ds.slice(0,3).map(c=>c.ten).join(', ')||'không rõ'}). Muốn xem đúng chỗ thì xoá các tờ đã nạp rồi thêm lại thửa này.`};
+  }
+  const hien=kq.ds.find(c=>c.lon0===LON0);
+  const ten=(hien?hien.ten+' ':'')+dms(LON0);
+  const chac=!!(sh.lon0||kq.chon);
+  const ghi=sh.lon0?'(anh đã chọn)':kq.chon?`(${kq.lyDo})`:'— <b>chưa chắc chắn</b>, bấm đúng tỉnh của thửa:';
+  const nut=(!chac||kq.ds.length>1)?kq.ds.map(c=>`<button class="kttq${c.lon0===LON0?' on':''}" data-l="${c.lon0}" data-k="${c.k0}">${c.ten} ${dms(c.lon0)}</button>`).join(''):'';
+  const canhBao=kq.lechDc?`<br/><b>Chú ý:</b> địa chỉ ghi <b>${kq.lechDc}</b> nhưng toạ độ không nằm trong tỉnh đó với bất kỳ kinh tuyến trục nào — kiểm tra lại toạ độ đã quét (hay nhầm cột X/Y hoặc sai chữ số đầu).`:'';
+  return {canChon:!chac,html:`${canhBao}<br/>Kinh tuyến trục: <b class="kttnow">${ten} ${ghi}</b>${nut?`<div class="mini" style="margin-top:6px">${nut}</div>`:''}${chac&&nut?'<span class="note" style="margin:0">Sai tỉnh thì bấm tỉnh khác ở trên.</span>':''}`};
+}
 $('qclr2').onclick=()=>{
   ['qto','qso','qloai','qdt','qchu','qdc','qtxt'].forEach(id=>{if($(id))$(id).value=''});
   $('qres').innerHTML='';qmsg('Đã xoá trắng. Dán toạ độ thửa mới vào là nhập tiếp được.');

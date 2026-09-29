@@ -451,8 +451,8 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 </div>
 <div id="qhbox" style="margin-top:10px;border-top:1px solid var(--rule);padding-top:8px">
   <div style="display:flex;align-items:center;gap:8px">
-    <b style="font-size:13px;flex:1">Lớp quy hoạch (file KML / KMZ)</b>
-    <button id="bqh" style="padding:6px 10px;font-size:13px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;font-weight:600">+ Thêm file</button>
+    <b style="font-size:13px;flex:1">Các lớp dữ liệu <span style="font-weight:400;color:#6d6a60">— bật/tắt, độ đậm, thứ tự (▲ nằm trên)</span></b>
+    <button id="bqh" title="Thêm lớp chồng: KML, KMZ, DGN, DXF" style="padding:6px 10px;font-size:13px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;font-weight:600">+ Thêm lớp chồng</button>
   </div>
   <input type="file" id="fqh" multiple class="hide">
   <div id="qhlist"></div>
@@ -2049,7 +2049,13 @@ const S2W=(sx,sy)=>{const{W,H}=cssSize();return[VW.cx+(sx-W/2)/VW.sc, VW.cy-(sy-
 
 let VWok=false, DAKHOP=false;
 const QH=[];let QHID=0;      // các lớp quy hoạch KML/KMZ đã nạp
+let ORDER=[],LOPKY='';
+const LOPTO={};                      // số tờ -> {on,op}
+const lopTo=to=>LOPTO[to]||(LOPTO[to]={on:true,op:100});
+const lopHien=to=>{const l=lopTo(to);return l.on&&l.op>0};
+
 function drawMap(){
+  syncLop();
   if(!cvEl()||$('mapwrap').classList.contains('off'))return;
   const sz=cssSize();
   if(sz.W<10||sz.H<10)return;          // khung chưa hiện — chờ lần vẽ sau
@@ -2063,8 +2069,7 @@ function drawMap(){
   const {x,W,H}=setupCanvas();
   x.clearRect(0,0,W,H);
   const ghi=paintBase(x,W,H,VW,DPR(),false);
-  veQH(x,W,H,VW,DPR(),1);
-  paint(x,W,H,VW,{lab:SHOWLAB,dim:SHOWDIM,fs:1});
+  veCacLop(x,W,H,VW,DPR(),1,{lab:SHOWLAB,dim:SHOWDIM,fs:1});
   drawMe(x,W,H,VW,1);
   if(ghi){x.font='10px Helvetica,Arial,sans-serif';x.textAlign='right';x.textBaseline='bottom';
     x.fillStyle='rgba(255,255,255,.85)';const w=x.measureText(ghi).width+8;
@@ -2086,11 +2091,12 @@ function paint(x,W,H,vw,opt){
   L.forEach(t=>{
     const on=SEL.has(t.id);
     if(opt.onlySel&&!on)return;          // bản in: bỏ thửa lân cận không chọn
+    if(opt.to!=null&&t.to!==opt.to)return;  // vẽ riêng từng tờ theo thứ tự lớp
     const pts=t.r.map(T);
     let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
     pts.forEach(p=>{minx=Math.min(minx,p[0]);maxx=Math.max(maxx,p[0]);miny=Math.min(miny,p[1]);maxy=Math.max(maxy,p[1])});
     if(maxx<-40||minx>W+40||maxy<-40||miny>H+40)return;
-    x.save();x.globalAlpha=VOPA/100;
+    x.save();x.globalAlpha=(opt.op!=null?opt.op:VOPA)/100;
     x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();
     x.fillStyle=on?'rgba(180,36,31,.42)':t.ok?'rgba(61,107,79,.12)':'rgba(168,112,15,.18)';
     x.fill();
@@ -2102,6 +2108,7 @@ function paint(x,W,H,vw,opt){
     }
     x.restore();
     const wpx=maxx-minx,hpx=maxy-miny;
+    x.globalAlpha=opt.op!=null?Math.max(opt.op/100,.25):1;
     if(opt.lab&&wpx>34*opt.fs&&hpx>18*opt.fs){
       const cx=pts.reduce((s,p)=>s+p[0],0)/pts.length, cy=pts.reduce((s,p)=>s+p[1],0)/pts.length;
       x.textAlign='center';x.textBaseline='middle';
@@ -2128,6 +2135,7 @@ function paint(x,W,H,vw,opt){
         x.fillText(d.toFixed(2),0,-2*opt.fs);x.restore();
       }
     }
+    x.globalAlpha=1;
   });
 }
 
@@ -2170,7 +2178,7 @@ function bindMap(){
     if(PRINTMODE){rectStart=null;return}
     if(moved<7&&downPt&&VW){
       const w=S2W(downPt.x,downPt.y);let best=null;
-      for(const t of ringsAll())if(inPoly(w,t.r)&&(!best||t.a<best.a))best=t;
+      for(const t of ringsAll())if(lopHien(t.to)&&inPoly(w,t.r)&&(!best||t.a<best.a))best=t;
       if(best){
         if(SEL.has(best.id)){SEL.delete(best.id);if(FLASH&&FLASH.id===best.id)FLASH=null}
         else{SEL.add(best.id);FLASH={id:best.id,z:0}}   // chạm chọn trên bản đồ cũng hiện thanh thông tin + nút chỉ đường
@@ -2242,8 +2250,7 @@ function renderPrint(px,trongSuot,ghiNen){
   const vw={cx:(PRECT.x0+PRECT.x1)/2,cy:(PRECT.y0+PRECT.y1)/2,sc};
   const fs=Math.max(1,px/700);
   const ghi=trongSuot?ghiNen:paintBase(x,cv.width,cv.height,vw,1,true);
-  veQH(x,cv.width,cv.height,vw,1,fs);
-  paint(x,cv.width,cv.height,vw,optIn(fs));
+  veCacLop(x,cv.width,cv.height,vw,1,fs,optIn(fs));
   drawMe(x,cv.width,cv.height,vw,fs);
   // thước tỷ lệ
   const target=cv.width*0.22/sc;
@@ -3020,14 +3027,16 @@ function vnQH(L){
   L.vk=key;
 }
 /* vẽ các lớp quy hoạch lên canvas — dùng chung cho màn hình, bản in và ảnh PNG */
-function veQH(x,W,H,vw,k,fs){
-  if(!QH.length||LON0==null)return;
+function veQH(x,W,H,vw,k,fs){ for(const L of QH)veQH1(L,x,W,H,vw,k,fs) }
+function veQH1(L,x,W,H,vw,k,fs){
   const T=p=>[W/2+(p[0]-vw.cx)*vw.sc, H/2-(p[1]-vw.cy)*vw.sc];
   const x0=vw.cx-W/2/vw.sc,x1=vw.cx+W/2/vw.sc,y0=vw.cy-H/2/vw.sc,y1=vw.cy+H/2/vw.sc;
-  for(const L of QH){
-    if(!L.on||L.op<=0)continue;
-    vnQH(L);
+  {
+    if(!L.on||L.op<=0)return;
     const op=L.op/100;
+    if(L.loai==='cad'){veCad(L,x,W,H,vw,fs,T,[x0,y0,x1,y1],op);return}
+    if(LON0==null)return;
+    vnQH(L);
     for(const g of L.imgs){
       const iw=g.im.naturalWidth,ih=g.im.naturalHeight,N=g.N;if(!iw)continue;
       const S=g.g.map(r=>r.map(T));
@@ -3068,40 +3077,183 @@ function veQH(x,W,H,vw,k,fs){
   }
 }
 function khungQH(L){
-  if(LON0==null)return;
   const {W,H}=cssSize();if(W<10||H<10)return;
-  const a=toVN(L.bb[1],L.bb[0],LON0,K0),b=toVN(L.bb[3],L.bb[2],LON0,K0);
+  let a,b;
+  if(L.loai==='cad'){a=[L.bb[0],L.bb[1]];b=[L.bb[2],L.bb[3]]}
+  else{ if(LON0==null)return; a=toVN(L.bb[1],L.bb[0],LON0,K0);b=toVN(L.bb[3],L.bb[2],LON0,K0) }
   const bw=Math.abs(b[0]-a[0])||50,bh=Math.abs(b[1]-a[1])||50;
   VW={cx:(a[0]+b[0])/2,cy:(a[1]+b[1])/2,sc:Math.min(W/bw,H/bh)*0.9};
 }
-function veDsQH(){
-  $('qhlist').innerHTML=QH.map(L=>`<div class="qhrow" data-id="${L.id}" style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
-    <label style="margin:0;display:flex;gap:6px;align-items:center;flex:1 1 140px;font-weight:400;font-size:13px;min-width:0">
-      <input type="checkbox" class="qhon" ${L.on?'checked':''} style="width:auto;margin:0">
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(L.ten)}</span></label>
-    <span style="font-size:12px;white-space:nowrap">Độ đậm <b class="qhv">${L.op}%</b></span>
-    <input type="range" class="qhop" min="0" max="100" value="${L.op}" style="flex:2 1 140px;margin:0">
-    <button class="qhzoom" title="Phóng tới lớp này" style="padding:4px 8px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer">⤢</button>
-    <button class="qhx" title="Gỡ lớp này" style="padding:4px 9px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer">×</button></div>`).join('');
-  $('qhlist').querySelectorAll('.qhrow').forEach(r=>{
-    const L=QH.find(l=>l.id===+r.dataset.id);
-    r.querySelector('.qhon').onchange=e=>{L.on=e.target.checked;drawMap()};
-    r.querySelector('.qhop').oninput=e=>{L.op=+e.target.value;r.querySelector('.qhv').textContent=L.op+'%';drawMap()};
-    r.querySelector('.qhzoom').onclick=()=>{L.on=true;khungQH(L);veDsQH();drawMap()};
-    r.querySelector('.qhx').onclick=()=>{
+
+/* ===== Lớp chồng từ file DGN / DXF (chỉ để xem, không tách thửa) ===== */
+function doanCal(raw){                     // V7 không tự dò được tỷ lệ: mượn thông số tờ đã nạp, không có thì đoán 1000 đv/m
+  const sh=SHEETS.find(x=>x.ver===7&&x.cal);
+  if(sh)return {cal:sh.cal,nguon:'mượn thông số của tờ '+sh.to};
+  let sx=0,sy=0,n=0;for(const p of raw.geo)for(const q of p){sx+=q[0];sy+=q[1];n++}
+  const div=1000,mx=sx/n/div,my=sy/n/div;
+  const pick=(m,lo,hi)=>{const o=[];for(let k=-6;k<=6;k++){const v=k*500000;if(m+v>=lo&&m+v<=hi)o.push(v)}return o};
+  const oE=pick(mx,300000,700000),oN=pick(my,900000,2600000);
+  if(!oE.length||!oN.length)return null;
+  return {cal:{div,offE:oE.includes(500000)?500000:oE[0],offN:oN.includes(1000000)?1000000:oN[0]},nguon:'đoán tỷ lệ 1.000 đơn vị/m — kiểm tra vị trí trên ảnh nền'};
+}
+async function napCad(file){
+  const ten=file.name.replace(/\.(dgn|dxf)$/i,'');
+  let src,ghi='';
+  if(/\.dxf$/i.test(file.name))src=parseDXF(await file.text());
+  else{
+    src=await parseDGN(await file.arrayBuffer());
+    if(src.ver===7&&!src.cal){
+      const d=doanCal(src.rawSrc||src);
+      if(!d)throw new Error('không xác định được toạ độ của file');
+      src=applyCal(src.rawSrc||src,d.cal);ghi=d.nguon;
+    }
+  }
+  const feats=[];let bb=[1e18,1e18,-1e18,-1e18],bad=0;
+  const hopLe=p=>p[0]>100000&&p[0]<900000&&p[1]>900000&&p[1]<2700000;
+  for(const p of src.geo){
+    if(p.length<2||!p.every(hopLe)){bad++;continue}
+    const kin=p.length>=4&&Math.hypot(p[0][0]-p[p.length-1][0],p[0][1]-p[p.length-1][1])<0.05;
+    let b=[1e18,1e18,-1e18,-1e18];
+    for(const q of p){b[0]=Math.min(b[0],q[0]);b[1]=Math.min(b[1],q[1]);b[2]=Math.max(b[2],q[0]);b[3]=Math.max(b[3],q[1])}
+    let A=0;if(kin)for(let i=0;i+1<p.length;i++)A+=p[i][0]*p[i+1][1]-p[i+1][0]*p[i][1];
+    feats.push({t:kin&&Math.abs(A)/2<1e6?'pg':'ln',v:p,b});   // vùng quá lớn (khung tờ) chỉ vẽ nét, không tô
+    bb=[Math.min(bb[0],b[0]),Math.min(bb[1],b[1]),Math.max(bb[2],b[2]),Math.max(bb[3],b[3])];
+  }
+  if(!feats.length)throw new Error('file không có nét vẽ nào đọc được');
+  // bỏ khung bao toàn file do vài nét rác nằm quá xa: lấy 1% – 99%
+  const xs=feats.map(f=>(f.b[0]+f.b[2])/2).sort((a,b)=>a-b),ys=feats.map(f=>(f.b[1]+f.b[3])/2).sort((a,b)=>a-b);
+  const q=(a,t)=>a[Math.min(a.length-1,Math.max(0,Math.round((a.length-1)*t)))];
+  bb=[q(xs,.01),q(ys,.01),q(xs,.99),q(ys,.99)];
+  const txt=[];const seen=new Set();
+  for(const t of (src.labels||[]).concat((src.cells||[]).flat())){
+    if(!t||!t.s||!hopLe([t.x,t.y]))continue;
+    const k=t.s+'|'+Math.round(t.x/2)+'|'+Math.round(t.y/2);if(seen.has(k))continue;seen.add(k);
+    txt.push({x:t.x,y:t.y,s:t.s});
+  }
+  return {id:++QHID,ten,loai:'cad',on:true,op:60,mau:'#c0392b',feats,txt,bb,imgs:[],ghi,bad};
+}
+const hex2rgb=h=>{const n=parseInt(h.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255]};
+function veCad(L,x,W,H,vw,fs,T,box,op){
+  const [r,g,b]=hex2rgb(L.mau);
+  x.save();x.lineJoin='round';x.lineCap='round';
+  const trong=f=>!(f.b[2]<box[0]||f.b[0]>box[2]||f.b[3]<box[1]||f.b[1]>box[3]);
+  // tô nhạt các vùng khép kín
+  x.beginPath();
+  for(const f of L.feats){if(f.t!=='pg'||!trong(f))continue;
+    f.v.forEach((p,n)=>{const s=T(p);n?x.lineTo(s[0],s[1]):x.moveTo(s[0],s[1])});x.closePath()}
+  x.fillStyle=`rgba(${r},${g},${b},${(.16*op).toFixed(3)})`;x.fill('evenodd');
+  // nét vẽ
+  x.beginPath();
+  for(const f of L.feats){if(!trong(f))continue;
+    f.v.forEach((p,n)=>{const s=T(p);n?x.lineTo(s[0],s[1]):x.moveTo(s[0],s[1])})}
+  x.strokeStyle=`rgba(${r},${g},${b},${op.toFixed(3)})`;x.lineWidth=.9*fs;x.stroke();
+  // chữ ghi chú: chỉ hiện khi phóng đủ gần cho đỡ rối
+  if(vw.sc/fs>=1.3){
+    x.font=`${10*fs}px Helvetica,Arial,sans-serif`;x.textAlign='center';x.textBaseline='middle';
+    x.strokeStyle=`rgba(255,255,255,${(.85*op).toFixed(3)})`;x.lineWidth=2.6*fs;
+    x.fillStyle=`rgba(${Math.round(r*.55)},${Math.round(g*.55)},${Math.round(b*.55)},${Math.max(op,.35).toFixed(3)})`;
+    let dem=0;const o=new Set(),cw=46*fs,chh=16*fs;
+    for(const t of L.txt){
+      if(t.x<box[0]||t.x>box[2]||t.y<box[1]||t.y>box[3])continue;
+      const s=T([t.x,t.y]),k=Math.floor(s[0]/cw)+'|'+Math.floor(s[1]/chh);
+      if(o.has(k))continue;o.add(k);                 // chữ chồng lên nhau thì bỏ bớt
+      if(++dem>700)break;
+      x.strokeText(t.s,s[0],s[1]);x.fillText(t.s,s[0],s[1]);
+    }
+  }
+  x.restore();
+}
+
+/* ===== Bảng các lớp: bật/tắt, độ mờ, thứ tự từng lớp =====
+   Khoá lớp: 't:<số tờ>' cho tờ địa chính, 'q:<id>' cho lớp chồng. Phần tử cuối mảng nằm trên cùng. */
+function syncLop(){
+  const tos=[...new Set(SHEETS.map(s=>s.to))];
+  const keys=tos.map(t=>'t:'+t).concat(QH.map(l=>'q:'+l.id));
+  ORDER=ORDER.filter(k=>keys.includes(k));
+  for(const k of keys)if(!ORDER.includes(k)){
+    if(k[0]==='t')ORDER.push(k);                 // tờ mới: nằm trên
+    else{                                         // lớp chồng mới: nằm ngay dưới các tờ
+      const i=ORDER.findIndex(x=>x[0]==='t');ORDER.splice(i<0?ORDER.length:i,0,k);
+    }
+  }
+  const ky=ORDER.join(',')+'#'+QH.map(l=>l.ten).join('|');
+  if(ky!==LOPKY){LOPKY=ky;veDsLop()}
+}
+function veCacLop(x,W,H,vw,k,fs,opt){
+  for(const key of ORDER){
+    if(key[0]==='t'){
+      const to=key.slice(2),l=lopTo(to);
+      if(!l.on||l.op<=0)continue;
+      paint(x,W,H,vw,{...opt,to,op:l.op});
+    }else{
+      const L=QH.find(l=>'q:'+l.id===key);
+      if(L)veQH1(L,x,W,H,vw,k,fs);
+    }
+  }
+  x.globalAlpha=1;
+}
+const NUTL='padding:4px 8px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;line-height:1';
+function veDsLop(){
+  const hang=ORDER.slice().reverse();
+  $('qhlist').innerHTML=hang.length?hang.map((key,i)=>{
+    const la=key[0]==='t',to=key.slice(2),L=la?null:QH.find(l=>'q:'+l.id===key);
+    const st=la?lopTo(to):L;
+    const ten=la?(to==='tay'?'Thửa nhập tay':'Tờ '+to):L.ten;
+    const nhan=la?'<span style="font-size:11px;color:#fff;background:var(--moss);border-radius:3px;padding:1px 5px">tờ</span>'
+      :`<span style="font-size:11px;color:#fff;background:#8a2f16;border-radius:3px;padding:1px 5px">${L.loai==='cad'?'CAD':'KML'}</span>`;
+    return `<div class="lop" data-k="${key}" style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;border-bottom:1px dashed var(--rule);padding-bottom:6px">
+      <label style="margin:0;display:flex;gap:6px;align-items:center;flex:1 1 150px;font-weight:400;font-size:13px;min-width:0">
+        <input type="checkbox" class="lon" ${st.on?'checked':''} style="width:auto;margin:0">${nhan}
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(ten)}">${esc(ten)}</span></label>
+      <input type="range" class="lop_op" min="0" max="100" value="${st.op}" style="flex:2 1 120px;margin:0">
+      <b class="lov" style="font-size:12px;width:36px">${st.op}%</b>
+      ${L&&L.loai==='cad'?`<input type="color" class="lmau" value="${L.mau}" title="Đổi màu nét" style="width:30px;height:26px;padding:0;border:1px solid var(--rule);margin:0">`:''}
+      <button class="lup" title="Đưa lên trên" style="${NUTL}" ${i===0?'disabled':''}>▲</button>
+      <button class="ldn" title="Đưa xuống dưới" style="${NUTL}" ${i===hang.length-1?'disabled':''}>▼</button>
+      <button class="lzoom" title="Phóng tới lớp này" style="${NUTL}">⤢</button>
+      ${L?`<button class="lx" title="Gỡ lớp này" style="${NUTL}">×</button>`:''}</div>`}).join('')
+    :'<p class="note" style="margin:6px 0 0">Chưa có lớp nào. Nạp tờ bản đồ ở bảng bên, hoặc thêm lớp chồng bằng nút bên trên.</p>';
+  $('qhlist').querySelectorAll('.lop').forEach(r=>{
+    const key=r.dataset.k,la=key[0]==='t',to=key.slice(2),L=la?null:QH.find(l=>'q:'+l.id===key);
+    const st=la?lopTo(to):L;
+    r.querySelector('.lon').onchange=e=>{st.on=e.target.checked;drawMap()};
+    r.querySelector('.lop_op').oninput=e=>{st.op=+e.target.value;r.querySelector('.lov').textContent=st.op+'%';drawMap()};
+    const m=r.querySelector('.lmau');if(m)m.oninput=e=>{L.mau=e.target.value;drawMap()};
+    const doi=d=>{const i=ORDER.indexOf(key),j=i+d;if(j<0||j>=ORDER.length)return;
+      ORDER[i]=ORDER[j];ORDER[j]=key;LOPKY='';drawMap()};
+    r.querySelector('.lup').onclick=()=>doi(1);
+    r.querySelector('.ldn').onclick=()=>doi(-1);
+    r.querySelector('.lzoom').onclick=()=>{
+      st.on=true;
+      if(la){const ds=allThua().filter(t=>t.to===to&&t.r);if(ds.length)fitView(ds)}
+      else khungQH(L);
+      LOPKY='';drawMap()};
+    const x=r.querySelector('.lx');
+    if(x)x.onclick=()=>{
       L.imgs.forEach(g=>{if(g.im.src.startsWith('blob:'))URL.revokeObjectURL(g.im.src)});
-      QH.splice(QH.indexOf(L),1);veDsQH();drawMap()};
+      QH.splice(QH.indexOf(L),1);drawMap()};
   });
 }
+function veDsQH(){LOPKY='';syncLop()}
 $('bqh').onclick=()=>$('fqh').click();
 $('fqh').onchange=async e=>{
   const fs=[...e.target.files];e.target.value='';
   if(!fs.length)return;
   const bao=[];
   for(const f of fs){
-    if(!/\.(kml|kmz)$/i.test(f.name)){bao.push(`<b>${esc(f.name)}</b>: chỉ nhận file .kml hoặc .kmz`);continue}
+    if(!/\.(kml|kmz|dgn|dxf)$/i.test(f.name)){bao.push(`<b>${esc(f.name)}</b>: chỉ nhận file .kml, .kmz, .dgn hoặc .dxf`);continue}
     $('qhmsg').textContent='Đang đọc '+f.name+'…';
     try{
+      if(/\.(dgn|dxf)$/i.test(f.name)){
+        const L=await napCad(f);
+        if(LON0==null){const k=kttChoDiem((L.bb[0]+L.bb[2])/2,(L.bb[1]+L.bb[3])/2,'');
+          const c=k.chon||k.ds[0];if(c){LON0=c.lon0;K0=c.k0;KTTTAM=c.ten}}
+        QH.push(L);
+        if(!ringsAll().length||!VW)khungQH(L);
+        const npg=L.feats.filter(f=>f.t==='pg').length;
+        bao.push(`<b>${esc(L.ten)}</b>: ${npg} vùng khép kín, ${L.feats.length-npg} nét, ${L.txt.length} chữ ghi chú${L.ghi?' — '+L.ghi:''}${L.bad?` (bỏ ${L.bad} nét toạ độ lạ)`:''}`);
+        continue;
+      }
       const L=await napQH(f);
       const c=L.imgs.length?L.imgs[0].q[0]:(L.feats[0].rings||[L.feats[0].pts])[0][0];
       if(LON0==null)kttTheoViTri(c[1],c[0]);
@@ -3112,11 +3264,12 @@ $('fqh').onchange=async e=>{
     }catch(er){bao.push(`<b>${esc(f.name)}</b>: ${esc(er.message||'không đọc được')}`)}
   }
   $('qhmsg').innerHTML=bao.join('<br>');
-  veDsQH();
   if($('mapwrap').classList.contains('off'))setMap(true);
   if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
   drawMap();
 };
+/* thanh độ đậm chung các tờ đã thay bằng thanh riêng từng tờ trong bảng Các lớp */
+try{ $('vopa').closest('div').classList.add('hide') }catch(e){}
 
 
 /* ===== Quét bảng toạ độ từ ảnh (chụp trích lục, trích đo) ===== */

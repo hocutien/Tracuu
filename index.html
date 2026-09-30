@@ -179,6 +179,16 @@ html,body{height:100%;overflow:hidden}
 .logrow.fail{border-left-color:var(--red);background:#fdf0ea}
 #maptools button.on,.mini button.on{background:var(--moss);color:#fff;border-color:var(--moss)}
 #printout{display:none}
+.caution{background:#fff7e6;border-left:3px solid var(--warn);padding:9px 11px;font-size:13px;margin-top:10px}
+/* ===== Chế độ toàn màn hình: chỉ còn bản đồ ===== */
+#bthoat{display:none}
+body.full #side,body.full #grip,body.full #mobtab,body.full #locrow,body.full #gpsmsg,body.full #printbox{display:none!important}
+body.full #app{height:100dvh!important}
+body.full #bfull{display:none!important}
+body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(safe-area-inset-top));z-index:7;
+  padding:9px 13px;font-size:13.5px;font-weight:600;border:1px solid var(--rule);border-radius:10px;
+  background:#fffdf8;color:var(--ink);cursor:pointer;box-shadow:0 2px 9px rgba(22,33,28,.24)}
+@media(min-width:901px){ body.full #toolbar{display:none} }
 @media print{
   html,body{height:auto!important;overflow:visible!important;background:#fff}
   body>*{display:none!important}
@@ -213,7 +223,8 @@ html,body{height:100%;overflow:hidden}
     background-color:#fffdf8;background-repeat:no-repeat;background-position:center;background-size:23px 23px;
     box-shadow:0 2px 9px rgba(22,33,28,.24)}
   #toolbar .mini>button:active,#fabbr>button:active{background-color:#eceade}
-  #bnen{order:1}#mfit{order:2}#mzin{order:3}#mzout{order:4}
+  #bfull{order:0}#bnen{order:1}#mfit{order:2}#mzin{order:3}#mzout{order:4}
+  #bfull{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M14%204h6v6M20%204l-7%207M10%2020H4v-6M4%2020l7-7%22%2F%3E%3C%2Fsvg%3E")}
   #bnen{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%203%203%207.5l9%204.5%209-4.5L12%203Z%22%2F%3E%3Cpath%20d%3D%22M3%2012.5%2012%2017l9-4.5%22%2F%3E%3Cpath%20d%3D%22M3%2017.5%2012%2022l9-4.5%22%2F%3E%3C%2Fsvg%3E")}
   #mfit{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%209V5.6A1.6%201.6%200%200%201%205.6%204H9%22%2F%3E%3Cpath%20d%3D%22M15%204h3.4A1.6%201.6%200%200%201%2020%205.6V9%22%2F%3E%3Cpath%20d%3D%22M20%2015v3.4a1.6%201.6%200%200%201-1.6%201.6H15%22%2F%3E%3Cpath%20d%3D%22M9%2020H5.6A1.6%201.6%200%200%201%204%2018.4V15%22%2F%3E%3C%2Fsvg%3E")}
   #mzin{background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2316211c%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%206v12%22%2F%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E")}
@@ -423,6 +434,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div id="toolbar">
     <div class="mini">
       <button id="sfold">‹ Gập bảng</button>
+      <button id="bfull" title="Ẩn hết thanh công cụ, chỉ để bản đồ">⛶ Toàn màn hình</button>
       <button id="mfit">Vừa màn hình</button>
       <button id="mzin">Phóng to +</button>
       <button id="mzout">Thu nhỏ −</button>
@@ -477,6 +489,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   </div>
   <div id="mapwrap"><canvas id="map"></canvas></div>
   <div id="fabbr"></div>
+  <button id="bthoat" title="Hiện lại bảng điều khiển (phím Esc)">✕ Thoát toàn màn hình</button>
   <div id="mapfoot">
 <div id="locrow" class="hide" style="display:flex;gap:8px;margin-top:8px;align-items:flex-end;flex-wrap:wrap">
   <div style="flex:2 1 220px"><label for="mloc" style="margin-top:0">Hoặc dán toạ độ (WGS-84 hay VN-2000)</label>
@@ -2870,6 +2883,26 @@ gotoParcel=function(t,zoom){
 if(window.ResizeObserver&&$('mapwrap')){
   new ResizeObserver(()=>{clearTimeout(window.__rz);window.__rz=setTimeout(drawMap,60)}).observe($('mapwrap'));
 }
+
+/* ===== Toàn màn hình: ẩn bảng tra cứu, thanh công cụ, thanh tab — chỉ còn bản đồ ===== */
+function toanMan(on){
+  document.body.classList.toggle('full',on);
+  if(on&&heptay())tab('map');
+  try{
+    const d=document.documentElement;
+    if(on&&d.requestFullscreen&&!document.fullscreenElement)d.requestFullscreen().catch(()=>{});
+    if(!on&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  }catch(e){}
+  clearTimeout(window.__rz);window.__rz=setTimeout(drawMap,80);
+}
+$('bfull').onclick=()=>toanMan(true);
+$('bthoat').onclick=()=>toanMan(false);
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement&&document.body.classList.contains('full'))toanMan(false);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&document.body.classList.contains('full'))toanMan(false);
+});
 
 $('tmore').onclick=()=>{document.body.classList.toggle('more');clearTimeout(window.__rz);window.__rz=setTimeout(drawMap,60)};
 

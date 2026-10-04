@@ -353,6 +353,21 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 </div>
 
     </details>
+    <details id="dol"><summary>🔎 Hỏi thửa từ Mạnh Lắm</summary>
+      <div class="row">
+        <div><label for="oltinh">Tỉnh</label><select id="oltinh" disabled><option value="">— đang tải —</option></select></div>
+        <div><label for="olhuyen">Huyện</label><select id="olhuyen" disabled><option value="">— chọn tỉnh trước —</option></select></div>
+      </div>
+      <div class="row">
+        <div><label for="olxa">Xã / phường</label><select id="olxa" disabled><option value="">— chọn huyện trước —</option></select></div>
+        <div><label for="olto">Tờ bản đồ</label><select id="olto" disabled><option value="">— chọn xã trước —</option></select></div>
+      </div>
+      <label for="olso">Số thửa — nhiều thửa cách nhau dấu phẩy, tối đa 10</label>
+      <input id="olso" inputmode="numeric" placeholder="161, 150, 156" spellcheck="false" autocomplete="off">
+      <button class="go" id="olgo" style="margin-top:10px">Hỏi OnLand và đưa lên bản đồ</button>
+      <p class="note" id="olmsg"></p>
+      <p class="note">Ranh thửa lấy từ onland.tech (WGS-84) rồi tính về VN-2000 theo kinh tuyến trục của tỉnh đã chọn, thêm vào danh sách như thửa nạp từ file. Chỉ hỏi đúng những số thửa gõ ở trên.</p>
+    </details>
     <details id="dquet"><summary>📷 Quét bảng toạ độ từ ảnh</summary>
       <div class="mini">
         <button id="qcam">📷 Chụp bảng toạ độ</button>
@@ -3717,6 +3732,138 @@ function hopKTT(t,sh){
 $('qclr2').onclick=()=>{
   ['qto','qso','qloai','qdt','qchu','qdc','qtxt'].forEach(id=>{if($(id))$(id).value=''});
   $('qres').innerHTML='';qmsg('Đã xoá trắng. Dán toạ độ thửa mới vào là nhập tiếp được.');
+};
+
+/* ===== Hỏi thửa từ OnLand: chọn tỉnh → huyện → xã → tờ, gõ số thửa ===== */
+const OL='https://onland.tech/api';
+const OLMAX=10, OLNGHI=800;                 // tối đa số thửa mỗi lần bấm, nghỉ giữa hai lần hỏi (ms)
+const OLMD={t:'84',h:'851'};                // mặc định Trà Vinh → Duyên Hải (Thị xã)
+let OLTINH=[],OLLOP=[],OLNHO={},OLDANAP=false;
+try{OLNHO=JSON.parse(localStorage.getItem('olsel')||'{}')||{}}catch(e){}
+const olmsg=(h,loai)=>$('olmsg').innerHTML=loai?`<div class="${loai}">${h}</div>`:h;
+const olNho=()=>{try{localStorage.setItem('olsel',JSON.stringify(
+  {t:$('oltinh').value,h:$('olhuyen').value,x:$('olxa').value,to:$('olto').value}))}catch(e){}};
+async function olGoi(path,body){
+  const r=await fetch(OL+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);
+  if(!r.ok)throw new Error('OnLand trả mã '+r.status);
+  const j=await r.json();
+  return Array.isArray(j)?j:(j.list||j.data||[]);
+}
+function olOpt(el,ds,ph,val){
+  el.innerHTML=`<option value="">${ph}</option>`+ds.map(d=>`<option value="${d.v}">${esc(d.t)}</option>`).join('');
+  el.disabled=!ds.length;
+  if(val&&ds.some(d=>String(d.v)===String(val)))el.value=val;
+  return el.value;
+}
+const olTen=el=>el.value?el.options[el.selectedIndex].textContent:'';
+const olSoTo=l=>String(l.name||'').replace(/^dc/i,'')||String(l.name);
+async function olNapTinh(){
+  if(OLDANAP)return;OLDANAP=true;
+  try{
+    OLTINH=(await olGoi('/provinces')).sort((a,b)=>a.name.localeCompare(b.name,'vi'));
+    olOpt($('oltinh'),OLTINH.map(p=>({v:p.id,t:p.name})),'— chọn tỉnh —',OLNHO.t||OLMD.t);
+    olmsg('');
+    await olNapHuyen(OLNHO.h||OLMD.h,OLNHO.x,OLNHO.to);
+  }catch(e){OLDANAP=false;olmsg('Không gọi được OnLand: '+esc(e.message)+'. Kiểm tra mạng rồi mở lại mục này.','warn')}
+}
+async function olNapHuyen(h,x,to){
+  olOpt($('olhuyen'),[],'— chọn tỉnh trước —');olOpt($('olxa'),[],'— chọn huyện trước —');olOpt($('olto'),[],'— chọn xã trước —');OLLOP=[];
+  const t=$('oltinh').value;if(!t)return;
+  const ds=await olGoi('/districts/'+t);
+  if(olOpt($('olhuyen'),ds.map(d=>({v:d.id,t:d.name})),'— chọn huyện —',h))await olNapXa(x,to);
+}
+async function olNapXa(x,to){
+  olOpt($('olxa'),[],'— chọn huyện trước —');olOpt($('olto'),[],'— chọn xã trước —');OLLOP=[];
+  const h=$('olhuyen').value;if(!h)return;
+  const ds=await olGoi('/communes/'+h);
+  if(olOpt($('olxa'),ds.map(d=>({v:d.id,t:d.name})),'— chọn xã / phường —',x))await olNapTo(to);
+}
+async function olNapTo(to){
+  olOpt($('olto'),[],'— chọn xã trước —');OLLOP=[];
+  const x=$('olxa').value;if(!x)return;
+  OLLOP=(await olGoi('/map_layers',{tinh_id:$('oltinh').value,huyen_id:$('olhuyen').value,xa_id:x,type:'dc',current:1,pageSize:200}))
+    .filter(l=>l.type==='dc').sort((a,b)=>SXS(olSoTo(a),olSoTo(b))||(b.year||0)-(a.year||0));
+  const dem={};OLLOP.forEach(l=>{const s=olSoTo(l);dem[s]=(dem[s]||0)+1});
+  olOpt($('olto'),OLLOP.map(l=>({v:l.id,t:`Tờ ${olSoTo(l)}${l.ghichu?' — '+l.ghichu:''}${dem[olSoTo(l)]>1&&l.year?' ('+l.year+')':''}`})),
+    OLLOP.length?`— chọn tờ (${OLLOP.length} tờ) —`:'— xã này chưa có tờ địa chính —',to);
+  $('olto').disabled=!OLLOP.length;
+}
+const olLoi=e=>olmsg('Không gọi được OnLand: '+esc(e.message)+'.','warn');
+$('dol').addEventListener('toggle',()=>{if($('dol').open)olNapTinh()});
+$('oltinh').onchange=()=>{olNapHuyen().then(olNho,olLoi)};
+$('olhuyen').onchange=()=>{olNapXa().then(olNho,olLoi)};
+$('olxa').onchange=()=>{olNapTo().then(olNho,olLoi)};
+$('olto').onchange=olNho;
+$('olso').onkeydown=e=>{if(e.key==='Enter')$('olgo').click()};
+
+/* một kết quả OnLand → thửa của công cụ, ranh đã chuyển về VN-2000 */
+function olThua(it,to,lon0,lopId){
+  let g=null;try{g=JSON.parse(it.geojsonWGS84||it.polygon_bound||'null')}catch(e){}
+  let ring=g&&(g.type==='Polygon'?g.coordinates[0]:g.type==='MultiPolygon'?g.coordinates[0][0]:null);
+  if(!ring||ring.length<3)return null;
+  const a=ring[0],z=ring[ring.length-1];
+  if(a[0]===z[0]&&a[1]===z[1])ring=ring.slice(0,-1);
+  const p=ring.map(([lo,la])=>{const [E,N]=toVN(la,lo,lon0,0.9999);return {E,N}});
+  const dso=soVN(String(it.areashow==null?'':it.areashow));
+  const t={to,s:String(it.text),l:it.code||null,chu:null,d:dso,tay:1,ol:lopId,
+    c:[p.reduce((s,q)=>s+q.E,0)/p.length,p.reduce((s,q)=>s+q.N,0)/p.length]};
+  if(p.length>=3){
+    t.r=p.map(q=>[Math.round(q.E*100)/100,Math.round(q.N*100)/100]);
+    t.a=Math.round(dtShoelace(p)*10)/10;
+    if(dso>0){const dv=Math.abs(t.a-dso)/dso;t.ok=dv<0.02;if(!t.ok)t.bad=Math.round(dv*100)}
+    else t.chuaKt=1;
+  }
+  return t;
+}
+$('olgo').onclick=async()=>{
+  const lop=OLLOP.find(l=>String(l.id)===$('olto').value);
+  if(!lop)return olmsg('Chọn đủ tỉnh, huyện, xã và tờ bản đồ trước.','warn');
+  const ds=[...new Set($('olso').value.split(/[,;\s]+/).filter(Boolean))];
+  if(!ds.length)return olmsg('Gõ số thửa cần hỏi.','warn');
+  if(ds.length>OLMAX)return olmsg(`Mỗi lần chỉ hỏi tối đa ${OLMAX} thửa — đang gõ ${ds.length}.`,'warn');
+  const tinh=OLTINH.find(p=>String(p.id)===$('oltinh').value)||{};
+  const pv=PROV.find(p=>nodau(p[0])===nodau(tinh.name||''));
+  const lon0=parseFloat(tinh.central_meridian)||(pv&&pv[1])||null;
+  if(!lon0)return olmsg('Không rõ kinh tuyến trục của tỉnh này nên chưa chuyển được về VN-2000.','warn');
+  const to=olSoTo(lop), dc=[olTen($('olxa')),olTen($('olhuyen')),olTen($('oltinh'))].join(', ');
+  const nut=$('olgo');nut.disabled=true;
+  const dong=[];let cuoi=null,sh=SHEETS.find(x=>x.to===to);
+  try{
+    for(let i=0;i<ds.length;i++){
+      const s=ds[i];
+      olmsg(`Đang hỏi thửa ${esc(s)} (${i+1}/${ds.length})…`);
+      if(i)await new Promise(ok=>setTimeout(ok,OLNGHI));
+      const kq=(await olGoi('/map_parcels',{idmaplayer:lop.id,searchString:s,exactly:true,current:1,pageSize:10}))
+        .filter(it=>String(it.text)===s);
+      const thay=new Set(),moi=[];
+      kq.forEach(it=>{const k=it.geojsonWGS84||it.polygon_bound;if(thay.has(k))return;thay.add(k);
+        const t=olThua(it,to,lon0,lop.id);if(t)moi.push(t)});
+      if(!moi.length){dong.push(`Thửa ${esc(s)}: OnLand không có trên tờ ${esc(to)}.`);continue}
+      const san=sh&&sh.thua.find(t=>t.s===s&&!t.ol);
+      if(san){cuoi=san;dong.push(`Thửa ${esc(s)}: đã có sẵn trong tờ ${esc(to)} nạp từ file, giữ nguyên.`);continue}
+      if(!sh){sh={to,ten:'OnLand',thua:[],tay:1,ol:1,dc,lon0,k0:0.9999};SHEETS.push(sh)}
+      sh.thua=sh.thua.filter(t=>!(t.s===s&&t.ol));          // hỏi lại thì ghi đè, không trùng lặp
+      moi.forEach(t=>sh.thua.push(t));
+      cuoi=moi[0];
+      const t=moi[0];
+      dong.push(`<b>Thửa ${esc(s)}</b>: ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${moi.length>1?` · có ${moi.length} hình cùng số`:''}.`);
+    }
+  }catch(e){dong.push('Dừng giữa chừng: không gọi được OnLand ('+esc(e.message)+').')}
+  nut.disabled=false;
+  if(sh){ganId(sh);drawSheets();autoKTT();}
+  let lech='';
+  if(cuoi&&LON0!=null&&LON0!==lon0)lech=`<br/><b>Chú ý:</b> thửa được tính theo kinh tuyến trục ${dms(lon0)} của ${esc(tinh.name||'tỉnh đã chọn')}, còn bản đồ đang dùng ${dms(LON0)} — vị trí trên ảnh vệ tinh sẽ lệch cho tới khi chọn lại ở mục Kinh tuyến trục.`;
+  if(cuoi){
+    const ct=sh.thua.find(t=>t.s===cuoi.s)||cuoi;
+    SEL.add(ct.id);
+    drawResults();
+    if(!BASEKEY)datNen('esri',0);
+    if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
+    gotoParcel(ct,true);drawMap();
+    $('olso').value='';
+  }else drawResults();
+  olmsg(dong.join('<br/>')+lech,cuoi&&!lech?'ok':'warn');
+  olNho();
 };
 </script>
 </body>

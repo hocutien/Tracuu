@@ -364,10 +364,9 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
       </div>
       <label for="olso">Số thửa — nhiều thửa cách nhau dấu phẩy, tối đa 10</label>
       <input id="olso" inputmode="numeric" placeholder="161, 150, 156" spellcheck="false" autocomplete="off">
-      <label style="margin:8px 0 0;display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="olke" style="width:auto;margin:0"> Hiện luôn các thửa giáp ranh liền kề</label>
       <button class="go" id="olgo" style="margin-top:10px">Hỏi Mạnh Lắm và đưa lên bản đồ</button>
       <p class="note" id="olmsg"></p>
-      <p class="note">Ranh thửa lấy từ Mạnh Lắm (WGS-84) rồi tính về VN-2000 theo kinh tuyến trục của tỉnh đã chọn, thêm vào danh sách như thửa nạp từ file. Chỉ hỏi đúng những số thửa gõ ở trên; bật giáp ranh thì dò lan thêm các thửa nằm sát ranh thửa đó và báo đã phủ bao nhiêu phần chu vi.</p>
+      <p class="note">Ranh thửa lấy từ Mạnh Lắm (WGS-84) rồi tính về VN-2000 theo kinh tuyến trục của tỉnh đã chọn, thêm vào danh sách như thửa nạp từ file. Chỉ hỏi đúng những số thửa gõ ở trên; có kết quả rồi mới hỏi có hiện thêm các thửa giáp ranh của thửa đó không.</p>
     </details>
     <details id="dquet"><summary>📷 Quét bảng toạ độ từ ảnh</summary>
       <div class="mini">
@@ -3743,7 +3742,7 @@ let OLTINH=[],OLLOP=[],OLNHO={},OLDANAP=false;
 try{OLNHO=JSON.parse(localStorage.getItem('olsel')||'{}')||{}}catch(e){}
 const olmsg=(h,loai)=>$('olmsg').innerHTML=loai?`<div class="${loai}">${h}</div>`:h;
 const olNho=()=>{try{localStorage.setItem('olsel',JSON.stringify(
-  {t:$('oltinh').value,h:$('olhuyen').value,x:$('olxa').value,to:$('olto').value,ke:$('olke').checked}))}catch(e){}};
+  {t:$('oltinh').value,h:$('olhuyen').value,x:$('olxa').value,to:$('olto').value}))}catch(e){}};
 async function olGoi(path,body){
   const r=await fetch(OL+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);
   if(!r.ok)throw new Error('Mạnh Lắm trả mã '+r.status);
@@ -3795,7 +3794,6 @@ $('oltinh').onchange=()=>{olNapHuyen().then(olNho,olLoi)};
 $('olhuyen').onchange=()=>{olNapXa().then(olNho,olLoi)};
 $('olxa').onchange=()=>{olNapTo().then(olNho,olLoi)};
 $('olto').onchange=olNho;
-$('olke').checked=!!OLNHO.ke;$('olke').onchange=olNho;
 $('olso').onkeydown=e=>{if(e.key==='Enter')$('olgo').click()};
 
 /* một kết quả OnLand → thửa của công cụ, ranh đã chuyển về VN-2000 */
@@ -3852,7 +3850,7 @@ $('olgo').onclick=async()=>{
   const to=olSoTo(lop), dc=[olTen($('olxa')),olTen($('olhuyen')),olTen($('oltinh'))].join(', ');
   const nut=$('olgo');nut.disabled=true;
   const dong=[];let cuoi=null,sh=SHEETS.find(x=>x.to===to),lan=0;
-  const layKe=$('olke').checked, daHoi=new Set(ds);
+  const cho={}, kqKe={};                     // thửa đã có kết quả, chờ người dùng bấm hỏi giáp ranh
   const hoi=async(s,laKe)=>{                 // hỏi một số thửa → {moi:[thửa], ke:[nhãn số quanh thửa]}
     if(lan++)await new Promise(ok=>setTimeout(ok,OLNGHI));
     const kq=(await olGoi('/map_parcels',{idmaplayer:lop.id,searchString:s,exactly:true,current:1,pageSize:10}))
@@ -3882,24 +3880,7 @@ $('olgo').onclick=async()=>{
         const t=moi[0];
         dong.push(`<b>Thửa ${esc(s)}</b>: ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${moi.length>1?` · có ${moi.length} hình cùng số`:''}.`);
       }
-      if(!layKe)continue;
-      const goc=(san?[san]:moi).filter(t=>t.r), co=[], kes=[];let het=false;
-      const hang=[...ke];                                      // dò lan: thửa kề nào tìm được thì lấy tiếp nhãn quanh nó
-      while(hang.length){
-        const k=hang.shift();
-        if(daHoi.has(k))continue;
-        const cu=sh&&sh.thua.filter(t=>t.s===k&&t.r);          // đã có trên bản đồ thì khỏi hỏi lại
-        if(cu&&cu.length){daHoi.add(k);const g=cu.filter(t=>goc.some(q=>olCach(q.r,t.r)<1));if(g.length){co.push(k);kes.push(...g)}continue}
-        if(lan>=OLTONG){het=true;break}
-        daHoi.add(k);
-        olmsg(`Đang dò thửa giáp ranh của thửa ${esc(s)}: thử số ${esc(k)}, đã thấy ${co.length} thửa…`);
-        const kq=await hoi(k,1);
-        const lk=kq.moi.filter(t=>t.r&&goc.some(g=>olCach(g.r,t.r)<1)
-          &&!(sh&&sh.thua.some(u=>u.s!==t.s&&u.c&&Math.hypot(u.c[0]-t.c[0],u.c[1]-t.c[1])<0.05)));   // cùng một hình đã có dưới số khác
-        if(lk.length){lk.forEach(t=>t.ke=s);them(lk);co.push(k);kes.push(...lk);hang.push(...kq.ke)}
-      }
-      const pk=goc.length?olPhu(goc[0].r,kes.map(t=>t.r)):{tl:0,ho:[]}, phu=Math.round(pk.tl*100);
-      dong.push(`&nbsp;&nbsp;Giáp ranh thửa ${esc(s)}: ${co.length?co.map(esc).join(', '):'không tìm được thửa nào'} — phủ ${phu}% chu vi${pk.ho.length?`; cạnh chưa thấy thửa kề: ${pk.ho.join(', ')} — có thể là đường, kênh mương, hoặc thửa Mạnh Lắm chưa trả về`:''}${het?`; dừng vì đã đủ ${OLTONG} lần hỏi cho một lần bấm, bấm lại để dò tiếp`:''}.`);
+      cho[s]={goc:(san?[san]:moi).filter(t=>t.r),ke};
     }
   }catch(e){dong.push('Dừng giữa chừng: không gọi được Mạnh Lắm ('+esc(e.message)+').')}
   nut.disabled=false;
@@ -3915,7 +3896,40 @@ $('olgo').onclick=async()=>{
     gotoParcel(ct,true);drawMap();
     $('olso').value='';
   }else drawResults();
-  olmsg(dong.join('<br/>')+lech,cuoi&&!lech?'ok':'warn');
+  /* dò lan các thửa giáp ranh của một thửa đã có kết quả — chỉ chạy khi người dùng bấm */
+  const doKe=async s=>{
+    const {goc,ke}=cho[s], co=[], kes=[], daHoi=new Set([s]);let het=false;lan=0;
+    const hang=[...ke];                                        // thửa kề nào tìm được thì lấy tiếp nhãn quanh nó
+    while(hang.length){
+      const k=hang.shift();
+      if(daHoi.has(k))continue;
+      const cu=sh&&sh.thua.filter(t=>t.s===k&&t.r);            // đã có trên bản đồ thì khỏi hỏi lại
+      if(cu&&cu.length){daHoi.add(k);const g=cu.filter(t=>goc.some(q=>olCach(q.r,t.r)<1));if(g.length){co.push(k);kes.push(...g)}continue}
+      if(lan>=OLTONG){het=true;break}
+      daHoi.add(k);
+      kqKe[s]=`Đang dò thửa giáp ranh của thửa ${esc(s)}: thử số ${esc(k)}, đã thấy ${co.length} thửa…`;ve();
+      const kq=await hoi(k,1);
+      const lk=kq.moi.filter(t=>t.r&&goc.some(g=>olCach(g.r,t.r)<1)
+        &&!(sh&&sh.thua.some(u=>u.s!==t.s&&u.c&&Math.hypot(u.c[0]-t.c[0],u.c[1]-t.c[1])<0.05)));   // cùng một hình đã có dưới số khác
+      if(lk.length){lk.forEach(t=>t.ke=s);them(lk);co.push(k);kes.push(...lk);hang.push(...kq.ke)}
+    }
+    const pk=goc.length?olPhu(goc[0].r,kes.map(t=>t.r)):{tl:0,ho:[]}, phu=Math.round(pk.tl*100);
+    return `Giáp ranh thửa ${esc(s)}: ${co.length?co.map(esc).join(', '):'không tìm được thửa nào'} — phủ ${phu}% chu vi${pk.ho.length?`; cạnh chưa thấy thửa kề: ${pk.ho.join(', ')} — có thể là đường, kênh mương, hoặc thửa Mạnh Lắm chưa trả về`:''}${het?`; dừng vì đã đủ ${OLTONG} lần hỏi cho một lần bấm`:''}.`;
+  };
+  const ve=()=>{
+    const hoiKe=Object.keys(cho).filter(s=>cho[s].goc.length).map(s=>kqKe[s]?`&nbsp;&nbsp;${kqKe[s]}`
+      :`<div class="mini" style="margin-top:6px"><button class="olkebtn" data-s="${esc(s)}">Hiện thêm thửa giáp ranh của thửa ${esc(s)}</button></div>`).join('<br/>');
+    olmsg(dong.join('<br/>')+lech+(hoiKe?'<br/>'+hoiKe:''),cuoi&&!lech?'ok':'warn');
+    $('olmsg').querySelectorAll('.olkebtn').forEach(b=>b.onclick=async()=>{
+      const s=b.dataset.s;nut.disabled=true;
+      $('olmsg').querySelectorAll('.olkebtn').forEach(x=>x.disabled=true);
+      try{kqKe[s]=await doKe(s)}catch(e){kqKe[s]='Dừng giữa chừng: không gọi được Mạnh Lắm ('+esc(e.message)+').'}
+      nut.disabled=false;
+      if(sh){ganId(sh);drawSheets();autoKTT();drawResults();drawMap()}
+      ve();
+    });
+  };
+  ve();
   olNho();
 };
 </script>

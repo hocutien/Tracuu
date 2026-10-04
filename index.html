@@ -461,6 +461,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
       <button id="mlab" class="on">Số thửa &amp; chủ</button>
       <button id="mdim">Kích thước cạnh</button>
       <button id="mgoto" class="on">Chỏ tới thửa</button>
+      <button id="mpick" title="Bấm một điểm trên bản đồ để tra thửa tại đó từ Mạnh Lắm">📍 Tra thửa tại điểm</button>
       <button id="mprint">Chọn vùng in</button>
       <button id="bwatch">Theo dõi liên tục</button>
       <button id="mtoggle" class="hide">Ẩn bản đồ</button>
@@ -2112,6 +2113,7 @@ drawKTT();
 let VW=null;                 // {cx,cy,sc} tâm thế giới + tỷ lệ px/m
 let GOTO=true, FLASH=null;
 let SHOWLAB=true, SHOWDIM=false, PRINTMODE=false, VOPA=100;
+let OLPICK=false, OLBUSY=false;   // chế độ tra thửa tại điểm bấm
 let PRECT=null;              // vùng in, toạ độ thế giới {x0,y0,x1,y1}
 let PORIENT='portrait';
 /* Khổ giấy A4 trừ lề 10mm mỗi bên, rồi trừ tiếp 22mm dành cho tiêu đề và dòng
@@ -2328,6 +2330,7 @@ function bindMap(){
         if(SEL.has(best.id)){SEL.delete(best.id);if(FLASH&&FLASH.id===best.id)FLASH=null}
         else{SEL.add(best.id);FLASH={id:best.id,z:0}}   // chạm chọn trên bản đồ cũng hiện thanh thông tin + nút chỉ đường
         drawResults()}
+      else if(OLPICK&&window.olTaiDiem)window.olTaiDiem(w);   // bấm ra ngoài thửa đã có → tra ngược từ Mạnh Lắm
     }
     downPt=null;
   };
@@ -3931,6 +3934,79 @@ $('olgo').onclick=async()=>{
   };
   ve();
   olNho();
+};
+
+/* ===== Tra ngược: bấm một điểm trên bản đồ → thửa tại đó ===== */
+const OLPICKMAX=5, OLPICKKM=4;                 // tối đa số tờ thử mỗi cú bấm, chỉ thử tờ có tâm trong bán kính (km)
+function olLon0(){
+  const tinh=OLTINH.find(p=>String(p.id)===$('oltinh').value)||{};
+  const pv=PROV.find(p=>nodau(p[0])===nodau(tinh.name||''));
+  return {tinh,lon0:parseFloat(tinh.central_meridian)||(pv&&pv[1])||null};
+}
+function olTamTo(l){try{const g=JSON.parse(l.geojson);return g&&g.type==='Point'?g.coordinates:null}catch(e){return null}}
+async function olTaiDiem(w){
+  if(OLBUSY)return;
+  const {tinh,lon0}=olLon0();
+  if(!OLLOP.length||!lon0)return olmsg('Chọn tỉnh, huyện, xã trong mục "Hỏi thửa từ Mạnh Lắm" trước, rồi bấm lại.','warn');
+  OLBUSY=true;
+  try{
+    const [la,lo]=conv(w[0],w[1],LON0!=null?LON0:lon0,K0||0.9999);
+    const kc=Math.cos(la*Math.PI/180);
+    const cand=OLLOP.map(l=>({l,c:olTamTo(l)})).filter(x=>x.c)
+      .map(x=>({...x,d:Math.hypot((x.c[0]-lo)*kc,x.c[1]-la)*111.32}))
+      .filter(x=>x.d<=OLPICKKM).sort((a,b)=>a.d-b.d).slice(0,OLPICKMAX);
+    const xa=olTen($('olxa'));
+    if(!cand.length)return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) cách xa mọi tờ của ${esc(xa)} — đổi xã ở mục "Hỏi thửa từ Mạnh Lắm" nếu thửa thuộc nơi khác.`,'warn');
+    let thay=null,thu=0;
+    for(const x of cand){
+      olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — thử tờ ${esc(olSoTo(x.l))} (${++thu}/${cand.length})…`);
+      if(thu>1)await new Promise(ok=>setTimeout(ok,OLNGHI/2));
+      let j=null;
+      try{
+        const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:x.l.id,limit:50})});
+        if(r.ok)j=await r.json();
+      }catch(e){}
+      if(j&&j.text!=null&&(j.geojsonWGS84||j.polygon_bound)){thay={it:j,l:x.l};break}
+    }
+    if(!thay)return olmsg(`Không có thửa nào tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} trong ${cand.length} tờ gần nhất của ${esc(xa)} — có thể là đường, kênh mương hoặc chưa có dữ liệu.`,'warn');
+    const to=olSoTo(thay.l), dc=[xa,olTen($('olhuyen')),olTen($('oltinh'))].join(', ');
+    const t=olThua(thay.it,to,lon0,thay.l.id);
+    if(!t)return olmsg('Mạnh Lắm trả về thửa nhưng không có ranh để vẽ.','warn');
+    let sh=SHEETS.find(q=>q.to===to);
+    const san=sh&&sh.thua.find(q=>q.s===t.s&&!q.ol);              // đã có từ file thì giữ nguyên
+    if(!san){
+      if(!sh){sh={to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc,lon0,k0:0.9999};SHEETS.push(sh)}
+      sh.thua=sh.thua.filter(q=>!(q.s===t.s&&q.ol));
+      sh.thua.push(t);ganId(sh);
+    }
+    const ct=san||sh.thua.find(q=>q.s===t.s&&q.ol)||t;
+    SEL.add(ct.id);FLASH={id:ct.id,z:0};
+    drawSheets();autoKTT();drawResults();drawMap();
+    olmsg(`<b>Thửa ${esc(t.s)}, tờ ${esc(to)}</b>: ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.`,'ok');
+  }catch(e){olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.','warn')}
+  finally{OLBUSY=false}
+}
+window.olTaiDiem=olTaiDiem;
+$('mpick').onclick=async e=>{
+  const nut=e.currentTarget;
+  if(OLPICK){OLPICK=false;nut.classList.remove('on');cvEl().style.cursor='';return}
+  $('dol').open=true;
+  olNapTinh();
+  for(let i=0;i<24&&!OLLOP.length;i++)await new Promise(ok=>setTimeout(ok,250));
+  const {lon0}=olLon0();
+  if(!OLLOP.length||!lon0)return olmsg('Chọn tỉnh, huyện, xã và đợi danh sách tờ hiện ra, rồi bấm lại nút này.','warn');
+  OLPICK=true;nut.classList.add('on');cvEl().style.cursor='crosshair';
+  if(LON0==null&&!ringsAll().length){LON0=lon0;K0=0.9999}
+  if($('mapwrap').classList.contains('off'))setMap(true);
+  if(!BASEKEY)datNen('esri',0);
+  if(!ringsAll().length){                      // chưa có tờ nào: đặt khung tại tờ đang chọn (hoặc tờ đầu danh sách) bằng cơ chế đặt vị trí
+    const l=OLLOP.find(q=>String(q.id)===$('olto').value)||OLLOP[0], c=olTamTo(l);
+    if(c)placeMe(toVN(c[1],c[0],lon0,0.9999),0,c[1],c[0],true);
+  }
+  if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
+  drawMap();
+  olmsg('Đã bật <b>Tra thửa tại điểm</b>: bấm lên bản đồ vào thửa cần xem. Bấm lại nút này để tắt.','ok');
 };
 </script>
 </body>

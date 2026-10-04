@@ -288,6 +288,10 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
   #gpsmsg:empty{display:none}
 }
 /* thẻ thửa đang chỏ tới */
+#pickbar{display:none;position:absolute;top:8px;left:8px;right:8px;z-index:6;padding:9px 12px;border-radius:8px;font-size:13px;line-height:1.45;
+  background:#fffdf8;border:1px solid var(--rule);box-shadow:0 2px 10px rgba(0,0,0,.25);color:#16211c}
+#pickbar.ok{border-color:#3d6b4f;background:#eef6f0}#pickbar.warn{border-color:#a8700f;background:#fdf3e1}
+#pickbar button{float:right;margin-left:8px;border:0;background:none;font-size:17px;line-height:1;cursor:pointer;color:var(--dim)}
 #mapchip{display:none;align-items:center;gap:9px;background:#fffdf8;border:1px solid var(--rule);
   border-radius:10px;padding:8px 10px;font-size:13px;box-shadow:0 2px 9px rgba(22,33,28,.18)}
 #mapchip.on{display:flex}
@@ -503,7 +507,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 </div>
 </details>
   </div>
-  <div id="mapwrap"><canvas id="map"></canvas></div>
+  <div id="mapwrap"><canvas id="map"></canvas><div id="pickbar"><button id="pickx" title="Ẩn">×</button><span id="picktxt"></span></div></div>
   <div id="fabbr"></div>
   <button id="bthoat" title="Hiện lại bảng điều khiển (phím Esc)">✕ Thoát toàn màn hình</button>
   <div id="mapfoot">
@@ -3743,7 +3747,9 @@ const OLMAX=10, OLNGHI=800, OLTONG=40;      // tối đa số thửa mỗi lần
 const OLMD={t:'84',h:'851'};                // mặc định Trà Vinh → Duyên Hải (Thị xã)
 let OLTINH=[],OLLOP=[],OLNHO={},OLDANAP=false;
 try{OLNHO=JSON.parse(localStorage.getItem('olsel')||'{}')||{}}catch(e){}
-const olmsg=(h,loai)=>$('olmsg').innerHTML=loai?`<div class="${loai}">${h}</div>`:h;
+const olmsg=(h,loai)=>{$('olmsg').innerHTML=loai?`<div class="${loai}">${h}</div>`:h;
+  if(typeof OLPICK!=='undefined'&&OLPICK&&h)pickBar(h,loai)};
+function pickBar(h,loai){const b=$('pickbar');b.className=loai||'';b.style.display='block';$('picktxt').innerHTML=h}
 const olNho=()=>{try{localStorage.setItem('olsel',JSON.stringify(
   {t:$('oltinh').value,h:$('olhuyen').value,x:$('olxa').value,to:$('olto').value}))}catch(e){}};
 async function olGoi(path,body){
@@ -3797,6 +3803,7 @@ $('oltinh').onchange=()=>{olNapHuyen().then(olNho,olLoi)};
 $('olhuyen').onchange=()=>{olNapXa().then(olNho,olLoi)};
 $('olxa').onchange=()=>{olNapTo().then(olNho,olLoi)};
 $('olto').onchange=olNho;
+$('pickx').onclick=()=>{$('pickbar').style.display='none'};
 $('olso').onkeydown=e=>{if(e.key==='Enter')$('olgo').click()};
 
 /* một kết quả OnLand → thửa của công cụ, ranh đã chuyển về VN-2000 */
@@ -3990,12 +3997,12 @@ async function olTaiDiem(w){
 window.olTaiDiem=olTaiDiem;
 $('mpick').onclick=async e=>{
   const nut=e.currentTarget;
-  if(OLPICK){OLPICK=false;nut.classList.remove('on');cvEl().style.cursor='';return}
+  if(OLPICK){OLPICK=false;nut.classList.remove('on');cvEl().style.cursor='';$('pickbar').style.display='none';return}
   $('dol').open=true;
   olNapTinh();
   for(let i=0;i<24&&!OLLOP.length;i++)await new Promise(ok=>setTimeout(ok,250));
   const {lon0}=olLon0();
-  if(!OLLOP.length||!lon0)return olmsg('Chọn tỉnh, huyện, xã và đợi danh sách tờ hiện ra, rồi bấm lại nút này.','warn');
+  if(!OLLOP.length||!lon0){const m='Chưa có danh sách tờ: chọn tỉnh, huyện, xã trong mục "Hỏi thửa từ Mạnh Lắm" (kiểm tra mạng), đợi danh sách tờ hiện ra rồi bấm lại nút này.';olmsg(m,'warn');return pickBar(m,'warn')}
   OLPICK=true;nut.classList.add('on');cvEl().style.cursor='crosshair';
   if(LON0==null&&!ringsAll().length){LON0=lon0;K0=0.9999}
   if($('mapwrap').classList.contains('off'))setMap(true);

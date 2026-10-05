@@ -332,7 +332,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v18 · 05/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v19 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -364,6 +364,11 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <div class="note" id="ollechbox" style="border-top:1px solid var(--rule);padding-top:8px">
         <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink)"><input type="checkbox" id="ollechon" style="width:20px;height:20px;flex:none">Hiệu chỉnh ranh Mạnh Lắm theo DGN gốc</label>
         <div id="ollechtxt" style="margin-top:4px"></div>
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-top:6px;flex-wrap:wrap">
+          <div style="flex:1 1 90px"><label for="ollechdx" style="margin:0 0 2px">Trị số chung — lùi về tây (m)</label><input id="ollechdx" inputmode="decimal"></div>
+          <div style="flex:1 1 90px"><label for="ollechdy" style="margin:0 0 2px">lùi về nam (m)</label><input id="ollechdy" inputmode="decimal"></div>
+          <button class="olkepick olphu" data-luuchung="1" style="margin:0;min-height:44px">Lưu</button>
+        </div>
         <button class="olkepick olphu" data-do="1" style="margin-top:6px;min-height:44px">Đo độ lệch theo tờ DGN đã nạp</button>
       </div>
       <p class="note">Ranh thửa lấy từ Mạnh Lắm (WGS-84) rồi tính về VN-2000 theo kinh tuyến trục của tỉnh đã chọn, thêm vào danh sách như thửa nạp từ file. Chỉ hỏi đúng những số thửa gõ ở trên; có kết quả rồi mới hỏi có hiện thêm các thửa giáp ranh của thửa đó không.</p>
@@ -3820,10 +3825,14 @@ const olNho=()=>{try{localStorage.setItem('olsel',JSON.stringify(
    Vì vậy chỉ áp cho huyện đã đo; huyện khác đo bằng nút "Đo độ lệch theo tờ DGN đã nạp" rồi mới áp. */
 const OLHUYENLOP={};                            // id lớp → [id huyện, tên huyện], ghi lại mỗi lần lấy danh sách tờ
 const OLLECHMD={'851':[1.2,0.41,'Duyên Hải (Thị xã)']};
-let OLLECH={tat:false,huyen:{...OLLECHMD}};
-try{const q=JSON.parse(localStorage.getItem('ollech')||'null');if(q&&q.huyen)OLLECH={tat:!!q.tat,huyen:{...OLLECHMD,...q.huyen}}}catch(e){}
+/* [QĐ 06/10] trị số chung: áp cho MỌI tờ lấy từ Mạnh Lắm ở nơi chưa đo riêng. Mặc định lấy trị số đã đo ở Duyên Hải
+   vì người dùng thấy các nơi khác lệch tương tự; sửa tay được (ví dụ chỉnh theo ảnh nền), đặt 0 / 0 là không chỉnh nơi chưa đo. */
+const OLLECHCHUNG=[1.2,0.41];
+let OLLECH={tat:false,huyen:{...OLLECHMD},chung:[...OLLECHCHUNG]};
+try{const q=JSON.parse(localStorage.getItem('ollech')||'null');if(q&&q.huyen)OLLECH={tat:!!q.tat,huyen:{...OLLECHMD,...q.huyen},
+  chung:Array.isArray(q.chung)&&q.chung.length===2&&q.chung.every(Number.isFinite)?q.chung:[...OLLECHCHUNG]}}catch(e){}
 const olLechLuu=()=>{try{localStorage.setItem('ollech',JSON.stringify(OLLECH))}catch(e){}};
-const olLech=lopId=>{if(OLLECH.tat)return [0,0];const h=OLHUYENLOP[lopId];return (h&&OLLECH.huyen[h[0]])||[0,0]};
+const olLech=lopId=>{if(OLLECH.tat)return [0,0];const h=OLHUYENLOP[lopId];return (h&&OLLECH.huyen[h[0]])||OLLECH.chung};   // huyện đã đo riêng → trị số chung
 const olLL=(E,N,lon0,lopId,k0)=>{const d=olLech(lopId);return conv(E+d[0],N+d[1],lon0,k0||0.9999)};   // điểm trên bản đồ → kinh vĩ độ để hỏi lớp đó
 async function olGoi(path,body){
   const r=await fetch(OL+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);
@@ -4174,7 +4183,7 @@ async function olTaiDiem(w){
       $('oltinh').value=thay.l.idtinh;
       olNapHuyen(thay.l.idhuyen,thay.l.idxa,thay.l.id).then(olNho,()=>{});
     }
-    olmsg(`<b>${esc(nhanThua(t))}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,1)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.d?(t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''):''}${t.chu?' · '+esc(t.chu):''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${coSo(t)?'':` Trong hình này Mạnh Lắm không có nhãn số thửa${t.goiY&&t.goiY.length?`; các nhãn số gần đó: ${t.goiY.map(esc).join(', ')} (có thể là thửa bên cạnh)`:''}.`}${t.hc?` Ranh đã hiệu chỉnh theo DGN gốc (lùi ${fmt(t.hc[0],2)} m đông, ${fmt(t.hc[1],2)} m bắc).`:''}${t.nghi?' <b>Hình này là chữ nhật vuông vức, có thể là ô bảng biểu của người vẽ chứ không phải thửa — nên đối chiếu.</b>':''}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}${san?'':(OLKQ={w,l:thay.l,t:ct},'<div><button class="olkepick olphu" data-sai="1">Hình này không phải thửa</button></div>')}`,t.nghi?'warn':'ok');
+    olmsg(`<b>${esc(nhanThua(t))}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,1)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.d?(t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''):''}${t.chu?' · '+esc(t.chu):''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${coSo(t)?'':` Trong hình này Mạnh Lắm không có nhãn số thửa${t.goiY&&t.goiY.length?`; các nhãn số gần đó: ${t.goiY.map(esc).join(', ')} (có thể là thửa bên cạnh)`:''}.`}${t.hc?` Ranh đã hiệu chỉnh (lùi ${fmt(t.hc[0],2)} m về tây, ${fmt(t.hc[1],2)} m về nam).`:''}${t.nghi?' <b>Hình này là chữ nhật vuông vức, có thể là ô bảng biểu của người vẽ chứ không phải thửa — nên đối chiếu.</b>':''}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}${san?'':(OLKQ={w,l:thay.l,t:ct},'<div><button class="olkepick olphu" data-sai="1">Hình này không phải thửa</button></div>')}`,t.nghi?'warn':'ok');
   }catch(e){olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.','warn')}
   finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}}
 }
@@ -4259,8 +4268,19 @@ function olHoanBaoSai(lai){
 /* ===== Đo độ lệch Mạnh Lắm ↔ tờ DGN/DXF người dùng đã nạp ===== */
 function olLechVe(){
   $('ollechon').checked=!OLLECH.tat;
-  const ds=Object.values(OLLECH.huyen).map(h=>`${esc(h[2]||'huyện')}: lùi ${fmt(h[0],2)} m đông, ${fmt(h[1],2)} m bắc`);
-  $('ollechtxt').innerHTML=OLLECH.tat?'Đang tắt: ranh Mạnh Lắm vẽ đúng như họ trả về.':('Đang áp dụng — '+ds.join('; ')+'. Huyện chưa đo thì không chỉnh.');
+  const c=OLLECH.chung, coChung=!!(c[0]||c[1]);
+  const ds=Object.values(OLLECH.huyen).filter(h=>h[0]!==c[0]||h[1]!==c[1]).map(h=>`${esc(h[2]||'huyện')}: ${fmt(h[0],2)} / ${fmt(h[1],2)} m`);
+  $('ollechtxt').innerHTML=OLLECH.tat?'Đang tắt: ranh Mạnh Lắm vẽ đúng như họ trả về.'
+    :(coChung?`Đang áp dụng cho <b>mọi tờ lấy từ Mạnh Lắm</b>: lùi ${fmt(c[0],2)} m về tây, ${fmt(c[1],2)} m về nam.`:'Trị số chung đang là 0: chỉ chỉnh ở huyện đã đo riêng.')
+      +(ds.length?' Riêng '+ds.join('; ')+' (đã đo).':'')+' Mới đo thật ở TX Duyên Hải; nơi khác là áp theo, thấy lệch thì sửa hai ô dưới hoặc bấm nút đo.';
+  $('ollechdx').value=String(c[0]).replace('.',',');$('ollechdy').value=String(c[1]).replace('.',',');
+}
+function olLuuChung(){
+  const doc=id=>{const v=parseFloat(String($(id).value).trim().replace(',','.'));return Number.isFinite(v)&&Math.abs(v)<=20?Math.round(v*1000)/1000:null};
+  const dx=doc('ollechdx'),dy=doc('ollechdy');
+  if(dx==null||dy==null){olLechVe();return olmsg('Trị số chung phải là số trong khoảng −20 đến 20 m (ví dụ 1,2 và 0,41).','warn')}
+  OLLECH.chung=[dx,dy];OLLECH.tat=false;olLechLuu();olLechVe();
+  olmsg(`Đã lưu trị số chung: lùi ${fmt(dx,2)} m về tây, ${fmt(dy,2)} m về nam cho mọi tờ Mạnh Lắm ở nơi chưa đo riêng. Thửa đã vẽ không đổi; tra lại để lấy ranh đã chỉnh.`,'ok');
 }
 $('ollechon').onchange=e=>{OLLECH.tat=!e.target.checked;olLechLuu();olLechVe()};
 olLechVe();
@@ -4305,14 +4325,16 @@ async function olDoLech(){
     const deu=cung>=kq.length*0.7;
     OLDO=deu?{id:String(L.idhuyen),ten:L.tenhuyen||'',dx:Math.round(dx*1000)/1000,dy:Math.round(dy*1000)/1000}:null;
     olmsg(`<b>Tờ ${esc(sh.to)}</b> (file) so với <b>${esc(L.tenxa||'')} / tờ ${esc(olSoTo(L))}</b> của Mạnh Lắm: Mạnh Lắm lệch <b>${fmt(dx,3)} m về đông, ${fmt(dy,3)} m về bắc</b>; ${cung}/${kq.length} thửa cùng trị số này.`
-      +(deu?`<div><button class="olkepick" data-dung="1">Dùng trị số này cho ${esc(L.tenhuyen||'huyện này')}</button></div>`:' Độ lệch không đều giữa các thửa nên không nên dùng một trị số chung.'),deu?'ok':'warn');
+      +(deu?`<div><button class="olkepick" data-dung="1">Dùng trị số này cho ${esc(L.tenhuyen||'huyện này')}</button></div><div><button class="olkepick olphu" data-dung="2">Dùng làm trị số chung cho mọi nơi</button></div>`:' Độ lệch không đều giữa các thửa nên không nên dùng một trị số chung.'),deu?'ok':'warn');
   }catch(e){olmsg('Không đo được: '+esc(e.message)+'.','warn')}
   finally{OLLECH.tat=tatCu;OLBUSY=false}
 }
-function olDungLech(){
+function olDungLech(chung){
   const D=OLDO;if(!D)return;OLDO=null;
+  if(chung){OLLECH.chung=[D.dx,D.dy];OLLECH.tat=false;olLechLuu();olLechVe();
+    return olmsg(`Đã lưu trị số chung: lùi ${fmt(D.dx,2)} m về tây, ${fmt(D.dy,2)} m về nam cho mọi tờ Mạnh Lắm ở nơi chưa đo riêng.`,'ok')}
   OLLECH.huyen[D.id]=[D.dx,D.dy,D.ten];OLLECH.tat=false;olLechLuu();olLechVe();
-  olmsg(`Đã lưu: ranh Mạnh Lắm ở ${esc(D.ten)} sẽ được lùi ${fmt(D.dx,2)} m đông, ${fmt(D.dy,2)} m bắc. Thửa đã vẽ trước đó không đổi; tra lại để lấy ranh đã chỉnh.`,'ok');
+  olmsg(`Đã lưu: ranh Mạnh Lắm ở ${esc(D.ten)} sẽ được lùi ${fmt(D.dx,2)} m về tây, ${fmt(D.dy,2)} m về nam. Thửa đã vẽ trước đó không đổi; tra lại để lấy ranh đã chỉnh.`,'ok');
 }
 window.olTaiDiem=olTaiDiem;
 $('mpick').onclick=async e=>{
@@ -4396,7 +4418,7 @@ async function olKeTaDiem(){
   }catch(e){olmsg('Không dò được giáp ranh: '+esc(e.message)+'.','warn')}
   finally{OLBUSY=false}
 }
-document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.olkepick');if(!b)return;if(b.dataset.do)olDoLech();else if(b.dataset.dung)olDungLech();else if(b.dataset.lai)olHoanBaoSai(1);else if(b.dataset.hoan)olHoanBaoSai(0);else (b.dataset.sai?olBaoSai:b.dataset.quanh?olQuanhDiem:olKeTaDiem)()});
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.olkepick');if(!b)return;if(b.dataset.do)olDoLech();else if(b.dataset.luuchung)olLuuChung();else if(b.dataset.dung)olDungLech(b.dataset.dung==='2');else if(b.dataset.lai)olHoanBaoSai(1);else if(b.dataset.hoan)olHoanBaoSai(0);else (b.dataset.sai?olBaoSai:b.dataset.quanh?olQuanhDiem:olKeTaDiem)()});
 if($('dol').open)olNapTinh();                   // mục Mạnh Lắm mở sẵn khi vào ứng dụng
 </script>
 </body>

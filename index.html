@@ -330,7 +330,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v8 · 05/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v9 · 05/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -3990,7 +3990,8 @@ $('olgo').onclick=async()=>{
 };
 
 /* ===== Tra ngược: bấm một điểm trên bản đồ → thửa tại đó ===== */
-const OLPICKMAX=12, OLPICKKM=4;                 // tối đa số tờ thử mỗi cú bấm, chỉ thử tờ có tâm trong bán kính (km)
+const OLPICKMAX=60, OLPICKKM=4, OLPICKLO=6;     // tối đa số tờ thử mỗi cú bấm, chỉ thử tờ trong bán kính (km), số tờ hỏi song song mỗi lô
+const OLNONG=[];let OLXANONG=null;               // id các tờ vừa cho thửa thật và xã của tờ trúng gần nhất — cú bấm sau hỏi trước, trúng là dừng
 function olLon0(){
   const tinh=OLTINH.find(p=>String(p.id)===$('oltinh').value)||{};
   const pv=PROV.find(p=>nodau(p[0])===nodau(tinh.name||''));
@@ -4019,22 +4020,31 @@ async function olTaiDiem(w){
     const xa=cand.length?cand[0].l.tenxa||olTen($('olxa')):olTen($('olxa'));
     if(!cand.length)return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) không có tờ địa chính nào trong ${OLPICKKM} km — kiểm tra kinh tuyến trục của bản đồ có đúng tỉnh không.`,'warn');
     let thay=null;
-    olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — hỏi ${cand.length} tờ gần nhất…`);
-    /* tờ gần nhất thường chỉ chứa hình khung trống nên phải hỏi nhiều tờ; hỏi song song theo lô 4 để vừa nhanh vừa không dồn dập */
+    /* Thứ tự "gần nhất" của Mạnh Lắm tính theo tâm tờ, không theo chỗ có thửa: tờ chứa thửa thật có khi xếp thứ 30–50,
+       còn các tờ đứng đầu chỉ trả hình khung. Vì vậy hỏi hết các tờ trong bán kính, song song theo lô; tờ vừa trúng thì ưu tiên. */
+    const nong=x=>{const k=OLNONG.indexOf(String(x.l.id));return k>=0?k:String(x.l.idxa)===OLXANONG?1e6:1e9};   // tờ vừa trúng → tờ cùng xã → còn lại
+    cand=cand.map((x,k)=>({...x,k})).sort((a,b)=>nong(a)-nong(b)||a.k-b.k);
+    const soNong=cand.filter(x=>nong(x)<1e6).length, daQuen=cand.some(x=>nong(x)<1e9);   // quanh điểm bấm có tờ/xã vừa trúng
     const hoiTo=async x=>{try{const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:x.l.id,limit:50})});return r.ok?await r.json():null}catch(e){return null}};
-    for(let b=0;b<cand.length;b+=4){
-      const lo4=cand.slice(b,b+4), kq=await Promise.all(lo4.map(hoiTo));
-      kq.forEach((j,k)=>{const x=lo4[k];
+    for(let b=0;b<cand.length;){
+      const n=b<soNong?Math.min(OLPICKLO,soNong-b):OLPICKLO;         // lô đầu chỉ gồm các tờ ưu tiên
+      const lot=cand.slice(b,b+n);
+      olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — đã hỏi ${b}/${cand.length} tờ quanh đó…`);
+      const kq=await Promise.all(lot.map(hoiTo));
+      kq.forEach((j,k)=>{const x=lot[k];
         if(j&&j.text!=null&&(j.geojsonWGS84||j.polygon_bound)){
           /* gom hết rồi chọn hình nhỏ nhất chứa điểm bấm; hình khung đã bị olThua loại */
           const tt=olThua(j,olSoTo(x.l),lonCua(x.l),x.l.id);
           if(tt&&tt.r){const trong=inPoly(w,tt.r);
             if(!thay||(trong&&!thay.trong)||(trong===thay.trong&&tt.a<thay.a))thay={it:j,l:x.l,a:tt.a,trong}}
         }});
-      if(thay&&thay.trong)break;                       // đã có thửa chứa điểm bấm, khỏi hỏi lô sau
+      b+=n;
+      /* lần đầu ở một vùng: hỏi hết để chọn đúng hình nhỏ nhất. Đã quen vùng (có tờ ưu tiên): có thửa chứa điểm bấm là dừng */
+      if(thay&&thay.trong&&daQuen)break;
     }
-    if(!thay)return olmsg(`Không có thửa nào tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} (đã bỏ qua hình khung trống của ${cand.length} tờ gần nhất) — có thể là sông, đường, kênh mương hoặc chưa có dữ liệu. Thử bấm lệch vào phần đất liền kề.`,'warn');
+    if(thay){const id=String(thay.l.id),k=OLNONG.indexOf(id);if(k>=0)OLNONG.splice(k,1);OLNONG.unshift(id);OLNONG.length=Math.min(OLNONG.length,8);OLXANONG=String(thay.l.idxa)}
+    if(!thay)return olmsg(`Không có thửa nào tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} (đã hỏi ${cand.length} tờ trong ${OLPICKKM} km, bỏ qua hình khung trống) — có thể là sông, đường, kênh mương hoặc chưa có dữ liệu. Thử bấm lệch vào phần đất liền kề.`,'warn');
     const to=olSoTo(thay.l), lon0=lonCua(thay.l);
     const dc=[thay.l.tenxa||xa,thay.l.tenhuyen||olTen($('olhuyen')),thay.l.tentinh||olTen($('oltinh'))].join(', ');
     const t=olThua(thay.it,to,lon0,thay.l.id);

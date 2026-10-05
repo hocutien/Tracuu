@@ -330,7 +330,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v10 · 05/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v12 · 05/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -2851,15 +2851,20 @@ function gpsErr(e){
   const m={1:ios?moIOS:'Anh chưa cho phép truy cập vị trí. Bấm vào biểu tượng ổ khoá trên thanh địa chỉ để bật lại.',
            2:'Không lấy được vị trí — thử ra chỗ thoáng hoặc bật GPS trong máy.',
            3:'Quá lâu không có tín hiệu GPS.'}[e.code]||e.message;
-  $('gpsmsg').innerHTML=`<div class="warn">${m}</div>`;
+  /* dòng chẩn đoán: để biết chính xác máy từ chối ở khâu nào (chụp gửi lại là đủ) */
+  const cd=q=>`<br><small style="color:#6d6a60">Chẩn đoán: mã ${e.code==null?'—':e.code}${e.message?' · '+esc(String(e.message)):''} · API ${navigator.geolocation?'có':'KHÔNG'} · https ${window.isSecureContext?'có':'KHÔNG'} · quyền ${q} · ${trinh}${ios?' iOS':''}${matchMedia('(display-mode: standalone)').matches?' · app màn hình chính':''}</small>`;
+  $('gpsmsg').innerHTML=`<div class="warn">${m}${cd('?')}</div>`;
   $('locrow').classList.remove('hide');
+  try{navigator.permissions.query({name:'geolocation'}).then(p=>{$('gpsmsg').innerHTML=`<div class="warn">${m}${cd(p.state)}</div>`},()=>{})}catch(x){}
 }
 $('bgps').onclick=()=>{
-  if(!navigator.geolocation||laFile()){
-    return gpsErr({code:1});
-  }
+  if(laFile())return gpsErr({code:1});
+  if(!navigator.geolocation)return gpsErr({code:0,message:'Trình duyệt này không có chức năng định vị (thường gặp khi mở trang bên trong Zalo/Facebook) — bấm ⋯ chọn "Mở bằng trình duyệt".'});
   $('gpsmsg').innerHTML='<p class="note">Đang lấy vị trí…</p>';
-  navigator.geolocation.getCurrentPosition(p=>showMe(p,true),gpsErr,{enableHighAccuracy:true,timeout:15000,maximumAge:5000});
+  /* mất tín hiệu/quá giờ với GPS chính xác thì thử lại bằng định vị mạng (nhanh, trong nhà vẫn được) */
+  navigator.geolocation.getCurrentPosition(p=>showMe(p,true),
+    e=>e.code===1?gpsErr(e):navigator.geolocation.getCurrentPosition(p=>showMe(p,true),gpsErr,{enableHighAccuracy:false,timeout:15000,maximumAge:60000}),
+    {enableHighAccuracy:true,timeout:15000,maximumAge:5000});
 };
 $('bwatch').onclick=e=>{
   if(WATCH!==null){navigator.geolocation.clearWatch(WATCH);WATCH=null;
@@ -4009,7 +4014,6 @@ function olTamTo(l){try{const g=JSON.parse(l.geojson);return g&&g.type==='Point'
 async function olTaiDiem(w){
   if(OLBUSY)return;
   const {lon0:lon0Chon}=olLon0();
-  if(!OLTINH.length&&!lon0Chon)return olmsg('Chưa tải được danh sách tỉnh từ Mạnh Lắm — kiểm tra mạng rồi bấm lại.','warn');
   OLBUSY=true;
   try{
     const [la,lo]=conv(w[0],w[1],LON0!=null?LON0:lon0Chon,K0||0.9999);
@@ -4023,8 +4027,10 @@ async function olTaiDiem(w){
         .map(x=>({...x,d:Math.hypot((x.c[0]-lo)*kc,x.c[1]-la)*111.32}))
         .filter(x=>x.d<=OLPICKKM).sort((a,b)=>a.d-b.d).slice(0,OLPICKMAX);
     }
-    const lonCua=l=>{const p=OLTINH.find(q=>String(q.id)===String(l.idtinh))||{};
-      const pv=PROV.find(q=>nodau(q[0])===nodau(p.name||''));return parseFloat(p.central_meridian)||(pv&&pv[1])||lon0Chon};
+    const lonCua=l=>{let md=l.metadata;if(typeof md==='string'){try{md=JSON.parse(md)}catch(e){md=null}}
+      const cm=md&&parseFloat(md.centralmeridian);if(cm>100&&cm<112)return cm;                // tờ tự ghi kinh tuyến trục của nó
+      const p=OLTINH.find(q=>String(q.id)===String(l.idtinh))||{};
+      const pv=PROV.find(q=>nodau(q[0])===nodau(p.name||''));return parseFloat(p.central_meridian)||(pv&&pv[1])||lon0Chon||LON0};
     const xa=cand.length?cand[0].l.tenxa||olTen($('olxa')):olTen($('olxa'));
     if(!cand.length)return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) không có tờ địa chính nào trong ${OLPICKKM} km — kiểm tra kinh tuyến trục của bản đồ có đúng tỉnh không.`,'warn');
     let thay=null;
@@ -4068,7 +4074,7 @@ async function olTaiDiem(w){
     SEL.add(ct.id);FLASH={id:ct.id,z:0};
     drawSheets();autoKTT();drawResults();drawMap();
     /* đưa các ô tỉnh/huyện/xã/tờ về đúng nơi vừa tra để lần hỏi số thửa sau cùng khu vực */
-    if(thay.l.idxa&&String($('olxa').value)!==String(thay.l.idxa)){
+    if(thay.l.idxa&&OLTINH.length&&String($('olxa').value)!==String(thay.l.idxa)){
       $('oltinh').value=thay.l.idtinh;
       olNapHuyen(thay.l.idhuyen,thay.l.idxa,thay.l.id).then(olNho,()=>{});
     }
@@ -4081,12 +4087,8 @@ $('mpick').onclick=async e=>{
   const nut=e.currentTarget;
   if(OLPICK){OLPICK=false;nut.classList.remove('on');cvEl().style.cursor='';$('pickbar').style.display='none';return}
   $('dol').open=true;
-  olNapTinh();
-  for(let i=0;i<24&&!OLLOP.length;i++)await new Promise(ok=>setTimeout(ok,250));
-  const {lon0}=olLon0();
-  if(!OLLOP.length||!lon0){const m='Chưa có danh sách tờ: chọn tỉnh, huyện, xã trong mục "Hỏi thửa từ Mạnh Lắm" (kiểm tra mạng), đợi danh sách tờ hiện ra rồi bấm lại nút này.';olmsg(m,'warn');return pickBar(m,'warn')}
+  olNapTinh();                                   // nạp ngầm danh sách tỉnh/huyện/xã — tra tại điểm không còn phụ thuộc, khỏi chờ
   OLPICK=true;nut.classList.add('on');cvEl().style.cursor='crosshair';
-  if(LON0==null&&!ringsAll().length){LON0=lon0;K0=0.9999}
   if($('mapwrap').classList.contains('off'))setMap(true);
   if(!BASEKEY)datNen('esri',0);
   /* ưu tiên định vị thiết bị: đưa bản đồ về chỗ người dùng đang đứng; không có GPS mới lấy tâm tờ đang chọn */
@@ -4094,15 +4096,21 @@ $('mpick').onclick=async e=>{
   if(navigator.geolocation&&!laFile()){
     pickBar('Đang định vị thiết bị để đưa bản đồ về chỗ bạn đứng…');
     coGPS=await new Promise(ok=>navigator.geolocation.getCurrentPosition(
-      p=>{try{showMe(p,true);ok(true)}catch(e){ok(false)}},()=>ok(false),{enableHighAccuracy:true,timeout:8000,maximumAge:15000}));
+      p=>{try{showMe(p,true);ok(true)}catch(e){ok(false)}},e=>{gpsErr(e);ok(false)},{enableHighAccuracy:true,timeout:8000,maximumAge:15000}));
   }
-  if(!coGPS&&!ringsAll().length){              // chưa có tờ nào: đặt khung tại tờ đang chọn (hoặc tờ đầu danh sách) bằng cơ chế đặt vị trí
-    const l=OLLOP.find(q=>String(q.id)===$('olto').value)||OLLOP[0], c=olTamTo(l);
-    if(c)placeMe(toVN(c[1],c[0],lon0,0.9999),0,c[1],c[0],true);
+  let coCho=coGPS||ringsAll().length>0||!!VW;
+  if(!coGPS&&!ringsAll().length){              // không có GPS và chưa có tờ nào: mới cần tờ đang chọn để biết đưa bản đồ về đâu
+    pickBar('Không lấy được vị trí thiết bị — đang lấy vị trí tờ bản đồ đang chọn…');
+    for(let i=0;i<24&&!OLLOP.length;i++)await new Promise(ok=>setTimeout(ok,250));
+    const {lon0}=olLon0();
+    const l=OLLOP.find(q=>String(q.id)===$('olto').value)||OLLOP[0], c=l&&olTamTo(l);
+    if(c&&lon0){if(LON0==null){LON0=lon0;K0=0.9999}placeMe(toVN(c[1],c[0],LON0,K0),0,c[1],c[0],true);coCho=true}
   }
   if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
   drawMap();
-  olmsg((coGPS?'Bản đồ đã về chỗ thiết bị (chấm xanh). ':'Không lấy được vị trí thiết bị. ')+'Đã bật <b>Tra thửa tại điểm</b>: bấm lên bản đồ vào thửa cần xem. Bấm lại nút này để tắt.','ok');
+  if(!coCho){const m='Đã bật <b>Tra thửa tại điểm</b> nhưng chưa biết đưa bản đồ về đâu: máy không cho vị trí và chưa tải được danh sách tờ. Dán toạ độ vào ô "Hoặc dán toạ độ" (chép từ Google Maps) rồi bấm lên bản đồ.';
+    $('locrow').classList.remove('hide');olmsg(m,'warn');return}
+  olmsg((coGPS?'Bản đồ đã về chỗ thiết bị (chấm xanh). ':'Không lấy được vị trí thiết bị — bản đồ ở tờ đang chọn; kéo bản đồ hoặc dán toạ độ để tới nơi cần tra. ')+'Đã bật <b>Tra thửa tại điểm</b>: bấm lên bản đồ vào thửa cần xem, ở bất kỳ tỉnh/xã nào. Bấm lại nút này để tắt.','ok');
 };
 /* nút nổi bật trong mục Mạnh Lắm dùng chung chế độ với nút trên thanh công cụ */
 $('olhero').onclick=()=>$('mpick').click();

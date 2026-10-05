@@ -330,7 +330,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v13 · 05/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v14 · 05/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -3871,10 +3871,12 @@ function olThua(it,to,lon0,lopId){
   const dso=soVN(String(it.areashow==null?'':it.areashow));
   /* findparcel (tra theo điểm) trả text rỗng: số thửa nằm trong nhãn quanh thửa */
   let lb=it.labels_outsides;if(typeof lb==='string'){try{lb=JSON.parse(lb)}catch(e){lb=[]}}
-  const so=String(it.text||'').trim()||(Array.isArray(lb)?lb:[]).find(n=>/^\d{1,5}$/.test(String(n)))||'?';
+  /* [QĐ 05/10] không đoán số thửa từ nhãn: nhãn đầu tiên đổi theo chỗ bấm (cùng một thửa ra 877 rồi 516) — để '?' và chỉ nêu nhãn làm gợi ý */
+  const so=String(it.text||'').trim()||'?';
+  const goiY=so==='?'?(Array.isArray(lb)?lb:[]).map(String).filter(n=>/^[0-9]{1,5}$/.test(n)).slice(0,4):[];
   /* hình "khung" Mạnh Lắm trả khi bấm ra ngoài mọi thửa: chữ nhật (≤4 đỉnh) to hàng chục ngàn đến hàng triệu m² — bỏ */
   if(p.length<=4){const dt=dtShoelace(p);if(dt>100000||(dt>20000&&!it.code&&!String(it.text||'').trim()))return null}   // khung có thể mang mã 'D' nên chặn cả theo diện tích
-  const t={to,s:String(so),doan:String(it.text||'').trim()?0:1,l:it.code||null,chu:null,d:dso,tay:1,ol:lopId,
+  const t={to,s:String(so),goiY,l:it.code||null,chu:null,d:dso,tay:1,ol:lopId,
     c:[p.reduce((s,q)=>s+q.E,0)/p.length,p.reduce((s,q)=>s+q.N,0)/p.length]};
   if(p.length>=3){
     t.r=p.map(q=>[Math.round(q.E*100)/100,Math.round(q.N*100)/100]);
@@ -4072,9 +4074,11 @@ async function olTaiDiem(w){
     const t=olThua(thay.it,to,lon0,thay.l.id);
     if(!t)return olmsg('Mạnh Lắm trả về thửa nhưng không có ranh để vẽ.','warn');
     let sh=SHEETS.find(q=>q.to===to);
-    const san=sh&&sh.thua.find(q=>q.s===t.s&&!q.ol);              // đã có từ file thì giữ nguyên
+    const san=sh&&coSo(t)&&sh.thua.find(q=>q.s===t.s&&!q.ol);     // đã có từ file thì giữ nguyên (thửa chưa rõ số thì không so theo số)
     if(!san){
       if(!sh){sh={to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc,lon0,k0:0.9999};SHEETS.push(sh)}
+      const cu=sh.thua.find(q=>q.ol&&q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05);
+      if(cu){t.l=t.l||cu.l;if(!coSo(t)&&coSo(cu))t.s=cu.s}      // mã đất và số thửa Mạnh Lắm trả tuỳ chỗ bấm: lần sau thiếu thì giữ của lần trước
       sh.thua=sh.thua.filter(q=>!(q.ol&&q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05));   // chỉ ghi đè đúng hình đó, số '?' của hai thửa khác nhau không đè nhau
       sh.thua.push(t);ganId(sh);
     }
@@ -4086,7 +4090,7 @@ async function olTaiDiem(w){
       $('oltinh').value=thay.l.idtinh;
       olNapHuyen(thay.l.idhuyen,thay.l.idxa,thay.l.id).then(olNho,()=>{});
     }
-    olmsg(`<b>Thửa ${esc(t.s)}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${t.doan?' <b>Số thửa là suy từ nhãn gần điểm bấm, Mạnh Lắm không ghi số cho hình này — cần đối chiếu.</b>':''}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}`,'ok');
+    olmsg(`<b>${esc(nhanThua(t))}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${coSo(t)?'':` Mạnh Lắm không ghi số thửa cho hình này${t.goiY&&t.goiY.length?`; các nhãn số quanh điểm bấm: ${t.goiY.map(esc).join(', ')} (chỉ để đối chiếu, có thể là thửa bên cạnh)`:''}.`}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}`,'ok');
   }catch(e){olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.','warn')}
   finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}}
 }
@@ -4160,7 +4164,7 @@ async function olKeTaDiem(){
           const t=olThua(jj,K.to,K.lon0,K.lop.id);if(!t)continue;
           let s2=SHEETS.find(q=>q.to===K.to);
           if(!s2){s2={to:K.to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc:K.dc,lon0:K.lon0,k0:0.9999};SHEETS.push(s2)}
-          const trung=s2.thua.find(q=>q.s===t.s&&q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05);
+          const trung=s2.thua.find(q=>q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05);
           if(trung){K.nhom.push(trung);continue}
           s2.thua.push(t);ganId(s2);K.nhom.push(t);them++;tong++;
         }

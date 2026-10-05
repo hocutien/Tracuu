@@ -1,6 +1,6 @@
 /* Tra cứu thửa đất — bộ nhớ đệm để mở được khi không có mạng.
    Đổi số PHIEN mỗi lần thay index.html thì máy sẽ tự lấy bản mới. */
-const PHIEN = 'tcdt-v13';
+const PHIEN = 'tcdt-v14';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 

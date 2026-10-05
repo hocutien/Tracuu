@@ -202,6 +202,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
   #printout .ptab{break-inside:auto}
   #printout .ptab tr{break-inside:avoid;page-break-inside:avoid}
   #printout .pmeta{font-size:9pt;text-align:center;margin:1mm 0 3mm}
+  #printout .pbrand{text-align:center;margin:2mm 0 0}
   #printout .ptab{width:100%;border-collapse:collapse;font-size:9pt}
   #printout .ptab th,#printout .ptab td{border:.2mm solid #000;padding:.8mm 1.5mm;text-align:right}
   #printout .ptab th:first-child,#printout .ptab td:first-child{text-align:center}
@@ -300,6 +301,22 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
 #mapchip button{flex:0 0 auto;border:0;background:none;color:var(--dim);font-size:17px;
   line-height:1;padding:2px 4px;cursor:pointer}
 #mapchip #chipdir{font-size:13px;font-weight:600;color:#fff;background:var(--moss);border-radius:6px;padding:7px 10px;white-space:nowrap}
+/* huy hiệu "design by 7410-Mạnh Lắm" */
+.mlbadge{display:inline-flex;align-items:center;gap:7px;background:#12283a;color:#fbeed0;border-radius:999px;padding:3px 11px 3px 4px;
+  font:700 12px/1.2 Helvetica,Arial,sans-serif;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.mlbadge i{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#c9962b;color:#12283a;
+  font:700 9.5px Georgia,"Times New Roman",serif;font-style:normal}
+#brand{flex-wrap:wrap}#brand .mlbadge{margin-left:auto}
+/* mục Mạnh Lắm nổi bật */
+#sidebody>details#dol{border:2px solid #c9962b;background:linear-gradient(180deg,#fff8e6,var(--field) 70px);box-shadow:0 2px 10px rgba(201,150,43,.28)}
+#sidebody>details#dol>summary{font-size:15px;color:#12283a}
+#olhero{width:100%;margin:2px 0 10px;padding:13px 10px;font-size:15px;font-weight:700;border:0;border-radius:6px;background:#12283a;color:#fbeed0;cursor:pointer}
+#olhero.on{background:var(--moss);color:#fff}
+#toolbar #mpick{background:#12283a;color:#fbeed0;border-color:#12283a}
+#toolbar #mpick.on{background:var(--moss);border-color:var(--moss);color:#fff}
+.olkepick{margin-top:6px;padding:8px 12px;font-size:13px;font-weight:700;border:0;border-radius:6px;background:#12283a;color:#fbeed0;cursor:pointer}
+.olkepick:disabled{opacity:.55}
+#pickbar .olkepick{float:none;margin:6px 0 0;font-size:13px;line-height:1.2;color:#fbeed0}
 </style>
 </head>
 <body>
@@ -309,6 +326,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
     <div id="brand">
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
+      <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -323,7 +341,23 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
   </div>
   <div id="sidebody">
     <div id="res"></div>
-    <details id="dnap" open><summary>📂 Nạp tờ bản đồ</summary>
+    <details id="dol" open><summary>🔎 Tra cứu thửa từ Mạnh Lắm</summary>
+      <button id="olhero">📍 Chọn thửa trên bản đồ — định vị ngay chỗ tôi đứng</button>
+      <div class="row">
+        <div><label for="oltinh">Tỉnh</label><select id="oltinh" disabled><option value="">— đang tải —</option></select></div>
+        <div><label for="olhuyen">Huyện</label><select id="olhuyen" disabled><option value="">— chọn tỉnh trước —</option></select></div>
+      </div>
+      <div class="row">
+        <div><label for="olxa">Xã / phường</label><select id="olxa" disabled><option value="">— chọn huyện trước —</option></select></div>
+        <div><label for="olto">Tờ bản đồ</label><select id="olto" disabled><option value="">— chọn xã trước —</option></select></div>
+      </div>
+      <label for="olso">Số thửa — nhiều thửa cách nhau dấu phẩy, tối đa 10</label>
+      <input id="olso" inputmode="numeric" placeholder="161, 150, 156" spellcheck="false" autocomplete="off">
+      <button class="go" id="olgo" style="margin-top:10px">Hỏi Mạnh Lắm và đưa lên bản đồ</button>
+      <p class="note" id="olmsg"></p>
+      <p class="note">Ranh thửa lấy từ Mạnh Lắm (WGS-84) rồi tính về VN-2000 theo kinh tuyến trục của tỉnh đã chọn, thêm vào danh sách như thửa nạp từ file. Chỉ hỏi đúng những số thửa gõ ở trên; có kết quả rồi mới hỏi có hiện thêm các thửa giáp ranh của thửa đó không.</p>
+    </details>
+    <details id="dnap"><summary>📂 Nạp tờ bản đồ</summary>
 
 <div class="mini">
   <button id="bsrc">📂 Nạp file .dgn / .dxf / chỉ mục</button>
@@ -356,21 +390,6 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <span><i style="background:#5b7fa8"></i>chỉ có trong bảng ghi chú</span>
 </div>
 
-    </details>
-    <details id="dol"><summary>🔎 Hỏi thửa từ Mạnh Lắm</summary>
-      <div class="row">
-        <div><label for="oltinh">Tỉnh</label><select id="oltinh" disabled><option value="">— đang tải —</option></select></div>
-        <div><label for="olhuyen">Huyện</label><select id="olhuyen" disabled><option value="">— chọn tỉnh trước —</option></select></div>
-      </div>
-      <div class="row">
-        <div><label for="olxa">Xã / phường</label><select id="olxa" disabled><option value="">— chọn huyện trước —</option></select></div>
-        <div><label for="olto">Tờ bản đồ</label><select id="olto" disabled><option value="">— chọn xã trước —</option></select></div>
-      </div>
-      <label for="olso">Số thửa — nhiều thửa cách nhau dấu phẩy, tối đa 10</label>
-      <input id="olso" inputmode="numeric" placeholder="161, 150, 156" spellcheck="false" autocomplete="off">
-      <button class="go" id="olgo" style="margin-top:10px">Hỏi Mạnh Lắm và đưa lên bản đồ</button>
-      <p class="note" id="olmsg"></p>
-      <p class="note">Ranh thửa lấy từ Mạnh Lắm (WGS-84) rồi tính về VN-2000 theo kinh tuyến trục của tỉnh đã chọn, thêm vào danh sách như thửa nạp từ file. Chỉ hỏi đúng những số thửa gõ ở trên; có kết quả rồi mới hỏi có hiện thêm các thửa giáp ranh của thửa đó không.</p>
     </details>
     <details id="dquet"><summary>📷 Quét bảng toạ độ từ ảnh</summary>
       <div class="mini">
@@ -2273,7 +2292,8 @@ function paint(x,W,H,vw,opt){
         nhan(t.chu.length>28?t.chu.slice(0,27)+'…':t.chu,cx,cy+17*fs,2.6)}
     }
     if(opt.dim){
-      x.font=`${9*fs}px Helvetica,Arial,sans-serif`;x.fillStyle='#8a2f16';x.textBaseline='bottom';x.textAlign='center';
+      x.font=`700 ${9.5*fs}px Helvetica,Arial,sans-serif`;x.fillStyle='#8a2f16';x.textBaseline='bottom';x.textAlign='center';
+      x.lineJoin='round';x.strokeStyle='rgba(255,255,255,.88)';x.lineWidth=3.2*fs;
       for(let i=0;i<t.r.length;i++){
         const p=t.r[i],q=t.r[(i+1)%t.r.length];
         const d=Math.hypot(q[0]-p[0],q[1]-p[1]);
@@ -2283,7 +2303,7 @@ function paint(x,W,H,vw,opt){
         let ang=Math.atan2(B[1]-A[1],B[0]-A[0]);
         if(ang>Math.PI/2||ang<-Math.PI/2)ang+=Math.PI;
         x.save();x.translate((A[0]+B[0])/2,(A[1]+B[1])/2);x.rotate(ang);
-        x.fillText(d.toFixed(2),0,-2*fs);x.restore();
+        x.strokeText(d.toFixed(2),0,-2*fs);x.fillText(d.toFixed(2),0,-2*fs);x.restore();
       }
     }
   }
@@ -2391,6 +2411,21 @@ function optIn(fs){
   const coChon=allThua().some(t=>SEL.has(t.id)&&t.r);
   return {lab:true,dim:true,fs,chu,onlySel:!lan&&coChon};
 }
+/* huy hiệu "design by 7410-Mạnh Lắm" đóng dấu giữa mép dưới bản in / ảnh PNG */
+function veHuyHieuML(x,W,H,fs){
+  const txt='design by 7410-Mạnh Lắm',h=22*fs,r=h/2;
+  x.save();
+  x.font=`700 ${11*fs}px Helvetica,Arial,sans-serif`;
+  const w=x.measureText(txt).width+h+10*fs, X=(W-w)/2, Y=H-h-8*fs;
+  x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();
+  x.fillStyle='#12283a';x.fill();
+  x.beginPath();x.arc(X+r,Y+r,r-2*fs,0,7);x.fillStyle='#c9962b';x.fill();
+  x.fillStyle='#12283a';x.textAlign='center';x.textBaseline='middle';x.font=`700 ${8.5*fs}px Georgia,serif`;
+  x.fillText('ML',X+r,Y+r+.5*fs);
+  x.fillStyle='#fbeed0';x.textAlign='left';x.font=`700 ${11*fs}px Helvetica,Arial,sans-serif`;
+  x.fillText(txt,X+h+3*fs,Y+r+.5*fs);
+  x.restore();
+}
 /* trong suốt = chỉ vẽ lớp ranh/nhãn (để chồng lên lớp ảnh nền đặt riêng) */
 function renderPrint(px,trongSuot,ghiNen){
   const r=A4(),ratio=r.h/r.w;
@@ -2421,6 +2456,7 @@ function renderPrint(px,trongSuot,ghiNen){
   x.fillText('B',nx,ny+L*0.7);
   if(ghi){x.textAlign='right';x.textBaseline='bottom';x.font=`${9*fs}px Helvetica,Arial,sans-serif`;
     x.fillStyle='#16211c';x.fillText(ghi,cv.width-8*fs,cv.height-8*fs)}
+  veHuyHieuML(x,cv.width,cv.height,fs);
   return cv;
 }
 function coordTable(){
@@ -2439,7 +2475,8 @@ function buildPrintout(dataUrl,svg){
   <p class="pmeta">Hệ VN-2000, kinh tuyến trục ${dms(LON0)}, múi ${K0===0.9999?'3':'6'}° · Tỷ lệ ≈ 1 : ${Math.round(s)} · ${new Date().toLocaleDateString('vi-VN')}</p>
   ${svg||`<img src="${dataUrl}">`}
   ${coordTable()}
-  <p class="pmeta">Sơ đồ lập từ bản đồ địa chính, dùng để tra cứu và định vị; không thay thế số liệu đo đạc trong hồ sơ.</p>`;
+  <p class="pmeta">Sơ đồ lập từ bản đồ địa chính, dùng để tra cứu và định vị; không thay thế số liệu đo đạc trong hồ sơ.</p>
+  <p class="pbrand"><span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span></p>`;
 }
 /* Nguồn không mở CORS làm canvas bị khoá, không lấy ảnh ra được.
    Thử lần đầu có nền; hỏng thì vẽ lại không nền và báo cho người dùng. */
@@ -3990,7 +4027,7 @@ async function olTaiDiem(w){
     const ct=san||sh.thua.find(q=>q.s===t.s&&q.ol)||t;
     SEL.add(ct.id);FLASH={id:ct.id,z:0};
     drawSheets();autoKTT();drawResults();drawMap();
-    olmsg(`<b>Thửa ${esc(t.s)}, tờ ${esc(to)}</b>: ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.`,'ok');
+    olmsg(`<b>Thửa ${esc(t.s)}, tờ ${esc(to)}</b>: ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}`,'ok');
   }catch(e){olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.','warn')}
   finally{OLBUSY=false}
 }
@@ -4007,14 +4044,75 @@ $('mpick').onclick=async e=>{
   if(LON0==null&&!ringsAll().length){LON0=lon0;K0=0.9999}
   if($('mapwrap').classList.contains('off'))setMap(true);
   if(!BASEKEY)datNen('esri',0);
-  if(!ringsAll().length){                      // chưa có tờ nào: đặt khung tại tờ đang chọn (hoặc tờ đầu danh sách) bằng cơ chế đặt vị trí
+  /* ưu tiên định vị thiết bị: đưa bản đồ về chỗ người dùng đang đứng; không có GPS mới lấy tâm tờ đang chọn */
+  let coGPS=false;
+  if(navigator.geolocation&&!laFile()){
+    pickBar('Đang định vị thiết bị để đưa bản đồ về chỗ bạn đứng…');
+    coGPS=await new Promise(ok=>navigator.geolocation.getCurrentPosition(
+      p=>{try{showMe(p,true);ok(true)}catch(e){ok(false)}},()=>ok(false),{enableHighAccuracy:true,timeout:8000,maximumAge:15000}));
+  }
+  if(!coGPS&&!ringsAll().length){              // chưa có tờ nào: đặt khung tại tờ đang chọn (hoặc tờ đầu danh sách) bằng cơ chế đặt vị trí
     const l=OLLOP.find(q=>String(q.id)===$('olto').value)||OLLOP[0], c=olTamTo(l);
     if(c)placeMe(toVN(c[1],c[0],lon0,0.9999),0,c[1],c[0],true);
   }
   if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
   drawMap();
-  olmsg('Đã bật <b>Tra thửa tại điểm</b>: bấm lên bản đồ vào thửa cần xem. Bấm lại nút này để tắt.','ok');
+  olmsg((coGPS?'Bản đồ đã về chỗ thiết bị (chấm xanh). ':'Không lấy được vị trí thiết bị. ')+'Đã bật <b>Tra thửa tại điểm</b>: bấm lên bản đồ vào thửa cần xem. Bấm lại nút này để tắt.','ok');
 };
+/* nút nổi bật trong mục Mạnh Lắm dùng chung chế độ với nút trên thanh công cụ */
+$('olhero').onclick=()=>$('mpick').click();
+const olHeroSync=()=>{const on=OLPICK;$('olhero').classList.toggle('on',on);
+  $('olhero').textContent=on?'✓ Đang chọn thửa trên bản đồ — bấm vào thửa (bấm lại để tắt)':'📍 Chọn thửa trên bản đồ — định vị ngay chỗ tôi đứng'};
+new MutationObserver(olHeroSync).observe($('mpick'),{attributes:true,attributeFilter:['class']});
+
+/* ===== Giáp ranh sau khi tra tại điểm: hỏi các điểm ngay sát ngoài mỗi cạnh ===== */
+let OLKE=null;                                  // {lop,to,dc,lon0,nhom:[thửa],lan}
+const olKeNut=()=>OLKE?`<div><button class="olkepick">${OLKE.lan?'Mở rộng thêm một lớp thửa lân cận':'Hiện thửa giáp ranh'}</button></div>`:'';
+async function olKeTaDiem(){
+  const K=OLKE;if(!K||OLBUSY)return;
+  OLBUSY=true;
+  const nut=document.querySelectorAll('.olkepick');nut.forEach(b=>b.disabled=true);
+  const sh=SHEETS.find(q=>q.to===K.to);
+  const goc=K.nhom.slice();let hoi=0,them=0,tong=0;
+  try{
+    outer:for(const g of goc){
+      const r=g.r;
+      for(let i=0;i<r.length;i++){
+        const a=r[i],b=r[(i+1)%r.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);
+        if(L<1)continue;
+        const n=Math.max(1,Math.min(4,Math.round(L/15)));
+        for(let j=0;j<n;j++){
+          const f=(j+.5)/n,m=[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f];
+          const nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
+          let p=[m[0]+nx*1.5,m[1]+ny*1.5];if(inPoly(p,r))p=[m[0]-nx*1.5,m[1]-ny*1.5];
+          if(K.nhom.some(t=>t.r&&inPoly(p,t.r)))continue;
+          const co=sh&&sh.thua.find(t=>t.r&&inPoly(p,t.r));
+          if(co){K.nhom.push(co);continue}                      // đã có trên bản đồ — chỉ ghi nhận vào nhóm
+          if(hoi>=OLTONG)break outer;
+          olmsg(`Đang dò thửa giáp ranh… đã hỏi ${hoi} điểm, thấy thêm ${them} thửa.`);
+          if(hoi++)await new Promise(ok=>setTimeout(ok,OLNGHI/2));
+          const [la,lo]=conv(p[0],p[1],K.lon0,0.9999);
+          let jj=null;
+          try{const rr=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:K.lop.id,limit:50})});if(rr.ok)jj=await rr.json()}catch(e){}
+          if(!jj||jj.text==null||!(jj.geojsonWGS84||jj.polygon_bound))continue;
+          const t=olThua(jj,K.to,K.lon0,K.lop.id);if(!t)continue;
+          let s2=SHEETS.find(q=>q.to===K.to);
+          if(!s2){s2={to:K.to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc:K.dc,lon0:K.lon0,k0:0.9999};SHEETS.push(s2)}
+          const trung=s2.thua.find(q=>q.s===t.s&&q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05);
+          if(trung){K.nhom.push(trung);continue}
+          s2.thua.push(t);ganId(s2);K.nhom.push(t);them++;tong++;
+        }
+      }
+    }
+    K.lan++;
+    drawSheets();autoKTT();drawResults();drawMap();
+    olmsg(`<b>Giáp ranh</b>: thêm ${them} thửa lên bản đồ (hỏi ${hoi} điểm)${hoi>=OLTONG?' — dừng vì đủ '+OLTONG+' lần hỏi cho một lần bấm':''}. Bấm nút dưới để mở rộng tiếp hoặc bấm vào thửa khác trên bản đồ.${olKeNut()}`,'ok');
+  }catch(e){olmsg('Không dò được giáp ranh: '+esc(e.message)+'.','warn')}
+  finally{OLBUSY=false}
+}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.olkepick'))olKeTaDiem()});
+if($('dol').open)olNapTinh();                   // mục Mạnh Lắm mở sẵn khi vào ứng dụng
 </script>
 </body>
 </html>

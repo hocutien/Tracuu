@@ -330,7 +330,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v9 · 05/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v10 · 05/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -2840,7 +2840,15 @@ function gpsErr(e){
     $('locrow').classList.remove('hide');$('mloc').focus();
     return;
   }
-  const m={1:'Anh chưa cho phép truy cập vị trí. Bấm vào biểu tượng ổ khoá trên thanh địa chỉ để bật lại.',
+  /* iPhone/iPad không có ổ khoá trên thanh địa chỉ: quyền định vị nằm trong Cài đặt của máy */
+  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const trinh=/CriOS/.test(navigator.userAgent)?'Chrome':/FxiOS/.test(navigator.userAgent)?'Firefox':/EdgiOS/.test(navigator.userAgent)?'Edge':'Safari';
+  const moIOS=`<b>Máy chưa cho ${trinh} dùng vị trí.</b> Cách bật trên iPhone/iPad:<br>
+    1. Mở <b>Cài đặt</b> của máy → <b>Quyền riêng tư & Bảo mật</b> → <b>Dịch vụ định vị</b> → bật công tắc trên cùng.<br>
+    2. Kéo xuống cùng màn hình đó, chọn <b>${trinh}</b>${trinh==='Safari'?' (mục "Trang web Safari")':''} → chọn <b>Khi dùng ứng dụng</b> và bật <b>Vị trí chính xác</b>.<br>
+    3. Quay lại ${trinh}, <b>tải lại trang</b> rồi bấm nút vị trí; khi máy hỏi thì chọn <b>Cho phép</b>.<br>
+    Chưa bật được thì dán toạ độ vào ô bên dưới (Google Maps: giữ ngón tay vào chỗ đang đứng, chép cặp số).`;
+  const m={1:ios?moIOS:'Anh chưa cho phép truy cập vị trí. Bấm vào biểu tượng ổ khoá trên thanh địa chỉ để bật lại.',
            2:'Không lấy được vị trí — thử ra chỗ thoáng hoặc bật GPS trong máy.',
            3:'Quá lâu không có tín hiệu GPS.'}[e.code]||e.message;
   $('gpsmsg').innerHTML=`<div class="warn">${m}</div>`;

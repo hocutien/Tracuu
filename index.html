@@ -3852,7 +3852,10 @@ function olThua(it,to,lon0,lopId){
   if(a[0]===z[0]&&a[1]===z[1])ring=ring.slice(0,-1);
   const p=ring.map(([lo,la])=>{const [E,N]=toVN(la,lo,lon0,0.9999);return {E,N}});
   const dso=soVN(String(it.areashow==null?'':it.areashow));
-  const t={to,s:String(it.text),l:it.code||null,chu:null,d:dso,tay:1,ol:lopId,
+  /* findparcel (tra theo điểm) trả text rỗng: số thửa nằm trong nhãn quanh thửa */
+  let lb=it.labels_outsides;if(typeof lb==='string'){try{lb=JSON.parse(lb)}catch(e){lb=[]}}
+  const so=String(it.text||'').trim()||(Array.isArray(lb)?lb:[]).find(n=>/^\d{1,5}$/.test(String(n)))||'?';
+  const t={to,s:String(so),l:it.code||null,chu:null,d:dso,tay:1,ol:lopId,
     c:[p.reduce((s,q)=>s+q.E,0)/p.length,p.reduce((s,q)=>s+q.N,0)/p.length]};
   if(p.length>=3){
     t.r=p.map(q=>[Math.round(q.E*100)/100,Math.round(q.N*100)/100]);
@@ -3990,17 +3993,25 @@ function olLon0(){
 function olTamTo(l){try{const g=JSON.parse(l.geojson);return g&&g.type==='Point'?g.coordinates:null}catch(e){return null}}
 async function olTaiDiem(w){
   if(OLBUSY)return;
-  const {tinh,lon0}=olLon0();
-  if(!OLLOP.length||!lon0)return olmsg('Chọn tỉnh, huyện, xã trong mục "Hỏi thửa từ Mạnh Lắm" trước, rồi bấm lại.','warn');
+  const {lon0:lon0Chon}=olLon0();
+  if(!OLTINH.length&&!lon0Chon)return olmsg('Chưa tải được danh sách tỉnh từ Mạnh Lắm — kiểm tra mạng rồi bấm lại.','warn');
   OLBUSY=true;
   try{
-    const [la,lo]=conv(w[0],w[1],LON0!=null?LON0:lon0,K0||0.9999);
-    const kc=Math.cos(la*Math.PI/180);
-    const cand=OLLOP.map(l=>({l,c:olTamTo(l)})).filter(x=>x.c)
-      .map(x=>({...x,d:Math.hypot((x.c[0]-lo)*kc,x.c[1]-la)*111.32}))
-      .filter(x=>x.d<=OLPICKKM).sort((a,b)=>a.d-b.d).slice(0,OLPICKMAX);
-    const xa=olTen($('olxa'));
-    if(!cand.length)return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) cách xa mọi tờ của ${esc(xa)} — đổi xã ở mục "Hỏi thửa từ Mạnh Lắm" nếu thửa thuộc nơi khác.`,'warn');
+    const [la,lo]=conv(w[0],w[1],LON0!=null?LON0:lon0Chon,K0||0.9999);
+    /* hỏi Mạnh Lắm các tờ gần điểm bấm nhất cả nước — không phụ thuộc tỉnh/huyện/xã đang chọn ở mục Hỏi thửa */
+    let cand=[];
+    try{cand=(await olGoi('/map_layers',{type:'dc',current:1,pageSize:OLPICKMAX+3,x:lo,y:la}))
+      .filter(l=>l.type==='dc'&&l.dis>=0&&l.dis<=OLPICKKM*1000).slice(0,OLPICKMAX).map(l=>({l}))}catch(e){}
+    if(!cand.length){                                              // dự phòng: tờ của xã đang chọn, tính khoảng cách từ tâm tờ
+      const kc=Math.cos(la*Math.PI/180);
+      cand=OLLOP.map(l=>({l,c:olTamTo(l)})).filter(x=>x.c)
+        .map(x=>({...x,d:Math.hypot((x.c[0]-lo)*kc,x.c[1]-la)*111.32}))
+        .filter(x=>x.d<=OLPICKKM).sort((a,b)=>a.d-b.d).slice(0,OLPICKMAX);
+    }
+    const lonCua=l=>{const p=OLTINH.find(q=>String(q.id)===String(l.idtinh))||{};
+      const pv=PROV.find(q=>nodau(q[0])===nodau(p.name||''));return parseFloat(p.central_meridian)||(pv&&pv[1])||lon0Chon};
+    const xa=cand.length?cand[0].l.tenxa||olTen($('olxa')):olTen($('olxa'));
+    if(!cand.length)return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) không có tờ địa chính nào trong ${OLPICKKM} km — kiểm tra kinh tuyến trục của bản đồ có đúng tỉnh không.`,'warn');
     let thay=null,thu=0;
     for(const x of cand){
       olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — thử tờ ${esc(olSoTo(x.l))} (${++thu}/${cand.length})…`);
@@ -4011,23 +4022,34 @@ async function olTaiDiem(w){
           body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:x.l.id,limit:50})});
         if(r.ok)j=await r.json();
       }catch(e){}
-      if(j&&j.text!=null&&(j.geojsonWGS84||j.polygon_bound)){thay={it:j,l:x.l};break}
+      if(j&&j.text!=null&&(j.geojsonWGS84||j.polygon_bound)){
+        /* không dừng ở lớp đầu tiên: có tờ/lớp thừa phủ cả khu (vd. 492.475 m²) — gom hết rồi chọn hình nhỏ nhất chứa điểm bấm */
+        const tt=olThua(j,olSoTo(x.l),lonCua(x.l),x.l.id);
+        if(tt&&tt.r){const trong=inPoly(w,tt.r);
+          if(!thay||(trong&&!thay.trong)||(trong===thay.trong&&tt.a<thay.a))thay={it:j,l:x.l,a:tt.a,trong}}
+      }
     }
     if(!thay)return olmsg(`Không có thửa nào tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} trong ${cand.length} tờ gần nhất của ${esc(xa)} — có thể là đường, kênh mương hoặc chưa có dữ liệu.`,'warn');
-    const to=olSoTo(thay.l), dc=[xa,olTen($('olhuyen')),olTen($('oltinh'))].join(', ');
+    const to=olSoTo(thay.l), lon0=lonCua(thay.l);
+    const dc=[thay.l.tenxa||xa,thay.l.tenhuyen||olTen($('olhuyen')),thay.l.tentinh||olTen($('oltinh'))].join(', ');
     const t=olThua(thay.it,to,lon0,thay.l.id);
     if(!t)return olmsg('Mạnh Lắm trả về thửa nhưng không có ranh để vẽ.','warn');
     let sh=SHEETS.find(q=>q.to===to);
     const san=sh&&sh.thua.find(q=>q.s===t.s&&!q.ol);              // đã có từ file thì giữ nguyên
     if(!san){
       if(!sh){sh={to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc,lon0,k0:0.9999};SHEETS.push(sh)}
-      sh.thua=sh.thua.filter(q=>!(q.s===t.s&&q.ol));
+      sh.thua=sh.thua.filter(q=>!(q.s===t.s&&q.ol&&q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05));   // chỉ ghi đè đúng hình đó, số '?' của hai thửa khác nhau không đè nhau
       sh.thua.push(t);ganId(sh);
     }
-    const ct=san||sh.thua.find(q=>q.s===t.s&&q.ol)||t;
+    const ct=san||sh.thua.find(q=>q.s===t.s&&q.ol&&q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05)||t;
     SEL.add(ct.id);FLASH={id:ct.id,z:0};
     drawSheets();autoKTT();drawResults();drawMap();
-    olmsg(`<b>Thửa ${esc(t.s)}, tờ ${esc(to)}</b>: ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}`,'ok');
+    /* đưa các ô tỉnh/huyện/xã/tờ về đúng nơi vừa tra để lần hỏi số thửa sau cùng khu vực */
+    if(thay.l.idxa&&String($('olxa').value)!==String(thay.l.idxa)){
+      $('oltinh').value=thay.l.idtinh;
+      olNapHuyen(thay.l.idhuyen,thay.l.idxa,thay.l.id).then(olNho,()=>{});
+    }
+    olmsg(`<b>Thửa ${esc(t.s)}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}`,'ok');
   }catch(e){olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.','warn')}
   finally{OLBUSY=false}
 }

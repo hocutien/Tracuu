@@ -333,6 +333,10 @@ body.full #mfbtn{display:none!important}
 #mapchip button{flex:0 0 auto;border:0;background:none;color:var(--dim);font-size:17px;
   line-height:1;padding:2px 4px;cursor:pointer}
 #mapchip #chipdir{font-size:13px;font-weight:600;color:#fff;background:var(--moss);border-radius:6px;padding:7px 10px;white-space:nowrap}
+/* khối chưa tách ranh: dòng 1 "⚠ Khối" + nút, dòng 2 nội dung đầy đủ (không cắt chữ, khổ điện thoại chỉ còn ~77 px nếu để một dòng) */
+#mapchip.khoi{border-color:#a8700f;background:#fdf3e1;flex-wrap:wrap;row-gap:4px}
+#mapchip.khoi b{color:#6b4500;white-space:nowrap;flex:1}
+#mapchip.khoi span{color:#4a3a1c;order:3;flex:1 1 100%;white-space:normal;line-height:1.35}
 /* huy hiệu "design by 7410-Mạnh Lắm" */
 .mlbadge{display:inline-flex;align-items:center;gap:7px;background:#12283a;color:#fbeed0;border-radius:999px;padding:3px 11px 3px 4px;
   font:700 12px/1.2 Helvetica,Arial,sans-serif;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -364,7 +368,7 @@ body.full #mfbtn{display:none!important}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v28 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v29 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -2129,7 +2133,7 @@ function drawResults(){
       <button class="selnone" data-to="${to}">Bỏ</button></div>
     <div class="chips">${!mo?'':byTo[to].map(t=>{
       const k=t.id,cls=t.ok?'c1':t.r?'c2':t.bang?'c4':'c3';
-      return `<button class="chip ${cls}${SEL.has(k)?' on':''}${FLASH&&FLASH.id===t.id?' cur':''}" data-k="${k}" title="${[coSo(t)?t.s:'chưa rõ số thửa',t.l,t.d?t.d+' m²':'',t.chu].filter(Boolean).join(' · ')}">${t.s}${t.tong>1?`<sup>${t.stt}</sup>`:''}</button>`}).join('')}</div></div>`}).join('')
+      return `<button class="chip ${cls}${SEL.has(k)?' on':''}${FLASH&&FLASH.id===t.id?' cur':''}" data-k="${k}" title="${t.khoi?'khối chưa tách ranh · nhãn '+t.khoi.join(', ')+' · '+t.a+' m² cả khối':[coSo(t)?t.s:'chưa rõ số thửa',t.l,t.d?t.d+' m²':'',t.chu].filter(Boolean).join(' · ')}">${t.s}${t.tong>1?`<sup>${t.stt}</sup>`:''}</button>`}).join('')}</div></div>`}).join('')
     ||(SHEETS.length?'<p class="note">Không có thửa nào khớp.</p>':'');
   $('res').querySelectorAll('.tog').forEach(b=>b.onclick=e=>{
     const to=e.currentTarget.dataset.to,g=e.currentTarget.closest('.togrp');
@@ -3651,12 +3655,18 @@ function chipThua(){
   if(!id){box.classList.remove('on');return}
   const t=allThua().find(x=>x.id===id);
   if(!t){box.classList.remove('on');return}
-  box.querySelector('b').textContent=(coSo(t)?'Thửa '+t.s:'Thửa chưa rõ số')+(t.tong>1?' ('+t.stt+'/'+t.tong+')':'');
-  box.querySelector('span').textContent=[
+  /* khối chưa tách ranh (t.khoi, xem olThua): báo ngay trên thanh, chữ ngắn để vừa khổ điện thoại; câu đầy đủ ở title */
+  const khoi=!!(t.khoi&&t.khoi.length);
+  box.classList.toggle('khoi',khoi);
+  box.title=khoi?`Khối chưa tách ranh, có nhãn các thửa ${t.khoi.join(', ')}: Mạnh Lắm không có ranh riêng từng thửa, diện tích là của cả khối.`:'';
+  box.querySelector('b').textContent=khoi?'⚠ Khối':(coSo(t)?'Thửa '+t.s:'Thửa chưa rõ số')+(t.tong>1?' ('+t.stt+'/'+t.tong+')':'');
+  box.querySelector('span').textContent=(khoi?[
+    'chưa tách ranh', 'tờ '+t.to, t.a?fmt(t.a,1)+' m² cả khối':'', 'nhãn '+t.khoi.join(', ')
+  ]:[
     t.to==='tay'?'nhập tay':'tờ '+t.to,
     t.d?fmt(t.d,1)+' m²':(t.a?fmt(t.a,1)+' m² (từ ranh)':''),
     t.l||'', t.chu||''
-  ].filter(Boolean).join(' · ');
+  ]).filter(Boolean).join(' · ');
   box.classList.add('on');
 }
 $('chipx').onclick=()=>{

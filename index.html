@@ -289,6 +289,17 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
   #gpsmsg:empty{display:none}
 }
 /* thẻ thửa đang chỏ tới */
+/* thanh trượt độ đậm lớp quy hoạch, nổi bên mép trái bản đồ (mép phải đã có cụm nút công cụ) */
+#glctl{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;
+  touch-action:none;user-select:none}
+#glctl.hide{display:none}
+#glctl button{width:44px;height:44px;border-radius:50%;border:0;background:#fffdf8;color:#12283a;font-size:26px;font-weight:700;line-height:1;cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,.35);padding:0}
+#glctl button:active{background:#e6ebf0}
+#glctl input[type=range]{writing-mode:vertical-lr;-webkit-appearance:slider-vertical;appearance:slider-vertical;width:28px;height:150px;padding:0;margin:0;border:0;background:none;
+  accent-color:#1565c0;touch-action:none;cursor:pointer}
+#glctl output{min-width:40px;text-align:center;font-size:13px;font-weight:700;color:#fff;background:#1565c0;border-radius:12px;padding:3px 6px;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+@media (max-height:520px){#glctl input[type=range]{height:90px}}
 #pickbar{display:none;position:absolute;top:8px;left:8px;right:8px;z-index:6;padding:9px 12px;border-radius:8px;font-size:13px;line-height:1.45;
   background:#fffdf8;border:1px solid var(--rule);box-shadow:0 2px 10px rgba(0,0,0,.25);color:#16211c}
 #pickbar.ok{border-color:#3d6b4f;background:#eef6f0}#pickbar.warn{border-color:#a8700f;background:#fdf3e1}
@@ -332,7 +343,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v21 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v23 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -553,7 +564,13 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 </div>
 </details>
   </div>
-  <div id="mapwrap"><canvas id="map"></canvas><div id="pickbar"><button id="pickx" title="Ẩn">×</button><span id="picktxt"></span></div></div>
+  <div id="mapwrap"><canvas id="map"></canvas><div id="pickbar"><button id="pickx" title="Ẩn">×</button><span id="picktxt"></span></div>
+    <div id="glctl" class="hide" aria-label="Độ đậm lớp quy hoạch">
+      <button id="glmin" title="Nhạt bớt lớp quy hoạch" aria-label="Nhạt bớt">−</button>
+      <input type="range" id="glopa2" min="10" max="100" step="5" value="60" aria-label="Độ đậm lớp quy hoạch">
+      <output id="glval">60</output>
+      <button id="glplus" title="Đậm thêm lớp quy hoạch" aria-label="Đậm thêm">+</button>
+    </div></div>
   <div id="fabbr"></div>
   <button id="bthoat" title="Hiện lại bảng điều khiển (phím Esc)">✕ Thoát toàn màn hình</button>
   <div id="mapfoot">
@@ -2779,6 +2796,7 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
   let ghiQH='';
   if(GL.on&&!forPrint){
     const ds=glMau(latm,(lo0+lo1)/2);let ve=0;
+    if(GLTU[GL.chon]){const b=$('glnote').querySelector('b');if(b&&b.innerHTML!==GLTT)b.innerHTML=GLTT}   // dòng trạng thái của kiểu tự chọn
     x.globalAlpha=GL.opa/100;try{x.filter='none'}catch(e){}
     for(const L of ds){
       if(z<L.z[0]-1)continue;
@@ -2826,20 +2844,72 @@ const GLDS=[   // [khoá, nhóm, tên, địa chỉ (không kèm đuôi), mức 
   ['tc-24','Huyện Trà Cú','Kế hoạch sử dụng đất 2024',GLS3+'guland4/qh-2024/tra-vinh/huyen-tra-cu',10,17],
   ['tc-23','Huyện Trà Cú','Kế hoạch sử dụng đất 2023',GLS3+'guland2/qh-2023/tra-vinh/huyen-tra-cu',12,16]
 ];
+/* Tự chọn theo nơi đang xem [QĐ 06/10]: xác định tỉnh, huyện tại tâm khung nhìn (hỏi tờ địa chính gần nhất, như tra thửa tại điểm),
+   rồi thử lần lượt các mẫu địa chỉ ô ảnh của huyện đó; mẫu nào tải được một ô ở tâm thì dùng. Tác giả xác nhận được phép dùng nguồn này.
+   [kiểu]: tên hiện, các mẫu địa chỉ theo thứ tự thử ({T} = tỉnh, {H} = huyện kèm loại), khoảng mức phóng */
+const GLTU={
+  auto:  {ten:'Quy hoạch sử dụng đất đến 2030',mau:[GLS3+'guland5/qh-2030/{T}/{H}'],z:[10,18],tinh:1},
+  auto25:{ten:'Kế hoạch sử dụng đất 2025',mau:[GLS3+'guland8/qh-2025/{T}/{H}--25',GLS3+'guland8/qh-2025/{T}/{H}'],z:[10,17]},
+  auto24:{ten:'Kế hoạch sử dụng đất 2024',mau:[GLS3+'guland4/qh-2024/{T}/{H}'],z:[10,17]},
+  auto23:{ten:'Kế hoạch sử dụng đất 2023',mau:[GLS3+'guland2/qh-2023/{T}/{H}'],z:[12,16]}
+};
 let GL={on:false,opa:60,url:'',chon:'auto'};
 try{const q=JSON.parse(localStorage.getItem('lopqh')||'null');if(q)GL={on:!!q.on,opa:Math.max(10,Math.min(100,+q.opa||60)),url:String(q.url||''),
-  chon:q.chon==='khac'||GLDS.some(d=>d[0]===q.chon)?q.chon:'auto'}}catch(e){}
+  chon:q.chon==='khac'||GLTU[q.chon]||GLDS.some(d=>d[0]===q.chon)?q.chon:'auto'}}catch(e){}
 const glLuu=()=>{try{localStorage.setItem('lopqh',JSON.stringify(GL))}catch(e){}};
+const glSlug=x=>nodau(x).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+/* nơi đang xem: {tinh, huyen, T, Hs} — hỏi một lần cho mỗi ô lưới ~1 km, nhớ lại; chưa có thì trả null và hỏi ngầm */
+const GLNOI=new Map();let glNoiCho=0;
+function glNoi(la,lo){
+  const k=la.toFixed(2)+','+lo.toFixed(2);
+  if(GLNOI.has(k))return GLNOI.get(k);
+  if(glNoiCho>2)return null;
+  GLNOI.set(k,null);glNoiCho++;
+  olGoi('/map_layers',{type:'dc',current:1,pageSize:1,x:lo,y:la}).then(ds=>{
+    const l=ds[0];if(!l||!l.tentinh||!l.tenhuyen||!(l.dis<=6000))return GLNOI.set(k,{khong:1});   // tờ gần nhất xa hơn 6 km: nguồn thửa không phủ nơi này, không đoán huyện
+    let T=glSlug(l.tentinh);if(T==='ho-chi-minh')T='tp-ho-chi-minh';
+    /* tên huyện của nguồn thửa: "Trà Cú", "Duyên Hải (Thị xã)", "Thành phố Trà Vinh", "Quận 1", "Bình Tân" (không ghi loại) */
+    const m=l.tenhuyen.match(/^(.*?)\s*\((Thị xã|Thành phố|Quận|Huyện)\)\s*$/i), ten=glSlug(m?m[1]:l.tenhuyen);
+    const loai=m?[glSlug(m[2])]:/^(quan|huyen|thi-xa|thanh-pho)-/.test(ten)?['']:['huyen','quan','thi-xa','thanh-pho'];
+    GLNOI.set(k,{tinh:l.tentinh,huyen:l.tenhuyen,T,Hs:loai.map(p=>p?p+'-'+ten:ten)});
+  }).catch(()=>GLNOI.delete(k)).finally(()=>{glNoiCho--;glVe();clearTimeout(glTimer);glTimer=setTimeout(drawMap,60)});
+  return null;
+}
+/* thử một mẫu địa chỉ: tải một ô ở tâm; nhớ kết quả (true / false / undefined = đang thử) */
+const GLOK=new Map();
+function glThu(m,la,lo,z){
+  if(GLOK.has(m))return GLOK.get(m);
+  GLOK.set(m,undefined);
+  const [px,py]=lonlat2px(la,lo,z), im=new Image();
+  const xong=v=>{GLOK.set(m,v);glVe();clearTimeout(glTimer);glTimer=setTimeout(drawMap,60)};
+  im.onload=()=>xong(im.naturalWidth>0);im.onerror=()=>xong(false);
+  im.src=m.replace('{z}',z).replace('{x}',Math.floor(px/256)).replace('{y}',Math.floor(py/256));
+  return undefined;
+}
+let GLTT='';                                    // dòng trạng thái của kiểu tự chọn, hiện dưới ô xổ xuống
 /* các lớp ô ảnh cần vẽ cho vùng đang xem: [{m: mẫu địa chỉ, z: [mức nhỏ nhất, lớn nhất]}] */
 function glMau(la,lo){
   if(GL.chon==='khac')return /\{z\}.*\{x\}.*\{y\}/.test(GL.url)?[{m:GL.url.trim(),z:[8,20]}]:[];
   const d=GLDS.find(q=>q[0]===GL.chon);
   if(d)return [{m:d[3]+GLDUOI,z:[d[4],d[5]]}];
-  /* tự chọn: quy hoạch sử dụng đất 2030 của tỉnh gần tâm khung nhìn nhất (thêm tỉnh thứ hai khi ở gần ranh tỉnh) */
-  const kc=Math.cos(la*Math.PI/180);
-  const ds=PROV.map(p=>({p,d:Math.hypot(la-p[2],(lo-p[3])*kc)})).sort((a,b)=>a.d-b.d);
-  return ds.slice(0,2).filter((q,i)=>i===0||q.d<ds[0].d*1.8+0.05)
-    .map(q=>({m:GLGOC+nodau(q.p[0]).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-2030'+GLDUOI,z:[12,18]}));
+  const K=GLTU[GL.chon]||GLTU.auto, noi=glNoi(la,lo);
+  /* quy hoạch 2030 cấp tỉnh: dùng khi chưa biết huyện, hoặc huyện không có bản riêng */
+  const capTinh=()=>{if(!K.tinh)return [];
+    const kc=Math.cos(la*Math.PI/180), ds=PROV.map(p=>({p,d:Math.hypot(la-p[2],(lo-p[3])*kc)})).sort((a,b)=>a.d-b.d);
+    return (noi&&noi.T?[noi.T==='tp-ho-chi-minh'?noi.T:glSlug(noi.tinh)]:ds.slice(0,2).filter((q,i)=>i===0||q.d<ds[0].d*1.8+0.05).map(q=>glSlug(q.p[0])))
+      .map(t=>({m:GLGOC+t+'-2030'+GLDUOI,z:[12,18]}))};
+  if(!noi){GLTT='Đang xác định huyện tại nơi đang xem…';return capTinh()}
+  if(noi.khong){GLTT='Không xác định được huyện tại nơi đang xem.';return capTinh()}
+  const zt=Math.max(K.z[0],Math.min(K.z[1],14));let cho=false;
+  for(const H of noi.Hs)for(const mau of K.mau){
+    const m=mau.replace('{T}',noi.T).replace('{H}',H)+GLDUOI, ok=glThu(m,la,lo,zt);
+    if(ok){GLTT=`${esc(K.ten)} — ${esc(noi.huyen)}, ${esc(noi.tinh)}.`;return [{m,z:K.z}]}
+    if(ok===undefined)cho=true;
+  }
+  if(cho){GLTT=`Đang tìm ${esc(K.ten.toLowerCase())} của ${esc(noi.huyen)}, ${esc(noi.tinh)}…`;return capTinh()}
+  GLTT=K.tinh?`${esc(noi.huyen)}, ${esc(noi.tinh)} không có bản riêng cho huyện: đang hiện quy hoạch 2030 của tỉnh.`
+    :`Chưa có ${esc(K.ten.toLowerCase())} cho ${esc(noi.huyen)}, ${esc(noi.tinh)}.`;
+  return capTinh();
 }
 const GLT=new Map();let glTimer=null;
 function glImg(url){
@@ -2851,19 +2921,28 @@ function glImg(url){
   im.src=url;GLT.set(url,im);return im;
 }
 (()=>{const nh={};GLDS.forEach(d=>(nh[d[1]]=nh[d[1]]||[]).push(d));
-  $('glsel').innerHTML='<option value="auto">Tự chọn theo tỉnh — quy hoạch sử dụng đất 2030</option>'
+  $('glsel').innerHTML='<optgroup label="Tự chọn theo nơi đang xem">'+Object.keys(GLTU).map(k=>`<option value="${k}">${esc(GLTU[k].ten)}</option>`).join('')+'</optgroup>'
     +Object.keys(nh).map(n=>`<optgroup label="${esc(n)}">${nh[n].map(d=>`<option value="${d[0]}">${esc(d[2])}</option>`).join('')}</optgroup>`).join('')
     +'<option value="khac">Bản đồ khác — dán địa chỉ ô ảnh…</option>'})();
 function glVe(){
   $('glon').checked=GL.on;$('glopa').value=GL.opa;$('glopav').textContent=GL.opa+'%';$('glurl').value=GL.url;$('glsel').value=GL.chon;
+  $('glopa2').value=GL.opa;$('glval').textContent=GL.opa;$('glctl').classList.toggle('hide',!GL.on);   // thanh nổi chỉ hiện khi lớp quy hoạch đang bật
   $('glurlrow').classList.toggle('hide',GL.chon!=='khac');
   const d=GLDS.find(q=>q[0]===GL.chon);
-  $('glnote').innerHTML=!GL.on?'':(d?`${esc(d[1])}: hiện ở mức phóng ${d[4]}–${d[5]}. `:GL.chon==='auto'?'Hiện ở mức phóng 12–18; một số tỉnh chưa có. ':'')
+  $('glnote').innerHTML=!GL.on?'':(d?`${esc(d[1])}: hiện ở mức phóng ${d[4]}–${d[5]}. `:GLTU[GL.chon]?`<b>${GLTT}</b> Kéo bản đồ sang huyện, tỉnh khác thì tự đổi theo. `:'')
     +'Ô ảnh lấy từ nguồn bên ngoài, không chính thức: có thể ngừng bất cứ lúc nào; chỉ để tham khảo, không thay văn bản quy hoạch. Không kèm khi in hoặc lưu ảnh.';
 }
 $('glon').onchange=e=>{GL.on=e.target.checked;glLuu();glVe();if(GL.on&&!BASEKEY)datNen('esri',0);drawMap()};
-$('glsel').onchange=e=>{GL.chon=e.target.value;if(!GL.on){GL.on=true;if(!BASEKEY)datNen('esri',0)}GLT.clear();glLuu();glVe();drawMap()};
-$('glopa').oninput=e=>{GL.opa=+e.target.value;$('glopav').textContent=GL.opa+'%';glLuu();drawMap()};
+$('glsel').onchange=e=>{GL.chon=e.target.value;GLTT='';if(!GL.on){GL.on=true;if(!BASEKEY)datNen('esri',0)}GLT.clear();glLuu();glVe();drawMap()};
+function glDatOpa(v){
+  v=Math.round(+v);GL.opa=Number.isFinite(v)?Math.max(10,Math.min(100,v)):60;   // 0 là trị số hợp lệ cần kẹp về 10, không phải "thiếu"
+  $('glopa').value=GL.opa;$('glopav').textContent=GL.opa+'%';$('glopa2').value=GL.opa;$('glval').textContent=GL.opa;
+  glLuu();drawMap();
+}
+$('glopa').oninput=e=>glDatOpa(e.target.value);
+$('glopa2').oninput=e=>glDatOpa(e.target.value);
+$('glmin').onclick=()=>glDatOpa(GL.opa-10);
+$('glplus').onclick=()=>glDatOpa(GL.opa+10);
 $('glurl').onchange=e=>{const v=e.target.value.trim();
   if(v&&!/^https:\/\/.*\{z\}.*\{x\}.*\{y\}/.test(v)){$('glnote').innerHTML='<span style="color:var(--red)">Địa chỉ phải bắt đầu bằng https:// và có đủ {z}, {x}, {y}.</span>';return}
   GL.url=v;GLT.clear();glLuu();glVe();drawMap()};

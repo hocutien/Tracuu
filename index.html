@@ -352,9 +352,13 @@ body.full #mfbtn{display:none!important}
 #toolbar #mpick.on{background:var(--moss);border-color:var(--moss);color:#fff}
 .olkepick{margin-top:6px;padding:10px 14px;font-size:14px;font-weight:700;border:0;border-radius:6px;background:#12283a;color:#fff;cursor:pointer}
 .olkepick:disabled{opacity:.55}
-#pickbar .olkepick,#pickbar .olkebtn{float:none;display:block;width:100%;margin:8px 0 0;padding:12px 14px;min-height:44px;font-size:15px;font-weight:700;line-height:1.2;border-radius:8px;background:#12283a;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+/* [v31, theo yêu cầu người dùng 06/10] nút trong khung thông báo nhỏ gọn: chữ bằng chữ trong khung, xếp ngang theo độ dài chữ.
+   Cao 32 px (36 px trên màn cảm ứng) — thấp hơn quy tắc 44 px cũ, người dùng chọn gọn hơn. */
+#pickbar .pbnut{margin-top:2px}
+#pickbar .olkepick,#pickbar .olkebtn{float:none;display:inline-block;width:auto;margin:6px 6px 0 0;padding:5px 12px;min-height:32px;font-size:13px;font-weight:600;line-height:1.2;border-radius:6px;background:#12283a;color:#fff;box-shadow:none}
+@media (pointer:coarse){#pickbar .olkepick,#pickbar .olkebtn{min-height:36px}}
 #pickbar .olkepick:active,#pickbar .olkebtn:active{background:#1d4260}
-.olkepick.olphu,#pickbar .olkepick.olphu{background:#fff;color:#12283a;border:1.5px solid #12283a;box-shadow:none;font-weight:600}
+.olkepick.olphu,#pickbar .olkepick.olphu{background:#fff;color:#12283a;border:1px solid #12283a;box-shadow:none;font-weight:600}
 .olkepick.olphu:active,#pickbar .olkepick.olphu:active{background:#e6ebf0}
 #pickbar .olkepick:disabled,#pickbar .olkebtn:disabled{background:#6d6a60;color:#e6e2d7}
 .olkebtn{background:#12283a;color:#fff;font-weight:700}
@@ -368,7 +372,7 @@ body.full #mfbtn{display:none!important}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v30 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v31 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -4431,7 +4435,10 @@ const OLGOP=/^([0-9]?[A-Z]{1,4}(?:[+-][A-Z]{2,4})*)\s+([0-9]{1,5}[a-zA-Z]?)\s*[/
 try{OLNHO=JSON.parse(localStorage.getItem('olsel')||'{}')||{}}catch(e){}
 const olmsg=(h,loai)=>{$('olmsg').innerHTML=loai?`<div class="${loai}">${h}</div>`:h;
   if(typeof OLPICK!=='undefined'&&OLPICK&&h)pickBar(h,loai)};
-function pickBar(h,loai){const b=$('pickbar');b.className=loai||'';b.style.display='block';$('picktxt').innerHTML=h}
+function pickBar(h,loai){const b=$('pickbar');b.className=loai||'';b.style.display='block';const p=$('picktxt');p.innerHTML=h;
+  /* [v31] gom các nút về một hàng riêng cuối khung, không chen vào dòng chữ */
+  const ns=[...p.querySelectorAll('.olkepick,.olkebtn')];
+  if(ns.length){const hang=document.createElement('div');hang.className='pbnut';ns.forEach(n=>hang.appendChild(n));p.querySelectorAll('div:empty').forEach(d=>d.remove());p.appendChild(hang)}}
 const olNho=()=>{try{localStorage.setItem('olsel',JSON.stringify(
   {t:$('oltinh').value,h:$('olhuyen').value,x:$('olxa').value,to:$('olto').value}))}catch(e){}};
 /* ===== Hiệu chỉnh độ lệch toạ độ của Mạnh Lắm so với DGN gốc =====
@@ -4890,7 +4897,7 @@ async function olTaiDiem(w){
       olmsg(`Nguồn 1 không có thửa tại điểm này (đã hỏi ${cand.length} tờ) — đang hỏi nguồn 2…`);
       const k=await olNguon2(w);if(OLHUY)return;                 // [v30] nguồn 1 không có thửa → nguồn 2
       if(k.t)return olmsg(glMoTa(k.t,w,`nguồn 1 không có thửa ở điểm này, đã hỏi ${cand.length} tờ`),'ok');
-      return olmsg(`Không có thửa nào tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} (đã hỏi hết ${cand.length} tờ trong ${OLPICKKM} km, bỏ qua hình khung trống) — Mạnh Lắm chưa có ranh thửa ở đúng chỗ này (sông, đường, kênh mương, hoặc khu chưa đo vẽ).${glLyDo(k)} Bấm nút dưới để xem các thửa quanh đó, hoặc bấm lệch sang phần đất liền kề.<div><button class="olkepick" data-quanh="1">Hiện các thửa quanh điểm này</button></div>`,'warn')}
+      return olmsg(`Không có thửa nào tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} (đã hỏi hết ${cand.length} tờ trong ${OLPICKKM} km, bỏ qua hình khung trống) — Mạnh Lắm chưa có ranh thửa ở đúng chỗ này (sông, đường, kênh mương, hoặc khu chưa đo vẽ).${glLyDo(k)} Bấm nút dưới để xem các thửa quanh đó, hoặc bấm lệch sang phần đất liền kề.<div><button class="olkepick" data-quanh="1">Thửa quanh điểm này</button></div>`,'warn')}
     const to=olSoTo(thay.l), lon0=lonCua(thay.l);
     const dc=[thay.l.tenxa||xa,thay.l.tenhuyen||olTen($('olhuyen')),thay.l.tentinh||olTen($('oltinh'))].join(', ');
     const t=thay.tt;
@@ -4911,7 +4918,7 @@ async function olTaiDiem(w){
       $('oltinh').value=thay.l.idtinh;
       olNapHuyen(thay.l.idhuyen,thay.l.idxa,thay.l.id).then(olNho,()=>{});
     }
-    olmsg(`<b>${esc(nhanThua(t))}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,1)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.d?(t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''):''}${t.chu?' · '+esc(t.chu):''}${t.khoi?` <b>Đây là khối chưa tách ranh, trong đó có nhãn các thửa ${t.khoi.map(esc).join(', ')}</b>: Mạnh Lắm không có ranh riêng từng thửa, diện tích trên là của cả khối.`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${coSo(t)||t.khoi?'':` Trong hình này Mạnh Lắm không có nhãn số thửa${t.goiY&&t.goiY.length?`; các nhãn số gần đó: ${t.goiY.map(esc).join(', ')} (có thể là thửa bên cạnh)`:''}.`}${t.hc?` Ranh đã hiệu chỉnh (lùi ${fmt(t.hc[0],2)} m về tây, ${fmt(t.hc[1],2)} m về nam).`:''}${t.nghi?' <b>Hình này là chữ nhật vuông vức, có thể là ô bảng biểu của người vẽ chứ không phải thửa — nên đối chiếu.</b>':''}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}${san?'':(OLKQ={w,l:thay.l,t:ct},'<div><button class="olkepick olphu" data-sai="1">Hình này không phải thửa</button></div>')}<div><button class="olkepick olphu" data-n2="1">Xem thêm theo nguồn 2</button></div>`,t.nghi?'warn':'ok');
+    olmsg(`<b>${esc(nhanThua(t))}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,1)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.d?(t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''):''}${t.chu?' · '+esc(t.chu):''}${t.khoi?` <b>Đây là khối chưa tách ranh, trong đó có nhãn các thửa ${t.khoi.map(esc).join(', ')}</b>: Mạnh Lắm không có ranh riêng từng thửa, diện tích trên là của cả khối.`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${coSo(t)||t.khoi?'':` Trong hình này Mạnh Lắm không có nhãn số thửa${t.goiY&&t.goiY.length?`; các nhãn số gần đó: ${t.goiY.map(esc).join(', ')} (có thể là thửa bên cạnh)`:''}.`}${t.hc?` Ranh đã hiệu chỉnh (lùi ${fmt(t.hc[0],2)} m về tây, ${fmt(t.hc[1],2)} m về nam).`:''}${t.nghi?' <b>Hình này là chữ nhật vuông vức, có thể là ô bảng biểu của người vẽ chứ không phải thửa — nên đối chiếu.</b>':''}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}${san?'':(OLKQ={w,l:thay.l,t:ct},'<div><button class="olkepick olphu" data-sai="1" title="Hình này không phải thửa">Không phải thửa</button></div>')}<div><button class="olkepick olphu" data-n2="1" title="Xem thêm thửa tại điểm này theo nguồn 2">Xem nguồn 2</button></div>`,t.nghi?'warn':'ok');
   }catch(e){                                                       // [v30] nguồn 1 lỗi → thử nguồn 2
     let k={loi:'không thử'};
     try{if(!OLHUY){olmsg('Không gọi được Mạnh Lắm — đang hỏi nguồn 2…');k=await olNguon2(w)}}catch(e2){}
@@ -5048,7 +5055,7 @@ function olBaoSai(){
   const k=OLNONG.indexOf(id);if(k>=0)OLNONG.splice(k,1);
   drawSheets();drawResults();drawMap();
   OLHOAN={id,cn,w:K.w};
-  olmsg('Đã ghi nhận hình đó không phải thửa và bỏ khỏi bản đồ'+(cn?'; các ô cùng kích thước của tờ này cũng sẽ bị bỏ qua':'')+'.<div><button class="olkepick" data-lai="1">Tra lại điểm này</button></div><div><button class="olkepick olphu" data-hoan="1">Hoàn tác — hình đó là thửa thật</button></div>','ok');
+  olmsg('Đã ghi nhận hình đó không phải thửa và bỏ khỏi bản đồ'+(cn?'; các ô cùng kích thước của tờ này cũng sẽ bị bỏ qua':'')+'.<div><button class="olkepick" data-lai="1">Tra lại điểm này</button></div><div><button class="olkepick olphu" data-hoan="1">Hoàn tác (là thửa thật)</button></div>','ok');
 }
 let OLHOAN=null;                                // lần báo sai gần nhất, để hoàn tác
 function olHoanBaoSai(lai){
@@ -5171,7 +5178,7 @@ new MutationObserver(olHeroSync).observe($('mpick'),{attributes:true,attributeFi
 
 /* ===== Giáp ranh sau khi tra tại điểm: hỏi các điểm ngay sát ngoài mỗi cạnh ===== */
 let OLKE=null;                                  // {lop,to,dc,lon0,nhom:[thửa],lan}
-const olKeNut=()=>OLKE?`<div><button class="olkepick">${OLKE.lan?'Mở rộng thêm một lớp thửa lân cận':'Hiện thửa giáp ranh'}</button></div>`:'';
+const olKeNut=()=>OLKE?`<div><button class="olkepick">${OLKE.lan?'Mở rộng thêm lân cận':'Thửa giáp ranh'}</button></div>`:'';
 async function olKeTaDiem(){
   const K=OLKE;if(!K||OLBUSY)return;
   OLBUSY=true;

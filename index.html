@@ -293,6 +293,18 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
 #glctl{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;
   touch-action:none;user-select:none}
 #glctl.hide{display:none}
+/* bảng chú giải màu: nổi cạnh thanh trượt, cuộn được, không che cụm nút bên phải */
+#glleg{position:absolute;left:64px;top:8px;bottom:8px;width:min(340px,calc(100% - 132px));z-index:6;background:#fffdf8;border:1px solid var(--rule);border-radius:8px;
+  padding:8px;display:flex;flex-direction:column;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+#glleg.hide{display:none}
+#glcgx{flex:none;width:36px;height:36px;border:1px solid var(--rule);background:#fff;border-radius:6px;font-size:20px;line-height:1;cursor:pointer}
+#glcgds{flex:1 1 auto;min-height:0;overflow:auto;margin-top:6px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+#glcgds .cg{display:grid;grid-template-columns:54px 26px 1fr;gap:6px;align-items:center;padding:5px 2px;border-bottom:1px solid #eee9dc;font-size:13px;line-height:1.3}
+#glcgds .cg .so{color:#6d6a60;font-size:12px;font-variant-numeric:tabular-nums}
+#glcgds .cg i{display:block;width:26px;height:18px;border:1px solid #8a8678;border-radius:3px}
+#glcgds .cg b{font-weight:700;margin-right:6px}
+#glcgds .cg.c1 .so{font-weight:700;color:#12283a}
+#glcgds .trong{padding:10px 2px;color:#6d6a60;font-size:13px}
 #glctl button{width:44px;height:44px;border-radius:50%;border:0;background:#fffdf8;color:#12283a;font-size:26px;font-weight:700;line-height:1;cursor:pointer;
   box-shadow:0 1px 4px rgba(0,0,0,.35);padding:0}
 #glctl button:active{background:#e6ebf0}
@@ -343,7 +355,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v23 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v24 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -570,14 +582,27 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
       <input type="range" id="glopa2" min="10" max="100" step="5" value="60" aria-label="Độ đậm lớp quy hoạch">
       <output id="glval">60</output>
       <button id="glplus" title="Đậm thêm lớp quy hoạch" aria-label="Đậm thêm">+</button>
+      <button id="glpal" title="Bảng màu, ký hiệu các loại đất quy hoạch" aria-label="Bảng chú giải màu" style="font-size:20px;margin-top:6px">🎨</button>
+    </div>
+    <div id="glleg" class="hide" role="dialog" aria-label="Bảng chú giải màu quy hoạch">
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="glcgsel" aria-label="Chọn bảng chú giải" style="flex:1;font-size:13px;padding:7px 8px">
+          <option value="1">Loại đất — quy hoạch, kế hoạch sử dụng đất, hiện trạng</option>
+          <option value="2">Quy hoạch xây dựng, phân khu</option>
+        </select>
+        <button id="glcgx" title="Đóng" aria-label="Đóng bảng chú giải">×</button>
+      </div>
+      <input id="glcgtim" placeholder="Tìm số, mã hoặc tên loại đất…" style="font-size:13px;padding:7px 8px;margin-top:6px" spellcheck="false">
+      <div id="glcgds"></div>
     </div></div>
   <div id="fabbr"></div>
   <button id="bthoat" title="Hiện lại bảng điều khiển (phím Esc)">✕ Thoát toàn màn hình</button>
   <div id="mapfoot">
-<div id="locrow" class="hide" style="display:flex;gap:8px;margin-top:8px;align-items:flex-end;flex-wrap:wrap">
+<div id="locrow" style="display:flex;gap:8px;margin-top:8px;align-items:flex-end;flex-wrap:wrap">
   <div style="flex:2 1 220px"><label for="mloc" style="margin-top:0">Hoặc dán toạ độ (WGS-84 hay VN-2000)</label>
     <input id="mloc" placeholder="9.919332, 106.352563" spellcheck="false"></div>
   <div style="flex:0 0 130px"><button id="bloc" style="width:100%;padding:11px 8px;font-size:14px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer;font-weight:600">Đặt vị trí</button></div>
+  <div style="flex:1 1 100%"><button id="btam" title="Lấy toạ độ và địa chỉ ngay tâm màn hình bản đồ, không cần dán tay" style="width:100%;min-height:44px;padding:10px 8px;font-size:14px;border:0;background:#12283a;color:#fff;border-radius:6px;cursor:pointer;font-weight:700">⌖ Lấy vị trí ngay tâm màn hình</button></div>
 </div>
 <div id="gpsmsg"></div>
 <div id="mapchip"><b></b><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button></div>
@@ -2795,6 +2820,7 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
   /* lớp quy hoạch chồng lên ảnh nền. Chỉ vẽ trên màn hình: ảnh không có CORS nên không xuất PNG / in được */
   let ghiQH='';
   if(GL.on&&!forPrint){
+    glDsCapNhat(glNoi(latm,(lo0+lo1)/2));
     const ds=glMau(latm,(lo0+lo1)/2);let ve=0;
     if(GLTU[GL.chon]){const b=$('glnote').querySelector('b');if(b&&b.innerHTML!==GLTT)b.innerHTML=GLTT}   // dòng trạng thái của kiểu tự chọn
     x.globalAlpha=GL.opa/100;try{x.filter='none'}catch(e){}
@@ -2825,9 +2851,9 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
    truy cập tự động nên công cụ KHÔNG tự tải danh sách được; nơi khác dùng "Tự chọn theo tỉnh" hoặc dán địa chỉ ô ảnh. */
 const GLGOC='https://r4gmiynxmeobj.vcdn.cloud/', GLS3='https://s3-hn-2.cloud.cmctelecom.vn/', GLS1='https://s3.hn-1.cloud.cmctelecom.vn/', GLDUOI='/{z}/{x}/{y}.png';
 const GLDS=[   // [khoá, nhóm, tên, địa chỉ (không kèm đuôi), mức nhỏ nhất, mức lớn nhất]
-  ['tv2125','Toàn tỉnh','Kế hoạch sử dụng đất 2021–2025, tỉnh Trà Vinh',GLS3+'guland5/qh-toan-tinh/tra-vinh-2021-2025',9,16],
-  ['vl2030','Toàn tỉnh','Sơ đồ tỉnh Vĩnh Long sau sáp nhập đến 2030, tầm nhìn 2050',GLS1+'guland7/qh-all/vinh-long',8,14],
-  ['vldc','Toàn tỉnh','Bản đồ địa chính Vĩnh Long sau sáp nhập',GLS1+'guland7/qh-ssn/vinh-long',10,14],
+  ['tv2125','Toàn tỉnh Trà Vinh','Kế hoạch sử dụng đất 2021–2025, tỉnh Trà Vinh',GLS3+'guland5/qh-toan-tinh/tra-vinh-2021-2025',9,16],
+  ['vl2030','Toàn tỉnh Trà Vinh','Sơ đồ tỉnh Vĩnh Long sau sáp nhập đến 2030, tầm nhìn 2050',GLS1+'guland7/qh-all/vinh-long',8,14],
+  ['vldc','Toàn tỉnh Trà Vinh','Bản đồ địa chính Vĩnh Long sau sáp nhập',GLS1+'guland7/qh-ssn/vinh-long',10,14],
   ['dhx-qhc','Thị xã Duyên Hải','Quy hoạch chung đô thị Duyên Hải đến 2030',GLS3+'guland10/qh-khac/tra-vinh/huyen-duyen-hai--do-thi-duyen-hai--30qhc',10,17],
   ['dhx-30','Thị xã Duyên Hải','Quy hoạch sử dụng đất đến 2030',GLS3+'guland5/qh-2030/tra-vinh/thi-xa-duyen-hai',10,18],
   ['dhx-25','Thị xã Duyên Hải','Kế hoạch sử dụng đất 2025',GLS3+'guland8/qh-2025/tra-vinh/thi-xa-duyen-hai--25',10,17],
@@ -2871,7 +2897,7 @@ function glNoi(la,lo){
     /* tên huyện của nguồn thửa: "Trà Cú", "Duyên Hải (Thị xã)", "Thành phố Trà Vinh", "Quận 1", "Bình Tân" (không ghi loại) */
     const m=l.tenhuyen.match(/^(.*?)\s*\((Thị xã|Thành phố|Quận|Huyện)\)\s*$/i), ten=glSlug(m?m[1]:l.tenhuyen);
     const loai=m?[glSlug(m[2])]:/^(quan|huyen|thi-xa|thanh-pho)-/.test(ten)?['']:['huyen','quan','thi-xa','thanh-pho'];
-    GLNOI.set(k,{tinh:l.tentinh,huyen:l.tenhuyen,T,Hs:loai.map(p=>p?p+'-'+ten:ten)});
+    GLNOI.set(k,{tinh:l.tentinh,huyen:l.tenhuyen,idt:String(l.idtinh),idh:String(l.idhuyen),T,Hs:loai.map(p=>p?p+'-'+ten:ten)});
   }).catch(()=>GLNOI.delete(k)).finally(()=>{glNoiCho--;glVe();clearTimeout(glTimer);glTimer=setTimeout(drawMap,60)});
   return null;
 }
@@ -2920,13 +2946,274 @@ function glImg(url){
   im.onerror=()=>{GLT.set(url,null)};
   im.src=url;GLT.set(url,im);return im;
 }
-(()=>{const nh={};GLDS.forEach(d=>(nh[d[1]]=nh[d[1]]||[]).push(d));
-  $('glsel').innerHTML='<optgroup label="Tự chọn theo nơi đang xem">'+Object.keys(GLTU).map(k=>`<option value="${k}">${esc(GLTU[k].ten)}</option>`).join('')+'</optgroup>'
-    +Object.keys(nh).map(n=>`<optgroup label="${esc(n)}">${nh[n].map(d=>`<option value="${d[0]}">${esc(d[2])}</option>`).join('')}</optgroup>`).join('')
-    +'<option value="khac">Bản đồ khác — dán địa chỉ ô ảnh…</option>'})();
+/* Danh sách xổ xuống theo nơi đang xem: nhóm đầu là 4 bản đồ tự chọn của huyện đó; các nhóm chép tay chỉ hiện khi đang xem
+   đúng tỉnh / huyện của nhóm (hoặc khi mục đang chọn thuộc nhóm đó). Chưa biết đang xem huyện nào thì hiện hết. */
+const GLNHOM={'Toàn tỉnh Trà Vinh':{t:'84'},'Thị xã Duyên Hải':{h:'851'},'Huyện Duyên Hải':{h:'850'},'Huyện Trà Cú':{h:'849'}};
+let GLDSKEY='?';
+function glDsVe(noi){
+  const biet=noi&&!noi.khong, nh={};GLDS.forEach(d=>(nh[d[1]]=nh[d[1]]||[]).push(d));
+  const hien=n=>{if(!biet)return true;const g=GLNHOM[n]||{};return (g.t&&g.t===noi.idt)||(g.h&&g.h===noi.idh)||nh[n].some(d=>d[0]===GL.chon)};
+  $('glsel').innerHTML=`<optgroup label="${biet?'Đang xem: '+esc(noi.huyen)+', '+esc(noi.tinh):'Tự chọn theo nơi đang xem'}">`
+    +Object.keys(GLTU).map(k=>`<option value="${k}">${esc(GLTU[k].ten)}</option>`).join('')+'</optgroup>'
+    +Object.keys(nh).filter(hien).map(n=>`<optgroup label="${esc(n)}">${nh[n].map(d=>`<option value="${d[0]}">${esc(d[2])}</option>`).join('')}</optgroup>`).join('')
+    +'<option value="khac">Bản đồ khác — dán địa chỉ ô ảnh…</option>';
+  $('glsel').value=GL.chon;
+}
+/* gọi mỗi lần vẽ: đổi huyện thì dựng lại danh sách (không dựng lại khi đang chờ xác định, để ô xổ xuống đang mở không bị giật) */
+function glDsCapNhat(noi){
+  if(noi===null)return;
+  const k=noi.khong?'-':noi.idt+'/'+noi.idh;
+  if(k===GLDSKEY)return;
+  GLDSKEY=k;glDsVe(noi);
+}
+glDsVe(null);
+/* ===== Bảng chú giải màu: số thứ tự, màu, mã, tên loại đất ===== */
+const GLCG={1:`1|NNP|Đất nông nghiệp|ffff64
+1.1|SXN|Đất sản xuất nông nghiệp|fffc6e
+1.1.1|CHN|Đất trồng cây hàng năm|fffc78
+1.1.1.1|LUA|Đất trồng lúa|fffc82
+1.1.1.1.1|LUC|Đất chuyên trồng lúa nước|fffc8c
+1.1.1.1.2|LUK|Đất trồng lúa nước còn lại|fffc96
+1.1.1.1.3|LUN|Đất trồng lúa nương|fffcb4
+1.1.1.2|HNK|Đất trồng cây hàng năm khác|fff0b4
+1.1.1.2.1|BHK|Đất bằng trồng cây hàng năm khác|fff0b4
+1.1.1.2.2|NHK|Đất nương rẫy trồng cây hàng năm khác|fff0b4
+1.1.2|CLN|Đất trồng cây lâu năm|ffd2a0
+1.2|LNP|Đất lâm nghiệp|aaff32
+1.2.1|RSX|Đất rừng sản xuất|b4ffb4
+1.2.1.1|RSN|Đất có rừng sản xuất là rừng tự nhiên|b4ffb4
+1.2.1.2|RST|Đất có rừng sản xuất là rừng trồng|b4ffb4
+1.2.1.3|RSM|Đất đang được sử dụng để phát triển rừng sản xuất|b4ffb4
+1.2.2|RPH|Đất rừng phòng hộ|beff1e
+1.2.2.1|RPN|Đất có rừng phòng hộ là rừng tự nhiên|beff1e
+1.2.2.2|RPT|Đất có rừng phòng hộ là rừng trồng|beff1e
+1.2.2.3|RPM|Đất đang được sử dụng để phát triển rừng phòng hộ|beff1e
+1.2.3|RDD|Đất rừng đặc dụng|6eff64
+1.2.3.1|RDN|Đất có rừng đặc dụng là rừng tự nhiên|6eff64
+1.2.3.2|RDT|Đất có rừng đặc dụng là rừng trồng|6eff64
+1.2.3.3|RDM|Đất đang được sử dụng để phát triển rừng đặc dụng|6eff64
+1.3|NTS|Đất nuôi trồng thủy sản|aaffff
+1.4|LMU|Đất làm muối|fffffe
+1.5|NKH|Đất nông nghiệp khác|f5ffb4
+2|PNN|Đất phi nông nghiệp|ffff64
+2.1|OTC|Đất ở|ffb4ff
+2.1.1|ONT|Đất ở tại nông thôn|ffd0ff
+2.1.2|ODT|Đất ở tại đô thị|ffa0ff
+2.2|CDG|Đất chuyên dùng|ffa0aa
+2.2.1|TSC|Đất xây dựng trụ sở cơ quan|ffaaa0
+2.2.2|CQP|Đất quốc phòng|ff6450
+2.2.3|CAN|Đất an ninh|ff5046
+2.2.4|DSN|Đất xây dựng công trình sự nghiệp|ffa0aa
+2.2.4.1|DTS|Đất xây dựng trụ sở của tổ chức sự nghiệp|faaaa0
+2.2.4.2|DVH|Đất xây dựng cơ sở văn hóa|ffaaa0
+2.2.4.3|DXH|Đất xây dựng cơ sở dịch vụ xã hội|ffaaa0
+2.2.4.4|DYT|Đất xây dựng cơ sở y tế|ffaaa0
+2.2.4.5|DGD|Đất xây dựng cơ sở giáo dục và đào tạo|ffaaa0
+2.2.4.6|DTT|Đất xây dựng cơ sở thể dục thể thao|ffaaa0
+2.2.4.7|DKH|Đất xây dựng cơ sở khoa học và công nghệ|ffaaa0
+2.2.4.8|DNG|Đất xây dựng cơ sở ngoại giao|ffaaa0
+2.2.4.9|DSK|Đất xây dựng công trình sự nghiệp khác|ffaaa0
+2.2.5|CSK|Đất sản xuất, kinh doanh phi nông nghiệp|ffa0aa
+2.2.5.1|SKK|Đất khu công nghiệp|faaaa0
+2.2.5.2|SKN|Đất cụm công nghiệp|faaaa0
+2.2.5.3|SKT|Đất khu chế xuất|faaaa0
+2.2.5.4|TMD|Đất thương mại, dịch vụ|faaaa0
+2.2.5.5|SKC|Đất cơ sở sản xuất phi nông nghiệp|faaaa0
+2.2.5.6|SKS|Đất sử dụng cho hoạt động khoáng sản|cdaacd
+2.2.5.7|SKX|Đất sản xuất vật liệu xây dựng, làm đồ gốm|cdaacd
+2.2.6|CCC|Đất có mục đích công cộng|ffaaa0
+2.2.6.1|DGT|Đất giao thông|ffaa32
+2.2.6.2|DTL|Đất thủy lợi|aaffff
+2.2.6.3|DDT|Đất có di tích lịch sử - văn hóa|ffaaa0
+2.2.6.4|DDL|Đất danh lam thắng cảnh|ffaaa0
+2.2.6.5|DSH|Đất sinh hoạt cộng đồng|ffaaa0
+2.2.6.6|DKV|Đất khu vui chơi, giải trí công cộng|ffaaa0
+2.2.6.7|DNL|Đất công trình năng lượng|ffaaa0
+2.2.6.8|DBV|Đất công trình bưu chính viễn thông|ffaaa0
+2.2.6.9|DCH|Đất chợ|ffaaa0
+2.2.6.10|DRA|Đất bãi thải, xử lý chất thải|cdaacd
+2.2.6.11|DCK|Đất công trình công cộng khác|ffaaa0
+2.3|TON|Đất cơ sở tôn giáo|ffaaa0
+2.4|TIN|Đất cơ sở tín ngưỡng|ffaaa0
+2.5|NTD|Đất nghĩa trang, nghĩa địa, nhà tang lễ, nhà hỏa táng|d2d2d2
+2.6|SON|Đất sông, ngòi, kênh, rạch, suối|a0ffff
+2.7|MNC|Đất có mặt nước chuyên dùng|b4ffff
+2.8|PNK|Đất phi nông nghiệp khác|ffaaa0
+3|CSD|Đất chưa sử dụng|fffffe
+3.1|BCS|Đất bằng chưa sử dụng|fffffe
+3.2|DCS|Đất đồi núi chưa sử dụng|fffffe
+3.3|NCS|Núi đá không có rừng cây|e6e6c8
+4|MVB|Đất có mặt nước ven biển (chỉ tiêu quan sát)|b4ffff
+4.1|MVT|Đất mặt nước ven biển nuôi trồng thủy sản|b4ffff
+4.2|MVR|Đất mặt nước ven biển có rừng|b4ffff
+4.3|MVK|Đất mặt nước ven biển có mục đích khác|b4ffff`,2:`1||Đất Trường học|994c4c
+2||Đất Công cộng|ff3f00
+3||Đất Công trình Y tế|d4531c
+4||Đất XD Công trình Hỗn hợp cao tầng|992600
+5||Đất dịch vụ, Thương Mại|995f4c
+6||Đất Trung tâm Thể dục thể thao|7ca500
+7||Đất Cây xanh, công viên, vườn hoa|00a500
+8||Đất làng xóm, dân cư hiện có|997200
+9||Đất Nhóm nhà ở hiện có (Đất ở dân cư)|ffbf00
+10||Đất Nhóm nhà ở xây dựng mới (Theo dự án)|ff7f00
+11||Đất Cơ quan, Viện nghiên cứu, Trường đào tạo|7f3f00
+12||Đất Di tích, Tôn giáo – Tín ngưỡng|ff7f7f
+13||Đất An ninh, Quốc phòng|7f7f00
+14||Đất Cơ quan ngoại giao|7f3f4f
+15||Đất Công trình đầu mối hạ tầng kỹ thuật|5b5b5b
+16||Đất Bãi đỗ xe|898989
+17||Đất mặt nước, sông, ao, hồ|00bfff
+18||Đất làng nghề|6666cc
+19||Đất công nghiệp, kho tàng|260099
+20||Khu vực thực hiện theo dự án riêng|9f7fff
+21||Đất công viên Di sản (Cổ Loa)|994c4c
+22||Đất Nghĩa trang|003f7f
+23||Đất Nuôi trồng Thủy sản|4c7299
+24||Đất hỗ trợ Trung tâm dịch vụ, sản xuất, làng nghề|6666cc
+25||Đất Du lịch|7f4f3f
+26||Đất chưa sử dụng|d7b7ad
+27||Đất dự trữ phát triển|49dfc3
+28||Đất Giáo dục, Đào tạo|007299
+29||Đất sản xuất vật liệu xây dựng|aa90b2
+30||Đất Di tích về chủ tịch Hồ Chí Minh|ff7fbf
+31||Đất Cơ quan Trung ương Đảng|cc0000
+32||Đất Cơ quan Quốc hội|0066cc
+33||Đất Cơ quan Văn phòng Chủ tịch nước|e1007f
+34||Đất Cơ quan Văn phòng Chính phủ|cc0099
+35||Đất phục vụ chung cho Khu Trung tâm Chính trị Ba Đình|cc9966
+36||Đất Ủy ban Trung ương Mặt trận Tổ quốc VN|6666cc
+37||Đất hỗn hợp hiện trạng (công cộng, tmdv, văn phòng, khách sạn, đơn vị ở)|cc3300
+38||Đất hỗn hợp quy hoạch đợt đầu, dài hạn (công cộng, tmdv, văn phòng, khách sạn, đơn vị ở)|cc3300
+39||Đất cụm đổi mới, Dịch vụ sản xuất|7456b3
+40||Đất Trung tâm cụm xã (HTXH, dịch vụ, thương mại, nhà ở,…)|d76933
+41||Đất phát triển kinh tế địa phương|a0916a
+42||Đất phục vụ nhu cầu địa phương|a0916a
+43||Đất Dịch vụ đô thị|ef6c8d
+44||Đất Dịch vụ|ab7381
+45||Đất Văn hóa|f4996c
+46||Đất nhóm nhà ở xây dựng mới (Đất ở sinh thái)|d5916d
+47||Đất Công ty|ba82b5
+48||Đất bãi bồi|a7c397
+49||Khu vực hiện trạng nằm trong vùng thoát lũ sông Đáy (Dự kiến)|ccae8e
+50||Đất xây dựng các chức năng khác|968ecc
+51||Khu đất cây xanh, công viên, quảng trường|94b625
+52||Đất trồng cây cảnh|1aa24c
+53||Đất trồng cây hoa màu|7d912b
+54||Đất trang trại|208c9d
+55||Đất trồng cây ăn quả|1ba180
+56||Đất trồng rau an toàn|529d20
+57||Đất Chăn nuôi, Nông nghiệp|3f7f3f
+58||Đất Lâm nghiệp|004c00
+59||Đất nông nghiệp|007f00
+60||Đất cây xanh cách ly|00ff3f
+61||Đất cây xanh chuyên dùng (Trồng hoa, Nông nghiệp Công nghệ cao)|00cc99
+62||Đất cây xanh chuyên đề (Công viên, Cây xanh, Vườn ươm, Trồng hoa, Trang trại nông nghiệp)|009999
+63||Đất ở làng xóm, Dân cư xây dựng mới|ffdf7f
+64||Đất ở sinh thái|b8ea95
+65||Đất Đô thị Sinh thái|acd2b4
+66||Đất có dân cư sinh sống cần được kiểm soát về đất đai và đầu tư|999900
+67||Đất có dân cư sinh sống trùng lấn quy hoạch rừng|7f737e
+68||Đất giãn dân, Di dân tái định cư, Đấu giá|e8c82c
+69||Đất nhà ở tái định cư|ebc460
+70||Khu đất đơn vị ở hiện trạng|e09952
+71||Đất Nhóm nhà ở hiện có (Đất ở dân cư) - Kiểm soát đặc biệt|cccc00
+72||Đất nhóm nhà ở - thuộc QH cải tạo, XD lại Khu TT, chung cư cũ - Thực hiện theo dự án riêng|ffbf7f
+73||Đất ở thấp tầng|fbcf83
+74||Đất ở cao tầng|e6a519
+75||Đất Trung tâm Triển lãm|e92720
+76||Đất ở đô thị|cc9900
+77||Đất Di dân, giãn dân, chuyển đổi nghề,… (Đất dành cho địa phương)|cc9966
+78||Đất hỗn hợp (Ở + Sản xuất KD)|994c5f
+79||Đất khu Công nghệ cao|404cf2
+80||Đất giao thông|d2d2d2
+81||Đất Trường THPT|992600
+82||Phạm vi bảo vệ công trình đường sắt trùng với ranh giới thu hồi đất|b951db
+83||Hành lang an toàn giao thông đường sắt|5dbbd0
+84||Đất cơ quan trụ sở cấp đô thị hiện trạng|994c00
+85||Đất cơ quan trụ sở cấp đô thị quy hoạch đợt đầu, dài hạn|994c00
+86||Đất trung tâm tiểu vùng, trung tâm cụm xã, trung tâm xã, trung tâm hỗ trợ sản xuất (bao gồm cả điểm dân cư trung tâm)|ffbf7f
+87||Đất cơ quan trụ sở ngoài đô thị|7f5f00
+88||Đất khu phố cũ|cc6600
+89||Đất khu phố cổ|7f3f00
+90||Đất công trình hạ tầng kỹ thuật khác|8ca8ba
+91||Đất hạ tầng đầu mối kết hợp phát triển chức năng đô thị theo mô hình tod|994c72
+92||Hồ, ao, đầm, sông, suối, kênh rạch|0066cc
+93||Đất mặt nước biển|2970bc
+94||Đất cụm công nghiệp, ttcn, làng nghề, sản xuất kinh doanh|7f7fff
+95||Đất công nghiệ dự trữ|574fe8
+96||Khu đất khu phi thuế quan|d27f79
+97||Đất logistics|31259d
+98||Đất xí nghiệp|8157ff
+99||Khu đất Trung tâm hành chính mới kết hợp thương mại dịch vụ|e11305
+100||Khu đất Trung tâm TP HCM - Trung tâm vùng, trung tâm Quốc tế|da654e
+101||Khu đất Trung tâm phân vùng đô thị|e0351f
+102||Khu đất Trung tâm khu vực|8c403b
+103||Đất dịch vụ - Công Cộng|e53a24
+104||Đất dịch vụ công cộng đô thị hiện trạng|ff0000
+105||Đất dịch vụ công cộng đô thị quy hoạch đợt đầu, dài hạn|ff0000
+106||Đất xử lý chất thải rắn, bãi rác|26d99a
+107||Bãi cát|e5cea9
+108||Đất làm muối|d6e2ac
+109||Đất sản xuất kinh doanh, Tiểu thủ CN|9337f6
+110||Đất phức hợp văn hoá, y tế, giáo dục|df7fff
+111||Đất trung tâm y tế|ff00bf
+112||Khu đất hỗn hợp|992600
+113||Khu đất hỗn hợp - Động lực phát triển|a175c7
+114||Đất hỗn hợp có ở|b03fe9
+115||Đất hỗn hợp không có ở|a82471
+116||Khu đất đô thị hỗn hợp|cd5632
+117||Khu đất đô thị công nghệ cao - Nghiên cứu đào tạo chuyên nghiệp - Vườn ươm doanh nghiệp|da8a72
+118||Khu đất Trung tâm đô thị|d85f41
+119||Đất hỗn hợp địa phương|dc8b50
+120||Đất trung tâm công nghệ thông tin văn phòng|9669e2
+121||Đất làng xóm hiện trạng nằm trong hành lang thoát lũ|a68d3a
+122||Đất cây xanh (sinh thái, nông nghiệp đô thị)|33cc00
+123||Đất chăn nuôi tập trung|a4c8a3
+124||Đất rừng phòng hộ|034a03
+125||Đất rừng sản xuất|068406
+126||Đất rừng đặc dụng|004c4c
+127||Khu đất sinh thái nông nghiệp|9eba40
+128||Đất trồng trọt khác|41c20a
+129||Khu đất đồi núi|0e980b
+130||Khu đất khu bảo tồn sinh cảnh và sinh thái ngập mặn|16da7e
+131||Đất cây xanh hạn chế|99cc00
+132||Đất đơn vị ở nội đô|ffbf00
+133||Đất đơn vị ở hiện trạng|ffff7f
+134||Đất đơn vị ở quy hoạch đợt đầu, dài hạn|ffff7f
+135||Đất xây dựng điểm dân cư nông thôn|f9cb85
+136||Đất làng xóm dân cư nằm trong hành lang đường sắt đô thị|fce640
+137||Đất trong phạm vi hành lang bảo vệ kè|e2f910
+138||Đất thuộc hành lang bảo vệ sông Nhuệ|609081
+139||Đất ở sinh thái xây dựng mới|e2ed91
+140||Đất dân cư nông thôn hiện trạng|7f7f3f
+141||Đất ở kết hợp kinh tế vườn, nông nghiệp sinh thái, dịch vụ du lịch|a6ca6d
+142||Đất dân cư nông thôn quy hoạch ngắn hạn|7f7f3f
+143||Khu đất đơn vị ở quy hoạch mới|f5cd3d
+144||Khu dân cư nông thôn được đô thị hóa|ad7e34
+145||Khu dân cư nông thôn được đô thị hóa quy hoạch mới|cdb270
+146||Khu đất đô thị du lịch hỗn hợp phát triển mới (Có đan xen các khu đất hiện trạng cải tạo, chỉnh trang, tái phát triển)|f1aa37
+147||Khu đất đô thị, sinh thái mật độ thấp (Có đan xen các khu đất hiện trạng cải tạo, chỉnh trang, tái phát triển)|c8a532
+148||Khu đất hỗn hợp hiện trạng cải tạo, chỉnh trang (Có đan xen các chức năng phát triển mới, tái phát triển)|b97327
+149||Đất nhà ở xã hội|ec9769
+150||Đất nhà ở liền kề|efa748
+151||Đất nhà ở biệt thự|e7d35f
+152||Đất đấu giá|f2f542
+154||Đất cây xanh đô thị, cây xanh sử dụng công cộng|66cc00
+155||Đất khu công nghệ cao hiện trạng|cc6666
+156||Đất khu công nghệ cao quy hoạch đợt đầu, dài hạn|cc6666
+157||Quy hoạch phân khu đô thị Ga Hà Nội và phụ cận đang được triển khai lập (Chưa có quyết định phê duyệt)|d86b5a`};
+function glCgVe(){
+  const tim=nodau($('glcgtim').value.trim()), b=$('glcgsel').value;
+  const ds=GLCG[b].split('\n').map(d=>d.split('|')).filter(d=>!tim||nodau(d[0]+' '+d[1]+' '+d[2]).includes(tim));
+  $('glcgds').innerHTML=ds.length?ds.map(d=>`<div class="cg${/^[0-9]+$/.test(d[0])&&b==='1'?' c1':''}"><span class="so">${esc(d[0])}</span><i style="background:#${d[3]}"></i><span>${d[1]?'<b>'+esc(d[1])+'</b>':''}${esc(d[2])}</span></div>`).join('')
+    :'<div class="trong">Không có loại nào khớp.</div>';
+}
+$('glpal').onclick=()=>{const an=$('glleg').classList.toggle('hide');if(!an)glCgVe()};
+$('glcgx').onclick=()=>$('glleg').classList.add('hide');
+$('glcgsel').onchange=glCgVe;$('glcgtim').oninput=glCgVe;
 function glVe(){
   $('glon').checked=GL.on;$('glopa').value=GL.opa;$('glopav').textContent=GL.opa+'%';$('glurl').value=GL.url;$('glsel').value=GL.chon;
-  $('glopa2').value=GL.opa;$('glval').textContent=GL.opa;$('glctl').classList.toggle('hide',!GL.on);   // thanh nổi chỉ hiện khi lớp quy hoạch đang bật
+  $('glopa2').value=GL.opa;$('glval').textContent=GL.opa;$('glctl').classList.toggle('hide',!GL.on);if(!GL.on)$('glleg').classList.add('hide');   // thanh nổi chỉ hiện khi lớp quy hoạch đang bật
   $('glurlrow').classList.toggle('hide',GL.chon!=='khac');
   const d=GLDS.find(q=>q[0]===GL.chon);
   $('glnote').innerHTML=!GL.on?'':(d?`${esc(d[1])}: hiện ở mức phóng ${d[4]}–${d[5]}. `:GLTU[GL.chon]?`<b>${GLTT}</b> Kéo bản đồ sang huyện, tỉnh khác thì tự đổi theo. `:'')
@@ -3104,6 +3391,17 @@ $('bloc').onclick=()=>{
   }
 };
 $('mloc').onkeydown=e=>{if(e.key==='Enter')$('bloc').click()};
+/* lấy toạ độ ngay tâm màn hình: khỏi chép từ Google Maps. Kèm tên xã, huyện, tỉnh của tờ địa chính gần nhất */
+$('btam').onclick=async()=>{
+  if(!VW||LON0==null)return $('gpsmsg').innerHTML='<div class="warn">Chưa có bản đồ để lấy tâm — bấm "Vị trí của tôi" hoặc nạp một tờ trước.</div>';
+  const w=[VW.cx,VW.cy],[la,lo]=conv(w[0],w[1],LON0,K0||0.9999);
+  $('mloc').value=la.toFixed(6)+', '+lo.toFixed(6);
+  placeMe(w,0,la,lo,false);
+  try{const l=(await olGoi('/map_layers',{type:'dc',current:1,pageSize:1,x:lo,y:la}))[0];
+    if(l&&l.tentinh&&l.dis<=6000){const d=$('gpsmsg').firstElementChild;
+      if(d)d.insertAdjacentHTML('beforeend',`<br>Khu vực (theo tờ địa chính gần nhất): <b>${esc([l.tenxa,l.tenhuyen,l.tentinh].filter(Boolean).join(', '))}</b>`)}
+  }catch(e){}
+};
 if(laFile())$('locrow').classList.remove('hide');
 
 /* ===== Bố cục: kéo đổi bề rộng, gập bảng, tab trên điện thoại ===== */

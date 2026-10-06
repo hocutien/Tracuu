@@ -36,9 +36,7 @@ a{color:var(--moss)}
 .hide{display:none}
 .sheet{border:1px solid var(--rule);border-radius:3px;padding:9px 10px;margin-top:8px;background:#fff}
 .sheet .mini button{padding:6px 8px;font-size:12.5px}
-.sheet .dgnsheet,.olquetbtn,#bdgn,#olquet button{min-height:44px}
-.olquetbtn{padding:10px 14px;font-size:14px;font-weight:700;border:0;border-radius:6px;background:#12283a;color:#fff;cursor:pointer}
-.olquetbtn:disabled{opacity:.55}
+.sheet .dgnsheet,#bdgn{min-height:44px}
 .sheet button{padding:5px 10px;font-size:13px;border:1px solid var(--rule);background:#fff;border-radius:3px;cursor:pointer}
 .bars{display:flex;height:7px;margin-top:7px;border-radius:4px;overflow:hidden;background:#e6e2d7}
 .bars span{display:block}
@@ -366,7 +364,7 @@ body.full #mfbtn{display:none!important}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v27 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v28 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -395,7 +393,6 @@ body.full #mfbtn{display:none!important}
       <input id="olso" inputmode="numeric" placeholder="161, 150, 156" spellcheck="false" autocomplete="off">
       <button class="go" id="olgo" style="margin-top:10px">Hỏi Mạnh Lắm và đưa lên bản đồ</button>
       <p class="note" id="olmsg"></p>
-      <div class="note" id="olquet"></div>
       <div class="note" id="ollechbox" style="border-top:1px solid var(--rule);padding-top:8px">
         <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink)"><input type="checkbox" id="ollechon" style="width:20px;height:20px;flex:none">Hiệu chỉnh ranh Mạnh Lắm theo DGN gốc</label>
         <div id="ollechtxt" style="margin-top:4px"></div>
@@ -4419,6 +4416,8 @@ const OL='https://onland.tech/api';
 const OLMAX=10, OLNGHI=800, OLTONG=40;      // tối đa số thửa mỗi lần bấm, nghỉ giữa hai lần hỏi (ms), trần tổng số lần hỏi kể cả giáp ranh
 const OLMD={t:'84',h:'851'};                // mặc định Trà Vinh → Duyên Hải (Thị xã)
 let OLTINH=[],OLLOP=[],OLNHO={},OLDANAP=false;
+/* nhãn gộp "LUC 949 / 150", "ODT-CLN 963 / 299" = mã đất, số thửa / một số chưa rõ nghĩa [ĐÃ THỬ 06/10 dc7 Phường 1] */
+const OLGOP=/^([0-9]?[A-Z]{1,4}(?:[+-][A-Z]{2,4})*)\s+([0-9]{1,5}[a-zA-Z]?)\s*[/]\s*[0-9]+(?:[.,][0-9]+)?$/;
 try{OLNHO=JSON.parse(localStorage.getItem('olsel')||'{}')||{}}catch(e){}
 const olmsg=(h,loai)=>{$('olmsg').innerHTML=loai?`<div class="${loai}">${h}</div>`:h;
   if(typeof OLPICK!=='undefined'&&OLPICK&&h)pickBar(h,loai)};
@@ -4511,25 +4510,30 @@ function olThua(it,to,lon0,lopId,giuCN){
   const mang=v=>{if(typeof v==='string'){try{v=JSON.parse(v)}catch(e){v=[]}}return Array.isArray(v)?v.map(x=>String(x).trim()).filter(Boolean):[]};
   const ins=mang(it.labels_insides), lb=mang(it.labels_outsides);
   let soNhan='',dtCap=0,maNhan='',chuNhan='';
-  const nguyen=[],thapPhan=[];
+  const nguyen=[],thapPhan=[],cauTruc=new Set();     // cauTruc: số thửa đọc từ nhãn có cấu trúc ("866/80", "LUC 949 / 150")
   for(const n of ins){
     const m=n.match(/^([0-9]{1,5}[a-zA-Z]?)[ ]*[/][ ]*([0-9]+(?:[.,][0-9]+)?)$/);      // "866/80.0" = số thửa / diện tích
-    if(m){soNhan=soNhan||m[1];dtCap=dtCap||soVN(m[2]);continue}
-    const g=n.match(/^([0-9]?[A-Z]{1,4}(?:[+][A-Z]{2,4})*)\s+([0-9]{1,5}[a-zA-Z]?)\s*[/]\s*([0-9]+(?:[.,][0-9]+)?)$/);   // "LUC 949 / 150": [ĐÃ THỬ 06/10 dc7 Phường 1] dữ liệu có dạng này; số sau "/" chưa rõ nghĩa (150 ≈ ranh 149,9 m²) nên KHÔNG dùng làm diện tích
-    if(g){maNhan=maNhan||g[1];soNhan=soNhan||g[2];continue}
+    if(m){soNhan=soNhan||m[1];dtCap=dtCap||soVN(m[2]);cauTruc.add(m[1]);continue}
+    const g=n.match(OLGOP);   // "LUC 949 / 150": [ĐÃ THỬ 06/10 dc7 Phường 1] dữ liệu có dạng này; số sau "/" chưa rõ nghĩa (150 ≈ ranh 149,9 m²) nên KHÔNG dùng làm diện tích
+    if(g){maNhan=maNhan||g[1];soNhan=soNhan||g[2];cauTruc.add(g[2]);continue}
     if(/^[0-9]{1,5}$/.test(n)){nguyen.push(n);continue}
     if(/^[0-9]+[.,][0-9]+$/.test(n)){thapPhan.push(soVN(n));continue}
     if(/^[0-9]?[A-Z]{1,4}([+][A-Z]{2,4})*$/.test(n)){maNhan=maNhan||n;continue}             // ODT, CLN, 1L, ODT+CLN
     if(n.length>=8&&/[ ]/.test(n)&&/[A-Za-zÀ-ỹ]/.test(n))chuNhan=chuNhan||n;                 // tên chủ sử dụng
   }
   if(!soNhan&&nguyen.length===1)soNhan=nguyen[0];                                            // nhiều số nguyên thì không rõ số nào là số thửa
+  /* Khối chưa tách ranh: một hình chứa nhãn của từ 2 thửa trở lên. [ĐÃ THỬ 06/10, dc7 Phường 1] hỏi số 914 ra hình 1.801 m² chứa nhãn
+     "BHK 914 / 176.7", "BHK 915 / 176.3", "ODT-CLN 963 / 299"…; dò 22 điểm rải trong hình đều trả lại đúng hình đó — Mạnh Lắm không có ranh riêng.
+     Không gán khối cho một số thửa đoán từ nhãn, không lấy diện tích hay mã đất của một thửa con. */
+  const khoi=cauTruc.size>=2?[...cauTruc].sort(SXS):null;
+  if(khoi){soNhan='';dtCap=0;maNhan=''}
   /* areashow: khi Mạnh Lắm tự tính (area là chuỗi trùng areashow) thì lớn hơn thật ~3,5% (tính trên lưới Mercator) — không coi là số ghi trên bản đồ */
   const tuTinh=typeof it.area==='string'&&String(it.area)===String(it.areashow);
   /* thứ tự tin cậy: nhãn "số/diện tích" → areashow khi nó là nhãn → nhãn thập phân duy nhất trong hình */
-  const dso=dtCap||(tuTinh?0:soVN(String(it.areashow==null?'':it.areashow)))||(thapPhan.length===1?thapPhan[0]:0);
+  const dso=khoi?0:dtCap||(tuTinh?0:soVN(String(it.areashow==null?'':it.areashow)))||(thapPhan.length===1?thapPhan[0]:0);
   const so=String(it.text||'').trim()||soNhan||'?';
-  /* số đã đọc từ nhãn trong thì so≠'?' nên không bao giờ rơi vào gợi ý từ nhãn ngoài */
-  const goiY=so==='?'?[...nguyen,...lb.filter(n=>/^[0-9]{1,5}$/.test(n))].slice(0,4):[];
+  /* số đã đọc từ nhãn trong thì so≠'?' nên không bao giờ rơi vào gợi ý từ nhãn ngoài; khối thì đã liệt kê số các thửa trong nó */
+  const goiY=so==='?'&&!khoi?[...nguyen,...lb.filter(n=>/^[0-9]{1,5}$/.test(n))].slice(0,4):[];
   /* hình "khung" Mạnh Lắm trả khi bấm ra ngoài mọi thửa: chữ nhật (≤4 đỉnh) to hàng chục ngàn đến hàng triệu m² — bỏ */
   if(p.length<=4){const dt=dtShoelace(p);if(dt>100000||(dt>20000&&!it.code&&!String(it.text||'').trim()))return null}   // khung có thể mang mã 'D' nên chặn cả theo diện tích
   /* ô của bảng biểu vẽ kèm trên tờ (bảng kê, chú dẫn): chữ nhật 4 đỉnh nằm thẳng theo trục toạ độ (50×50 m, 50×150 m…),
@@ -4537,7 +4541,7 @@ function olThua(it,to,lon0,lopId,giuCN){
      Tra theo điểm đi qua olThuaLoc (dò ô kề rồi mới quyết định) nên truyền giuCN; hỏi theo số thửa vẫn loại thẳng ở đây. */
   if(!giuCN&&p.length===4&&p.every((a,k)=>{const b=p[(k+1)%4],dx=Math.abs(b.E-a.E),dy=Math.abs(b.N-a.N),L=Math.hypot(dx,dy);
     return Math.min(dx,dy)<=Math.max(0.3,L*0.005)}))return null;
-  const t={to,s:String(so),goiY,hc:(dl[0]||dl[1])?dl:null,l:(/[A-Za-z]/.test(String(it.code||''))?it.code:'')||maNhan||null,chu:chuNhan||null,d:dso,tay:1,ol:lopId,
+  const t={to,s:String(so),goiY,hc:(dl[0]||dl[1])?dl:null,l:(!khoi&&/[A-Za-z]/.test(String(it.code||''))?it.code:'')||maNhan||null,chu:khoi?null:chuNhan||null,d:dso,tay:1,ol:lopId,khoi,
     c:[p.reduce((s,q)=>s+q.E,0)/p.length,p.reduce((s,q)=>s+q.N,0)/p.length]};
   if(p.length>=3){
     t.r=p.map(q=>[Math.round(q.E*100)/100,Math.round(q.N*100)/100]);
@@ -4613,6 +4617,54 @@ function olPhu(A,ds){
   }
   return {tl:n?co/n:0,ho};
 }
+/* ===== Số thửa hỏi không ra: dò theo hình quanh các số lân cận (có trần, không quét cả tờ) =====
+   [ĐÃ THỬ 06/10, dc7 Phường 1, idmaplayer 129446] /map_parcels chỉ khớp nguyên chuỗi `text`; thửa nhãn gộp có text rỗng nên hỏi theo số không ra.
+   Chỉ đọc nhãn quanh các số X±1..±10: không ra 949, 988, 915. Đi tới các thửa đó rồi hỏi điểm sát ngoài từng cạnh, gặp hình mang số X là dừng:
+   949 ra ở lần gọi thứ 53 (5,3 s), 988 ở lần 29 (1,8 s). 915 nằm trong khối chưa tách ranh 1.801 m² của số 914 → nhận ra qua t.khoi.
+   Số không có thật trên tờ (948, 950?) thì tốn hết trần. [QĐ 06/10] trần 80 lần gọi; bỏ hẳn quét cả tờ. */
+const OLTIMTRAN=80, OLTIMK=10;
+async function olTimQuanh(lop,to,lon0,X,tien){
+  let goi=0;
+  if(!/^[0-9]{1,5}$/.test(X))return {t:null,goi,ly:'số có chữ nên không có số lân cận để dò'};
+  const mang=v=>{if(typeof v==='string'){try{v=JSON.parse(v)}catch(e){v=[]}}return Array.isArray(v)?v.map(String):[]};
+  const coX=t=>t.s===X||!!(t.khoi&&t.khoi.includes(X));
+  const nhanX=n=>{const m=n.match(OLGOP);return m?m[2]===X:n.trim()===X};
+  const hoiSo=async s=>{goi++;try{return (await olGoi('/map_parcels',{idmaplayer:lop.id,searchString:s,exactly:true,current:1,pageSize:10})).filter(it=>String(it.text)===s)}catch(e){return []}};
+  const hoiDiem=async p=>{goi++;try{const [la,lo]=olLL(p[0],p[1],lon0,lop.id);
+    const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:lop.id,limit:50})});
+    return r.ok?await r.json():null}catch(e){return null}};
+  const ds=[];for(let d=1;d<=OLTIMK;d++)ds.push(String(+X-d),String(+X+d));
+  const lan=[];
+  for(let i=0;i<ds.length;i+=8){tien&&tien(goi);(await Promise.all(ds.slice(i,i+8).filter(s=>+s>0).map(hoiSo))).forEach(a=>lan.push(...a))}
+  const goc=[],uuTien=[];
+  for(const it of lan){const t=olThua(it,to,lon0,lop.id);if(!t||!t.r)continue;
+    if(coX(t))return {t,goi};                                                   // X nằm trong khối của một số lân cận
+    ([...mang(it.labels_outsides),...mang(it.labels_insides)].some(nhanX)?uuTien:goc).push(t)}
+  if(!goc.length&&!uuTien.length)return {t:null,goi,ly:`không có thửa nào mang số ${+X-OLTIMK}–${+X+OLTIMK} để làm chỗ xuất phát`};
+  goc.sort((a,b)=>Math.abs(+a.s-+X)-Math.abs(+b.s-+X));                      // thửa có nhãn X bên cạnh → số gần X nhất
+  const hang=[...uuTien,...goc],daCo=[...hang];
+  const diemQuanh=r=>{const out=[];for(let i=0;i<r.length;i++){const a=r[i],b=r[(i+1)%r.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1)continue;
+    const n=Math.max(1,Math.min(4,Math.round(L/15))),nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
+    for(let j=0;j<n;j++){const f=(j+.5)/n,m=[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f];let p=[m[0]+nx*1.5,m[1]+ny*1.5];if(inPoly(p,r))p=[m[0]-nx*1.5,m[1]-ny*1.5];out.push(p)}}
+    return out};
+  while(hang.length&&goi<OLTIMTRAN){
+    const g=hang.shift(),pts=diemQuanh(g.r);
+    for(let i=0;i<pts.length&&goi<OLTIMTRAN;i+=8){
+      const lo8=pts.slice(i,i+8).filter(p=>!daCo.some(t=>inPoly(p,t.r))).slice(0,OLTIMTRAN-goi);
+      if(!lo8.length)continue;
+      tien&&tien(goi);
+      for(const j of await Promise.all(lo8.map(hoiDiem))){
+        if(!j||j.text==null||!(j.geojsonWGS84||j.polygon_bound))continue;
+        const t=olThua(j,to,lon0,lop.id,true);if(!t||!t.r)continue;
+        if(daCo.some(u=>Math.hypot(u.c[0]-t.c[0],u.c[1]-t.c[1])<0.05))continue;
+        if(coX(t))return {t,goi};
+        daCo.push(t);
+        if(mang(j.labels_outsides).some(nhanX))hang.unshift(t);else hang.push(t);
+      }
+    }
+  }
+  return {t:null,goi,ly:`đã dò ${goi} lần quanh ${daCo.length} thửa gần đó (trần ${OLTIMTRAN})`};
+}
 $('olgo').onclick=async()=>{
   const lop=OLLOP.find(l=>String(l.id)===$('olto').value);
   if(!lop)return olmsg('Chọn đủ tỉnh, huyện, xã và tờ bản đồ trước.','warn');
@@ -4626,7 +4678,7 @@ $('olgo').onclick=async()=>{
   const to=olSoTo(lop), dc=[olTen($('olxa')),olTen($('olhuyen')),olTen($('oltinh'))].join(', ');
   const nut=$('olgo');nut.disabled=true;
   const dong=[];let cuoi=null,sh=SHEETS.find(x=>x.to===to),lan=0;
-  const cho={}, kqKe={}, khong=[];let luuQuet=null;   // thửa đã có kết quả, chờ người dùng bấm hỏi giáp ranh; số không tìm được; bản quét đã lưu
+  const cho={}, kqKe={}, khong=[];   // thửa đã có kết quả, chờ người dùng bấm hỏi giáp ranh; số không tìm được
   const hoi=async(s,laKe)=>{                 // hỏi một số thửa → {moi:[thửa], ke:[nhãn số quanh thửa]}
     if(lan++)await new Promise(ok=>setTimeout(ok,OLNGHI));
     const kq=(await olGoi('/map_parcels',{idmaplayer:lop.id,searchString:s,exactly:true,current:1,pageSize:10}))
@@ -4640,21 +4692,30 @@ $('olgo').onclick=async()=>{
   const them=moi=>{
     if(!sh){sh={to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc,lon0,k0:0.9999};SHEETS.push(sh)}
     const s=moi[0].s;
-    sh.thua=sh.thua.filter(t=>!(t.s===s&&t.ol));            // hỏi lại thì ghi đè, không trùng lặp
+    sh.thua=sh.thua.filter(t=>!(t.ol&&((s!=='?'&&t.s===s)||moi.some(u=>u.c&&t.c&&Math.hypot(u.c[0]-t.c[0],u.c[1]-t.c[1])<0.05))));   // hỏi lại thì ghi đè (cùng số, hoặc cùng hình khi chưa rõ số), không trùng lặp
     moi.forEach(t=>sh.thua.push(t));
   };
   try{
     for(let i=0;i<ds.length;i++){
       const s=ds[i];
       olmsg(`Đang hỏi thửa ${esc(s)} (${i+1}/${ds.length})…`);
-      const {moi,ke}=await hoi(s);
-      if(!moi.length){khong.push(s);dong.push(`Thửa ${esc(s)}: Mạnh Lắm không có trên tờ ${esc(to)}.`);continue}
+      let {moi,ke}=await hoi(s),quanh=null;
+      if(!moi.length){
+        const san0=sh&&sh.thua.find(t=>t.s===s&&!t.ol);
+        if(!san0){                                            // hỏi theo số không ra: dò theo hình quanh các số lân cận
+          olmsg(`Thửa ${esc(s)}: hỏi theo số không ra — đang dò quanh các thửa số lân cận (tối đa ${OLTIMTRAN} lần gọi)…`);
+          quanh=await olTimQuanh(lop,to,lon0,s,g=>olmsg(`Thửa ${esc(s)}: hỏi theo số không ra — đang dò quanh các thửa số lân cận, đã hỏi ${g}/${OLTIMTRAN} lần…`));
+          if(quanh.t){moi=[quanh.t];ke=[]}
+        }
+        if(!moi.length&&!san0){khong.push(s);dong.push(`Thửa ${esc(s)}: không tìm thấy trên tờ ${esc(to)} — hỏi theo số không ra, dò quanh các số lân cận cũng không thấy (${esc(quanh.ly)}).`);continue}
+      }
       const san=sh&&sh.thua.find(t=>t.s===s&&!t.ol);
       if(san){cuoi=san;dong.push(`Thửa ${esc(s)}: đã có sẵn trong tờ ${esc(to)} nạp từ file, giữ nguyên.`)}
       else{
         them(moi);cuoi=moi[0];
         const t=moi[0];
-        dong.push(`<b>Thửa ${esc(s)}</b>: ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}${moi.length>1?` · có ${moi.length} hình cùng số`:''}.`);
+        dong.push(`<b>Thửa ${esc(s)}</b>: ${t.khoi?`<b>nằm trong một khối chưa tách ranh</b>, trong đó có nhãn các thửa ${t.khoi.map(esc).join(', ')} — Mạnh Lắm không có ranh riêng từng thửa, ${fmt(t.a,1)} m² là của cả khối`
+          :`${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,0)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''}`}${moi.length>1?` · có ${moi.length} hình cùng số`:''}${quanh?` (hỏi theo số không ra; tìm thấy khi dò quanh các số lân cận, ${quanh.goi} lần gọi)`:''}.`);
       }
       cho[s]={goc:(san?[san]:moi).filter(t=>t.r),ke};
     }
@@ -4664,7 +4725,7 @@ $('olgo').onclick=async()=>{
   let lech='';
   if(cuoi&&LON0!=null&&LON0!==lon0)lech=`<br/><b>Chú ý:</b> thửa được tính theo kinh tuyến trục ${dms(lon0)} của ${esc(tinh.name||'tỉnh đã chọn')}, còn bản đồ đang dùng ${dms(LON0)} — vị trí trên ảnh vệ tinh sẽ lệch cho tới khi chọn lại ở mục Kinh tuyến trục.`;
   if(cuoi){
-    const ct=sh.thua.find(t=>t.s===cuoi.s)||cuoi;
+    const ct=sh.thua.includes(cuoi)?cuoi:sh.thua.find(t=>t.s===cuoi.s)||cuoi;
     SEL.add(ct.id);
     drawResults();
     if(!BASEKEY)datNen('esri',0);
@@ -4693,13 +4754,12 @@ $('olgo').onclick=async()=>{
     return `Giáp ranh thửa ${esc(s)}: ${co.length?co.map(esc).join(', '):'không tìm được thửa nào'} — phủ ${phu}% chu vi${pk.ho.length?`; cạnh chưa thấy thửa kề: ${pk.ho.join(', ')} — có thể là đường, kênh mương, hoặc thửa Mạnh Lắm chưa trả về`:''}${het?`; dừng vì đã đủ ${OLTONG} lần hỏi cho một lần bấm`:''}.`;
   };
   const ve=()=>{
-    const hoiKe=Object.keys(cho).filter(s=>cho[s].goc.length).map(s=>kqKe[s]?`&nbsp;&nbsp;${kqKe[s]}`
+    /* không có nhãn số quanh thửa (ví dụ thửa tìm được khi dò quanh số lân cận) thì nút giáp ranh không dò được gì nên không hiện */
+    const hoiKe=Object.keys(cho).filter(s=>cho[s].goc.length&&cho[s].ke.length).map(s=>kqKe[s]?`&nbsp;&nbsp;${kqKe[s]}`
       :`<div class="mini" style="margin-top:6px"><button class="olkebtn" data-s="${esc(s)}">Hiện thêm thửa giáp ranh của thửa ${esc(s)}</button></div>`).join('<br/>');
-    /* [ĐÃ THỬ 06/10] thửa có text rỗng (nhãn gộp "LUC 949 / 150") không ra khi hỏi theo số; gợi ý quét cả tờ, chỉ chạy khi bấm */
-    const goiY=khong.length?`<br/>Thửa này có thể có thật nhưng Mạnh Lắm ghi nhãn kiểu “LUC 949 / 150” nên hỏi theo số không ra. <b>Lấy toàn bộ tờ ${esc(to)}</b> thử lần lượt số 1, 2, 3… của cả tờ rồi tìm thêm các thửa kiểu đó: thường <b>hơn 1.000 lần gọi</b> Mạnh Lắm (8 lần song song, nghỉ ${OLNGHI/1000} giây giữa các lô), chừng 3–6 phút. Kết quả được lưu trong máy và xuất được file DGN. Chỉ chạy khi bạn bấm; có nút Dừng.<div class="mini" style="margin-top:6px"><button class="olquetbtn"${OLQUETDANG?' disabled':''}>Lấy toàn bộ tờ này</button>${luuQuet?`<button class="olquetbtn olquetcu">Mở lại bản đã quét (${fmt(luuQuet.thua.length,0)} thửa, ${esc(new Date(luuQuet.ngay).toLocaleDateString('vi-VN'))})</button>`:''}</div>`:'';
+    /* [QĐ 06/10] bỏ quét cả tờ (hơn 1.000 lần gọi); số không tìm được thì hướng người dùng tra theo vị trí */
+    const goiY=khong.length?`<br/>Số không tìm được có thể không có trên tờ này (số thửa trên tờ có nhiều quãng trống), nằm xa các số lân cận, hoặc Mạnh Lắm chưa có ranh. Nếu biết chỗ thửa: bấm <b>📍 Chọn thửa trên bản đồ</b> rồi bấm vào đúng chỗ đó.`:'';
     olmsg(dong.join('<br/>')+lech+(hoiKe?'<br/>'+hoiKe:'')+goiY,cuoi&&!lech?'ok':'warn');
-    $('olmsg').querySelectorAll('.olquetbtn').forEach(b=>b.onclick=()=>b.classList.contains('olquetcu')
-      ?olQuetDua({thua:luuQuet.thua,goi:luuQuet.goi||0},lop,luuQuet.to,luuQuet.lon0,luuQuet.dc,Date.now(),luuQuet.ngay):olQuetUI(lop,to,lon0,dc));
     $('olmsg').querySelectorAll('.olkebtn').forEach(b=>b.onclick=async()=>{
       const s=b.dataset.s;nut.disabled=true;
       $('olmsg').querySelectorAll('.olkebtn').forEach(x=>x.disabled=true);
@@ -4709,108 +4769,10 @@ $('olgo').onclick=async()=>{
       ve();
     });
   };
-  if(khong.length){try{luuQuet=await idbGet('quet:'+lop.id)}catch(e){}}
   ve();
   olNho();
 };
 
-/* ===== Quét cả tờ từ Mạnh Lắm (chỉ chạy khi người dùng bấm "Lấy toàn bộ tờ này") =====
-   [ĐÃ THỬ 06/10, tờ dc7 Phường 1 TX Duyên Hải, idmaplayer 129446]
-   - /map_parcels chỉ khớp NGUYÊN chuỗi `text`: hỏi "947" ra thửa 947; hỏi "949" không ra gì vì thửa 949 có text rỗng, nhãn chỉ là chuỗi gộp
-     "LUC 949 / 150" (hỏi đúng chuỗi đó mới ra). Nhãn gộp này hiện trong labels_outsides của các thửa quanh nó (thửa 1016) nên gom từ đó.
-   - Số thửa của tờ thưa: có nhiều số trống giữa các số có thửa (thử cách 3 số: trống liên tiếp tới ~69 số ở khoảng 520–658), nên ngưỡng dừng phải dài.
-   Ngưỡng dừng OLQUET.TRONG là SỐ TỰ CHỌN (không có căn cứ từ Mạnh Lắm): dừng khi đã hỏi qua TRONG số liên tiếp kể từ số lớn nhất đã thấy thửa. */
-const OLQUET={TRONG:150,SONG:8,MAX:5000};
-const OLGOP=/^([0-9]?[A-Z]{1,4}(?:[+][A-Z]{2,4})*)\s+([0-9]{1,5}[a-zA-Z]?)\s*[/]\s*[0-9]+(?:[.,][0-9]+)?$/;
-/* Hàm lõi, không đụng giao diện: trả {thua, goi, loi, dung, cao, daThu, gapMax, gop}. tien(t) gọi sau mỗi lô; dung() trả true thì dừng sau lô đang chạy. */
-async function olQuetTo(lop,to,lon0,tien,dung){
-  const R={thua:[],goi:0,loi:'',dung:false,cao:0,gop:0};
-  const daThay=new Set(),gop=new Map(),daHoiGop=new Set();
-  const ngu=ms=>new Promise(ok=>setTimeout(ok,ms));
-  const mang=v=>{if(typeof v==='string'){try{v=JSON.parse(v)}catch(e){v=[]}}return Array.isArray(v)?v.map(x=>String(x).trim()):[]};
-  const hoi=async(chuoi,g)=>{                 // g = {so, ma} khi hỏi theo nhãn gộp
-    R.goi++;
-    const ds=await olGoi('/map_parcels',{idmaplayer:lop.id,searchString:chuoi,exactly:true,current:1,pageSize:10});
-    const moi=[];
-    for(const it of ds){
-      for(const n of [...mang(it.labels_outsides),...mang(it.labels_insides)]){const m=n.match(OLGOP);if(m&&!gop.has(n))gop.set(n,{so:m[2],ma:m[1]})}
-      if(String(it.text)!==chuoi)continue;
-      const k=it.geojsonWGS84||it.polygon_bound;if(!k||daThay.has(k))continue;daThay.add(k);
-      const t=olThua(it,to,lon0,lop.id);if(!t||!t.r)continue;
-      if(g){t.s=g.so;if(!t.l)t.l=g.ma}
-      moi.push(t);
-    }
-    return moi;
-  };
-  const doi=async()=>{while(typeof document!=='undefined'&&document.hidden&&!dung()){tien&&tien({an:true,goi:R.goi,thua:R.thua.length});await ngu(1000)}};
-  const lo=async(ds,fn)=>{                    // một lô song song; lỗi thì dừng hẳn, vẫn giữ những gì đã có
-    await doi();if(R.goi)await ngu(OLNGHI);
-    const kq=await Promise.allSettled(ds.map(fn));
-    kq.forEach(k=>{if(k.status==='fulfilled')R.thua.push(...k.value);else if(!R.loi)R.loi=String(k.reason&&k.reason.message||k.reason)});
-    return kq;
-  };
-  let n=1;
-  while(!R.loi&&!dung()&&n<=R.cao+OLQUET.TRONG&&n<=OLQUET.MAX){
-    const ds=[];for(let i=0;i<OLQUET.SONG&&n<=OLQUET.MAX;i++)ds.push(String(n++));
-    const kq=await lo(ds,s=>hoi(s));
-    kq.forEach((k,i)=>{if(k.status==='fulfilled'&&k.value.length)R.cao=Math.max(R.cao,+ds[i])});
-    tien&&tien({pha:'so',n:n-1,cao:R.cao,goi:R.goi,thua:R.thua.length});
-  }
-  R.daThu=n-1;
-  while(!R.loi&&!dung()){
-    const co=new Set(R.thua.map(t=>t.s));
-    const cho=[...gop].filter(([k,v])=>!daHoiGop.has(k)&&!co.has(v.so));
-    if(!cho.length)break;
-    const ds=cho.slice(0,OLQUET.SONG);ds.forEach(([k])=>daHoiGop.add(k));
-    await lo(ds,([k,v])=>hoi(k,v));R.gop+=ds.length;
-    tien&&tien({pha:'gop',goi:R.goi,thua:R.thua.length,gopCho:cho.length-ds.length});
-  }
-  R.dung=dung();
-  const co=new Set(R.thua.map(t=>t.s));let gap=0,chay=0,khong=0;       // số trống trong 1..số lớn nhất, và dải trống dài nhất giữa các số có thửa
-  const mx=Math.max(0,...R.thua.map(t=>/^\d+$/.test(t.s)?+t.s:0));
-  for(let i=1;i<=mx;i++){if(co.has(String(i)))chay=0;else{khong++;gap=Math.max(gap,++chay)}}
-  R.max=mx;R.khong=khong;R.gapMax=gap;
-  return R;
-}
-let OLQUETDANG=false,OLQUETDUNG=false;
-async function olQuetUI(lop,to,lon0,dc){
-  if(OLQUETDANG)return;OLQUETDANG=true;OLQUETDUNG=false;
-  const box=$('olquet'),t0=Date.now();
-  const ve=t=>{
-    const ph=t.an?'Trang đang bị ẩn nên tạm dừng, mở lại trang để chạy tiếp.':t.pha==='gop'?`Đang tìm thửa chỉ có nhãn gộp${t.gopCho?` (còn ${t.gopCho} nhãn)`:''}…`:`Đang hỏi số thửa ${t.n||''} (số lớn nhất đã thấy ${t.cao||0}; dừng khi qua ${OLQUET.TRONG} số trống liền)…`;
-    const tl=t.pha==='so'?Math.min(95,Math.round(100*t.n/Math.max(1,t.cao+OLQUET.TRONG))):t.pha==='gop'?97:0;
-    box.innerHTML=`<div>${ph}<br/>${fmt(t.goi||0,0)} lần gọi · ${fmt(t.thua||0,0)} thửa</div>
-      <div class="bars" style="height:10px"><span style="flex:${tl};background:var(--moss,#2f6b4f)"></span><span style="flex:${100-tl}"></span></div>
-      <div class="mini" style="margin-top:6px"><button id="olquetdung" style="min-height:44px">Dừng</button></div>`;
-    const b=$('olquetdung');if(b)b.onclick=()=>{OLQUETDUNG=true;b.disabled=true;b.textContent='Đang dừng sau lô này…'};
-  };
-  ve({pha:'so',n:1,cao:0,goi:0,thua:0});
-  let R;
-  try{R=await olQuetTo(lop,to,lon0,ve,()=>OLQUETDUNG)}
-  catch(e){R={thua:[],goi:0,loi:String(e&&e.message||e),khong:0,gapMax:0,max:0,gop:0}}
-  OLQUETDANG=false;
-  olQuetDua(R,lop,to,lon0,dc,t0);
-}
-/* đưa kết quả quét vào tờ: không trùng (cùng tâm trong 5 cm); thửa nạp từ file của chính tờ đó thì giữ nguyên */
-async function olQuetDua(R,lop,to,lon0,dc,t0,cu){
-  const box=$('olquet');
-  let sh=SHEETS.find(x=>x.to===to&&x.ol&&x.dc===dc);
-  if(!sh){sh={to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc,lon0,k0:0.9999};SHEETS.push(sh)}
-  const goc=new Set(SHEETS.filter(x=>x.to===to&&!x.ol).flatMap(x=>x.thua.map(t=>t.s)));
-  const bo=R.thua.filter(t=>!goc.has(t.s));
-  sh.thua=sh.thua.filter(t=>!(t.ol===lop.id));
-  bo.forEach(t=>{if(!sh.thua.some(u=>u.c&&t.c&&Math.hypot(u.c[0]-t.c[0],u.c[1]-t.c[1])<0.05))sh.thua.push(t)});
-  ganId(sh);drawSheets();autoKTT();drawResults();drawMap();
-  let luu='';
-  if(!cu&&R.thua.length){try{await idbSet('quet:'+lop.id,{ngay:Date.now(),to,dc,lon0,goi:R.goi,thua:R.thua});luu=' Đã lưu trong máy, lần sau mở lại không cần gọi Mạnh Lắm.'}catch(e){luu=' Không lưu được trong máy ('+esc(e.message||e)+').'}}
-  const giay=Math.round((Date.now()-t0)/1000);
-  const lech=cu?'':R.goi<800?` Ước tính ban đầu là hơn 1.000 lần gọi; thực tế ${fmt(R.goi,0)}, ít hơn hẳn.`:R.goi>2000?` Ước tính ban đầu là hơn 1.000 lần gọi; thực tế ${fmt(R.goi,0)}, nhiều hơn hẳn.`:'';
-  const kq=cu?`<b>Đã mở lại bản quét lưu ngày ${esc(new Date(cu).toLocaleDateString('vi-VN'))}</b>: ${fmt(R.thua.length,0)} thửa của tờ ${esc(to)}, không gọi Mạnh Lắm.`
-    :`${R.loi?`<b>Dừng giữa chừng vì lỗi</b> (${esc(R.loi)}): `:R.dung?'<b>Đã dừng theo yêu cầu</b>: ':'<b>Quét xong</b>: '}${fmt(R.thua.length,0)} thửa của tờ ${esc(to)}${R.max?` (số lớn nhất ${R.max}, ${fmt(R.khong,0)} số trong 1–${R.max} không tìm được${R.gop?`, ${fmt(R.gop,0)} nhãn gộp đã hỏi thêm`:''}, dải trống dài nhất ${R.gapMax} số)`:''}, ${fmt(R.goi,0)} lần gọi, ${giay} giây.${lech}${luu}${R.loi?' Bấm lại để quét tiếp (thửa đã có được giữ).':''}${bo.length<R.thua.length?` ${R.thua.length-bo.length} thửa trùng số với thửa nạp từ file nên giữ bản từ file.`:''}`;
-  box.innerHTML=`<div class="${R.loi?'warn':'ok'}">${kq}</div><div class="mini" style="margin-top:6px"><button id="olquetdgn" style="min-height:44px">Xuất DGN tờ ${esc(to)} (${fmt(sh.thua.length,0)} thửa)</button></div>`;
-  $('olquetdgn').onclick=()=>xuatDGN(sh.thua,'to-'+to+'-manh-lam');
-  console.log('Quét tờ',to,'idmaplayer',lop.id,{thua:R.thua.length,goi:R.goi,max:R.max,khong:R.khong,gapMax:R.gapMax,gop:R.gop,loi:R.loi||null});
-}
 function xuatDGN(ds,ten){
   const g=dgnGhi(ds.filter(t=>t.r));
   if(!g.n)return kmsg('Không có thửa nào có ranh để ghi DGN.',1);
@@ -4828,6 +4790,18 @@ function xuatDGN(ds,ten){
 const OLPICKMAX=200, OLPICKKM=8, OLPICKGAN=60, OLPICKLO=8;
 let OLHUY=null;                                 // điểm bấm mới trong lúc đang tra
 const OLNONG=[];let OLXANONG=null;               // id các tờ vừa cho thửa thật và xã của tờ trúng gần nhất — cú bấm sau hỏi trước, trúng là dừng
+/* [v28] phạm vi đã thấy của từng tờ (khung bao các thửa đã trúng, toạ độ bản đồ theo kinh tuyến trục đang dùng), lưu trong máy:
+   tờ có phạm vi (nới 30 m) chứa điểm bấm được hỏi trước. Chỉ đổi thứ tự hỏi, không bớt tờ nào. */
+let OLPV={};try{OLPV=JSON.parse(localStorage.getItem('olpv')||'{}')||{}}catch(e){}
+const olPvKhoa=id=>id+'@'+LON0;
+const olPvCo=(id,w)=>{const b=OLPV[olPvKhoa(id)];return !!b&&w[0]>=b[0]-30&&w[0]<=b[2]+30&&w[1]>=b[1]-30&&w[1]<=b[3]+30};
+function olPvThem(id,r){
+  const k=olPvKhoa(id),b=OLPV[k]||[1e12,1e12,-1e12,-1e12];
+  r.forEach(p=>{b[0]=Math.min(b[0],p[0]);b[1]=Math.min(b[1],p[1]);b[2]=Math.max(b[2],p[0]);b[3]=Math.max(b[3],p[1])});
+  delete OLPV[k];OLPV[k]=b.map(v=>Math.round(v*10)/10);                        // đưa lên cuối = mới dùng
+  const ks=Object.keys(OLPV);ks.slice(0,Math.max(0,ks.length-300)).forEach(q=>delete OLPV[q]);
+  try{localStorage.setItem('olpv',JSON.stringify(OLPV))}catch(e){}
+}
 function olLon0(){
   const tinh=OLTINH.find(p=>String(p.id)===$('oltinh').value)||{};
   const pv=PROV.find(p=>nodau(p[0])===nodau(tinh.name||''));
@@ -4859,28 +4833,43 @@ async function olTaiDiem(w){
     let thay=null;
     /* Thứ tự "gần nhất" của Mạnh Lắm tính theo tâm tờ, không theo chỗ có thửa: tờ chứa thửa thật có khi xếp thứ 30–50,
        còn các tờ đứng đầu chỉ trả hình khung. Vì vậy hỏi hết các tờ trong bán kính, song song theo lô; tờ vừa trúng thì ưu tiên. */
-    const nong=x=>{const k=OLNONG.indexOf(String(x.l.id));return k>=0?k:String(x.l.idxa)===OLXANONG?1e6:1e9};   // tờ vừa trúng → tờ cùng xã → còn lại
+    const nong=x=>{const id=String(x.l.id);if(olPvCo(id,w))return -1;const k=OLNONG.indexOf(id);return k>=0?k:String(x.l.idxa)===OLXANONG?1e6:1e9};   // tờ có phạm vi chứa điểm → tờ vừa trúng → tờ cùng xã → còn lại
     cand=cand.map((x,k)=>({...x,k})).sort((a,b)=>nong(a)-nong(b)||a.k-b.k);
-    const soNong=cand.filter(x=>nong(x)<1e6).length, daQuen=cand.some(x=>nong(x)<1e9);   // quanh điểm bấm có tờ/xã vừa trúng
+    const soNong=cand.filter(x=>nong(x)<1e6).length;
+    const daQuen=cand.some(x=>OLNONG.includes(String(x.l.id))||String(x.l.idxa)===OLXANONG);   // quanh điểm bấm có tờ/xã vừa trúng trong phiên này (phạm vi lưu trong máy không tính)
     const hoiTo=async x=>{try{const [la2,lo2]=olLL(w[0],w[1],LON0!=null?LON0:lon0Chon,x.l.id,K0);
       const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({x:lo2,y:la2,srid:4326,tosrid:3857,idmaplayer:x.l.id,limit:50})});return r.ok?await r.json():null}catch(e){return null}};
-    for(let b=0;b<cand.length;){
-      if(OLHUY)return;
-      const n=b<soNong?Math.min(OLPICKLO,soNong-b):OLPICKLO;         // lô đầu chỉ gồm các tờ ưu tiên
-      const lot=cand.slice(b,b+n);
-      olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — đã hỏi ${b}/${cand.length} tờ quanh đó${b>=OLPICKGAN?' (mở rộng tìm xa hơn)':''}… Bấm điểm khác để bỏ lượt này.`);
-      const kq=await Promise.all(lot.map(async x=>({x,tt:await olThuaLoc(await hoiTo(x),x.l,lonCua(x.l))})));
-      /* gom hết rồi chọn: chứa điểm bấm → không bị nghi là ô bảng → diện tích nhỏ nhất; hình khung và ô bảng đã bị loại */
-      kq.forEach(({x,tt})=>{if(!tt)return;
-        const trong=inPoly(w,tt.r),nghi=tt.nghi?1:0;
-        if(!thay||(trong&&!thay.trong)||(trong===thay.trong&&(nghi<thay.nghi||(nghi===thay.nghi&&tt.a<thay.a))))thay={l:x.l,a:tt.a,trong,nghi,tt}});
-      b+=n;
-      /* lần đầu ở một vùng: hỏi hết để chọn đúng hình nhỏ nhất. Đã quen vùng (có tờ ưu tiên): có thửa chứa điểm bấm là dừng */
-      if(thay&&thay.trong&&!thay.nghi&&(daQuen||b>=OLPICKGAN))break;   // hình còn nghi là ô bảng thì hỏi tiếp tìm hình khác
-    }
+    /* chọn: chứa điểm bấm → không bị nghi là ô bảng → diện tích nhỏ nhất; hình khung và ô bảng đã bị loại */
+    const hon=(trong,nghi,a)=>!thay||(trong&&!thay.trong)||(trong===thay.trong&&(nghi<thay.nghi||(nghi===thay.nghi&&a<thay.a)));
+    const xet=async(x,j)=>{
+      if(!j||j.text==null||!(j.geojsonWGS84||j.polygon_bound))return;
+      const lon0=lonCua(x.l),t0=olThua(j,olSoTo(x.l),lon0,x.l.id,true);if(!t0||!t0.r)return;
+      let tt=t0;
+      /* [v28] kiểm ô bảng (dò 4 ô kề = 4 lần gọi) chỉ khi hình chữ nhật này còn có thể được chọn; kết quả như cũ vì hình không thể thắng thì không cần biết */
+      if(olChuNhat(t0.r)){if(!hon(inPoly(w,t0.r),0,t0.a))return;tt=await olThuaLoc(j,x.l,lon0);if(!tt)return}
+      else if((OLBANG.hinh[String(x.l.id)]||[]).some(q=>Math.hypot(q[0]-t0.c[0],q[1]-t0.c[1])<0.5))return;   // người dùng đã báo hình này không phải thửa
+      const trong=inPoly(w,tt.r),nghi=tt.nghi?1:0;
+      if(hon(trong,nghi,tt.a))thay={l:x.l,a:tt.a,trong,nghi,tt};
+    };
+    /* [v28, ĐÃ THỬ 06/10 trên 19 ca vàng: 42 s thay vì 71–74 s, kết quả từng ca như cũ] luôn giữ OLPICKLO yêu cầu đang chạy, xong cái nào gửi tiếp cái đó,
+       không chờ tờ chậm nhất của lô. Phạm vi như cũ: các tờ ưu tiên hỏi riêng trước; lần đầu ở một vùng hỏi đủ OLPICKGAN tờ; có thửa chứa điểm (không nghi) là dừng. */
+    let i=0,xong=0,het=soNong||cand.length,dung=false;
+    const tho=async()=>{
+      while(!dung&&i<het){
+        if(OLHUY){dung=true;return}
+        const x=cand[i++];
+        await xet(x,await hoiTo(x));xong++;
+        if(xong%OLPICKLO===0)olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — đã hỏi ${xong}/${cand.length} tờ quanh đó${xong>=OLPICKGAN?' (mở rộng tìm xa hơn)':''}… Bấm điểm khác để bỏ lượt này.`);
+        if(thay&&thay.trong&&!thay.nghi&&(daQuen||xong>=OLPICKGAN))dung=true;   // hình còn nghi là ô bảng thì hỏi tiếp tìm hình khác
+      }
+    };
+    olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — ${cand.length} tờ quanh đó… Bấm điểm khác để bỏ lượt này.`);
+    await Promise.all(Array.from({length:OLPICKLO},tho));
+    if(!dung&&!OLHUY&&het<cand.length){het=cand.length;await Promise.all(Array.from({length:OLPICKLO},tho))}
     if(OLHUY)return;
-    if(thay){const id=String(thay.l.id),k=OLNONG.indexOf(id);if(k>=0)OLNONG.splice(k,1);OLNONG.unshift(id);OLNONG.length=Math.min(OLNONG.length,8);OLXANONG=String(thay.l.idxa)}
+    if(thay){const id=String(thay.l.id),k=OLNONG.indexOf(id);if(k>=0)OLNONG.splice(k,1);OLNONG.unshift(id);OLNONG.length=Math.min(OLNONG.length,8);OLXANONG=String(thay.l.idxa);
+      if(thay.trong)olPvThem(id,thay.tt.r)}
     if(!thay){OLQUANH={w,la,lo,cand,lonCua};
       return olmsg(`Không có thửa nào tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} (đã hỏi hết ${cand.length} tờ trong ${OLPICKKM} km, bỏ qua hình khung trống) — Mạnh Lắm chưa có ranh thửa ở đúng chỗ này (sông, đường, kênh mương, hoặc khu chưa đo vẽ). Bấm nút dưới để xem các thửa quanh đó, hoặc bấm lệch sang phần đất liền kề.<div><button class="olkepick" data-quanh="1">Hiện các thửa quanh điểm này</button></div>`,'warn')}
     const to=olSoTo(thay.l), lon0=lonCua(thay.l);
@@ -4903,7 +4892,7 @@ async function olTaiDiem(w){
       $('oltinh').value=thay.l.idtinh;
       olNapHuyen(thay.l.idhuyen,thay.l.idxa,thay.l.id).then(olNho,()=>{});
     }
-    olmsg(`<b>${esc(nhanThua(t))}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,1)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.d?(t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''):''}${t.chu?' · '+esc(t.chu):''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${coSo(t)?'':` Trong hình này Mạnh Lắm không có nhãn số thửa${t.goiY&&t.goiY.length?`; các nhãn số gần đó: ${t.goiY.map(esc).join(', ')} (có thể là thửa bên cạnh)`:''}.`}${t.hc?` Ranh đã hiệu chỉnh (lùi ${fmt(t.hc[0],2)} m về tây, ${fmt(t.hc[1],2)} m về nam).`:''}${t.nghi?' <b>Hình này là chữ nhật vuông vức, có thể là ô bảng biểu của người vẽ chứ không phải thửa — nên đối chiếu.</b>':''}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}${san?'':(OLKQ={w,l:thay.l,t:ct},'<div><button class="olkepick olphu" data-sai="1">Hình này không phải thửa</button></div>')}`,t.nghi?'warn':'ok');
+    olmsg(`<b>${esc(nhanThua(t))}, tờ ${esc(to)}</b> (${esc(dc)}): ${t.l?esc(t.l)+', ':''}${t.d?fmt(t.d,1)+' m² ghi trên bản đồ, ':''}${fmt(t.a,1)} m² theo ranh${t.d?(t.ok?' — khớp':t.bad?` — lệch ${t.bad}%`:''):''}${t.chu?' · '+esc(t.chu):''}${t.khoi?` <b>Đây là khối chưa tách ranh, trong đó có nhãn các thửa ${t.khoi.map(esc).join(', ')}</b>: Mạnh Lắm không có ranh riêng từng thửa, diện tích trên là của cả khối.`:''}${san?' (đã có sẵn từ file, giữ nguyên)':''}.${coSo(t)||t.khoi?'':` Trong hình này Mạnh Lắm không có nhãn số thửa${t.goiY&&t.goiY.length?`; các nhãn số gần đó: ${t.goiY.map(esc).join(', ')} (có thể là thửa bên cạnh)`:''}.`}${t.hc?` Ranh đã hiệu chỉnh (lùi ${fmt(t.hc[0],2)} m về tây, ${fmt(t.hc[1],2)} m về nam).`:''}${t.nghi?' <b>Hình này là chữ nhật vuông vức, có thể là ô bảng biểu của người vẽ chứ không phải thửa — nên đối chiếu.</b>':''}${(OLKE=ct.r?{lop:thay.l,to,dc,lon0,nhom:[ct],lan:0}:null,olKeNut())}${san?'':(OLKQ={w,l:thay.l,t:ct},'<div><button class="olkepick olphu" data-sai="1">Hình này không phải thửa</button></div>')}`,t.nghi?'warn':'ok');
   }catch(e){olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.','warn')}
   finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}}
 }

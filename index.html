@@ -332,7 +332,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v20 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v21 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -533,11 +533,12 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 </div>
 <div id="glbox" style="margin-top:10px;border-top:1px solid var(--rule);padding-top:8px">
   <div class="row" style="align-items:flex-end">
-    <div style="flex:2 1 220px"><label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink);font-weight:700"><input type="checkbox" id="glon" style="width:20px;height:20px;flex:none">Lớp quy hoạch sử dụng đất 2030 (Guland)</label></div>
+    <div style="flex:2 1 220px"><label style="display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px;color:var(--ink);font-weight:700"><input type="checkbox" id="glon" style="width:20px;height:20px;flex:none">Lớp quy hoạch Mạnh Lắm</label>
+      <select id="glsel" aria-label="Chọn bản đồ quy hoạch"></select></div>
     <div style="flex:1 1 160px"><label for="glopa" style="margin-top:0">Độ đậm quy hoạch: <span id="glopav">60%</span></label>
       <input type="range" id="glopa" min="10" max="100" value="60"></div>
   </div>
-  <div style="margin-top:6px"><label for="glurl" style="margin:0 0 2px">Địa chỉ ô ảnh khác (không bắt buộc) — để trống thì tự chọn theo tỉnh</label>
+  <div id="glurlrow" class="hide" style="margin-top:6px"><label for="glurl" style="margin:0 0 2px">Địa chỉ ô ảnh của bản đồ quy hoạch khác</label>
     <input id="glurl" placeholder="https://…/{z}/{x}/{y}.png" style="font-size:13px"></div>
   <div class="note" id="glnote" style="margin-top:4px"></div>
 </div>
@@ -2385,14 +2386,18 @@ function bindMap(){
     downPt=null;
   };
   c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);
-  /* Con lăn: trước đây mỗi SỰ KIỆN wheel nhân 1,18 lần bất kể độ lớn. Chromium bắn một sự kiện ~100 px mỗi nấc nên ổn;
-     Firefox (và chuột/bàn rê độ phân giải cao) bắn nhiều sự kiện nhỏ cho một nấc nên phóng vọt hàng chục lần.
-     Nay phóng theo ĐỘ LỚN: 100 px = một bước 1,18; đổi dòng/trang về px; và trong 50 ms không phóng quá 1,2 bước. */
+  /* Con lăn [QĐ 06/10]: một nấc = một bước 1,18 lần, đúng như bản cũ trên Cốc Cốc / Chrome, và giống vậy trên Firefox.
+     - Chromium báo ~100 px mỗi nấc (125, 150 khi màn hình phóng 125%, 150%) → kẹp mỗi sự kiện tối đa 100 px = đúng một bước.
+     - Firefox: PHẢI đọc deltaMode TRƯỚC deltaY thì mới nhận đơn vị "dòng" (3 dòng mỗi nấc = một bước); đọc deltaY trước thì
+       Firefox đổi sang px với trị số khác hẳn. Bản cũ nhân 1,18 cho MỖI sự kiện nên chuột bắn nhiều sự kiện một nấc là phóng vọt.
+     - Bàn rê / chuột độ phân giải cao bắn nhiều sự kiện nhỏ: cộng dồn theo độ lớn; trong 50 ms không quá 1,2 bước. */
   let wT=0,wAcc=0;
   c.addEventListener('wheel',e=>{
     if(!VW)return;e.preventDefault();
-    let dy=e.deltaY*(e.deltaMode===1?100/3:e.deltaMode===2?300:1);
+    const mode=e.deltaMode;                           // đọc trước deltaY (xem ghi chú Firefox ở trên)
+    let dy=e.deltaY*(mode===1?100/3:mode===2?100:1);
     if(!dy)return;
+    dy=Math.max(-100,Math.min(100,dy));
     const now=performance.now();if(now-wT>50){wT=now;wAcc=0}
     const con=Math.max(0,120-Math.abs(wAcc));dy=Math.max(-con,Math.min(con,dy));wAcc+=dy;
     if(!dy)return;
@@ -2770,45 +2775,71 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
   if(coll){lop(z);return S.ghi+' · mức '+z}
   if(z>=6)lop(z-3);          // lớp nền thô, lấp chỗ trống trong lúc chờ tải
   lop(z);
-  /* lớp quy hoạch Guland chồng lên ảnh nền. Chỉ vẽ trên màn hình: ảnh không có CORS nên không xuất PNG / in được */
+  /* lớp quy hoạch chồng lên ảnh nền. Chỉ vẽ trên màn hình: ảnh không có CORS nên không xuất PNG / in được */
   let ghiQH='';
   if(GL.on&&!forPrint){
-    const ds=glMau(latm,(lo0+lo1)/2);
-    if(z<GLZ[0]-1)ghiQH=' · Quy hoạch: phóng to thêm để hiện';
-    else if(ds.length){
-      const zq=Math.max(GLZ[0],Math.min(GLZ[1],z)), nn=Math.pow(2,zq);
+    const ds=glMau(latm,(lo0+lo1)/2);let ve=0;
+    x.globalAlpha=GL.opa/100;try{x.filter='none'}catch(e){}
+    for(const L of ds){
+      if(z<L.z[0]-1)continue;
+      const zq=Math.max(L.z[0],Math.min(L.z[1],z)), nn=Math.pow(2,zq);
       const [ea,fa]=lonlat2px(la1,lo0,zq), [eb,fb]=lonlat2px(la0,lo1,zq);
       const ax0=Math.floor(ea/256),ax1=Math.floor(eb/256),ay0=Math.floor(fa/256),ay1=Math.floor(fb/256);
-      x.globalAlpha=GL.opa/100;try{x.filter='none'}catch(e){}
-      if((ax1-ax0+1)*(ay1-ay0+1)<=160)for(const m of ds)for(let tx=ax0;tx<=ax1;tx++)for(let ty=ay0;ty<=ay1;ty++){
+      if((ax1-ax0+1)*(ay1-ay0+1)>160)continue;
+      ve++;
+      for(let tx=ax0;tx<=ax1;tx++)for(let ty=ay0;ty<=ay1;ty++){
         if(tx<0||ty<0||tx>=nn||ty>=nn)continue;
-        const im=glImg(m.replace('{z}',zq).replace('{x}',tx).replace('{y}',ty));
+        const im=glImg(L.m.replace('{z}',zq).replace('{x}',tx).replace('{y}',ty));
         if(!im||!im.complete||!im.naturalWidth)continue;
         const c=[[tx,ty],[tx+1,ty],[tx,ty+1]].map(([ax,ay])=>{const [la,lo]=px2lonlat(ax*256,ay*256,zq);return T(toVN(la,lo,LON0,K0))});
         x.setTransform((c[1][0]-c[0][0])/256*k,(c[1][1]-c[0][1])/256*k,(c[2][0]-c[0][0])/256*k,(c[2][1]-c[0][1])/256*k,c[0][0]*k,c[0][1]*k);
         try{x.drawImage(im,0,0,256,256,0,0,256.6,256.6)}catch(e){}
       }
-      ghiQH=' · Quy hoạch 2030 © Guland (không chính thức)';
     }
+    ghiQH=ds.length?(ve?' · Quy hoạch: Mạnh Lắm':' · Quy hoạch: phóng to thêm để hiện'):'';
   }
   x.restore();
   return S.ghi+' · mức '+z+ghiQH;
 }
-/* ===== Lớp quy hoạch sử dụng đất 2030 của Guland (ô ảnh XYZ công khai, không chính thức) =====
-   [ĐÃ THỬ 06/10/2026] https://r4gmiynxmeobj.vcdn.cloud/<tỉnh-không-dấu>-2030/{z}/{x}/{y}.png, có ảnh ở mức 12–18,
-   tải được không cần đăng nhập hay Referer, không có tiêu đề CORS. 56/63 tỉnh (tên cũ) đúng mẫu này;
-   không đúng: Hà Nội, Đà Nẵng, Hậu Giang, Lào Cai, Hà Giang, Nam Định, Bắc Giang → dán địa chỉ ô vào ô "Địa chỉ ô ảnh khác". */
-const GLGOC='https://r4gmiynxmeobj.vcdn.cloud/', GLZ=[12,18];
-let GL={on:false,opa:60,url:''};
-try{const q=JSON.parse(localStorage.getItem('guland')||'null');if(q)GL={on:!!q.on,opa:Math.max(10,Math.min(100,+q.opa||60)),url:String(q.url||'')}}catch(e){}
-const glLuu=()=>{try{localStorage.setItem('guland',JSON.stringify(GL))}catch(e){}};
-/* mẫu địa chỉ ô cho vùng đang xem: địa chỉ người dùng dán, hoặc tỉnh gần tâm khung nhìn nhất (thêm tỉnh thứ hai khi ở gần ranh tỉnh) */
+/* ===== Lớp quy hoạch (giao diện ghi "Mạnh Lắm" theo yêu cầu của tác giả [QĐ 06/10]) =====
+   Nguồn ô ảnh thật và cách lấy danh mục: xem docs/spec/lop-quy-hoach.md. Ô ảnh XYZ công khai, không có CORS, không chính thức.
+   Danh mục dưới đây chép tay ngày 06/10/2026 cho TX Duyên Hải, huyện Duyên Hải, huyện Trà Cú: máy chủ danh mục có lớp chống
+   truy cập tự động nên công cụ KHÔNG tự tải danh sách được; nơi khác dùng "Tự chọn theo tỉnh" hoặc dán địa chỉ ô ảnh. */
+const GLGOC='https://r4gmiynxmeobj.vcdn.cloud/', GLS3='https://s3-hn-2.cloud.cmctelecom.vn/', GLS1='https://s3.hn-1.cloud.cmctelecom.vn/', GLDUOI='/{z}/{x}/{y}.png';
+const GLDS=[   // [khoá, nhóm, tên, địa chỉ (không kèm đuôi), mức nhỏ nhất, mức lớn nhất]
+  ['tv2125','Toàn tỉnh','Kế hoạch sử dụng đất 2021–2025, tỉnh Trà Vinh',GLS3+'guland5/qh-toan-tinh/tra-vinh-2021-2025',9,16],
+  ['vl2030','Toàn tỉnh','Sơ đồ tỉnh Vĩnh Long sau sáp nhập đến 2030, tầm nhìn 2050',GLS1+'guland7/qh-all/vinh-long',8,14],
+  ['vldc','Toàn tỉnh','Bản đồ địa chính Vĩnh Long sau sáp nhập',GLS1+'guland7/qh-ssn/vinh-long',10,14],
+  ['dhx-qhc','Thị xã Duyên Hải','Quy hoạch chung đô thị Duyên Hải đến 2030',GLS3+'guland10/qh-khac/tra-vinh/huyen-duyen-hai--do-thi-duyen-hai--30qhc',10,17],
+  ['dhx-30','Thị xã Duyên Hải','Quy hoạch sử dụng đất đến 2030',GLS3+'guland5/qh-2030/tra-vinh/thi-xa-duyen-hai',10,18],
+  ['dhx-25','Thị xã Duyên Hải','Kế hoạch sử dụng đất 2025',GLS3+'guland8/qh-2025/tra-vinh/thi-xa-duyen-hai--25',10,17],
+  ['dhx-25dt','Thị xã Duyên Hải','Kế hoạch sử dụng đất 2025 (dự thảo)',GLS3+'guland8/qh-2025/tra-vinh/thi-xa-duyen-hai',10,17],
+  ['dhx-24','Thị xã Duyên Hải','Kế hoạch sử dụng đất 2024',GLS3+'guland4/qh-2024/tra-vinh/thi-xa-duyen-hai',10,17],
+  ['dhx-23','Thị xã Duyên Hải','Kế hoạch sử dụng đất 2023',GLS3+'guland2/qh-2023/tra-vinh/huyen-duyen-hai',12,16],
+  ['dhh-30','Huyện Duyên Hải','Quy hoạch sử dụng đất đến 2030',GLS3+'guland5/qh-2030/tra-vinh/huyen-duyen-hai',10,18],
+  ['dhh-25','Huyện Duyên Hải','Kế hoạch sử dụng đất 2025',GLS3+'guland8/qh-2025/tra-vinh/huyen-duyen-hai--25',10,17],
+  ['dhh-25dt','Huyện Duyên Hải','Kế hoạch sử dụng đất 2025 (dự thảo)',GLS3+'guland8/qh-2025/tra-vinh/huyen-duyen-hai',10,17],
+  ['dhh-24','Huyện Duyên Hải','Kế hoạch sử dụng đất 2024',GLS3+'guland4/qh-2024/tra-vinh/huyen-duyen-hai',10,17],
+  ['dhh-23','Huyện Duyên Hải','Kế hoạch sử dụng đất 2023',GLS3+'guland2/qh-2023/tra-vinh/huyen-duyen-hai',12,16],
+  ['tc-30','Huyện Trà Cú','Quy hoạch sử dụng đất đến 2030',GLS3+'guland5/qh-2030/tra-vinh/huyen-tra-cu',10,18],
+  ['tc-25dt','Huyện Trà Cú','Kế hoạch sử dụng đất 2025 (dự thảo)',GLS3+'guland8/qh-2025/tra-vinh/huyen-tra-cu',10,17],
+  ['tc-24','Huyện Trà Cú','Kế hoạch sử dụng đất 2024',GLS3+'guland4/qh-2024/tra-vinh/huyen-tra-cu',10,17],
+  ['tc-23','Huyện Trà Cú','Kế hoạch sử dụng đất 2023',GLS3+'guland2/qh-2023/tra-vinh/huyen-tra-cu',12,16]
+];
+let GL={on:false,opa:60,url:'',chon:'auto'};
+try{const q=JSON.parse(localStorage.getItem('lopqh')||'null');if(q)GL={on:!!q.on,opa:Math.max(10,Math.min(100,+q.opa||60)),url:String(q.url||''),
+  chon:q.chon==='khac'||GLDS.some(d=>d[0]===q.chon)?q.chon:'auto'}}catch(e){}
+const glLuu=()=>{try{localStorage.setItem('lopqh',JSON.stringify(GL))}catch(e){}};
+/* các lớp ô ảnh cần vẽ cho vùng đang xem: [{m: mẫu địa chỉ, z: [mức nhỏ nhất, lớn nhất]}] */
 function glMau(la,lo){
-  if(/\{z\}.*\{x\}.*\{y\}/.test(GL.url))return [GL.url.trim()];
+  if(GL.chon==='khac')return /\{z\}.*\{x\}.*\{y\}/.test(GL.url)?[{m:GL.url.trim(),z:[8,20]}]:[];
+  const d=GLDS.find(q=>q[0]===GL.chon);
+  if(d)return [{m:d[3]+GLDUOI,z:[d[4],d[5]]}];
+  /* tự chọn: quy hoạch sử dụng đất 2030 của tỉnh gần tâm khung nhìn nhất (thêm tỉnh thứ hai khi ở gần ranh tỉnh) */
   const kc=Math.cos(la*Math.PI/180);
   const ds=PROV.map(p=>({p,d:Math.hypot(la-p[2],(lo-p[3])*kc)})).sort((a,b)=>a.d-b.d);
   return ds.slice(0,2).filter((q,i)=>i===0||q.d<ds[0].d*1.8+0.05)
-    .map(q=>GLGOC+nodau(q.p[0]).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-2030/{z}/{x}/{y}.png');
+    .map(q=>({m:GLGOC+nodau(q.p[0]).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-2030'+GLDUOI,z:[12,18]}));
 }
 const GLT=new Map();let glTimer=null;
 function glImg(url){
@@ -2819,11 +2850,19 @@ function glImg(url){
   im.onerror=()=>{GLT.set(url,null)};
   im.src=url;GLT.set(url,im);return im;
 }
+(()=>{const nh={};GLDS.forEach(d=>(nh[d[1]]=nh[d[1]]||[]).push(d));
+  $('glsel').innerHTML='<option value="auto">Tự chọn theo tỉnh — quy hoạch sử dụng đất 2030</option>'
+    +Object.keys(nh).map(n=>`<optgroup label="${esc(n)}">${nh[n].map(d=>`<option value="${d[0]}">${esc(d[2])}</option>`).join('')}</optgroup>`).join('')
+    +'<option value="khac">Bản đồ khác — dán địa chỉ ô ảnh…</option>'})();
 function glVe(){
-  $('glon').checked=GL.on;$('glopa').value=GL.opa;$('glopav').textContent=GL.opa+'%';$('glurl').value=GL.url;
-  $('glnote').innerHTML=GL.on?'Hiện từ mức phóng 11 trở lên, nét nhất tới mức 18. Nguồn không chính thức của Guland: có thể ngừng bất cứ lúc nào; chỉ để tham khảo, không thay văn bản quy hoạch. Không kèm khi in hoặc lưu ảnh.':'';
+  $('glon').checked=GL.on;$('glopa').value=GL.opa;$('glopav').textContent=GL.opa+'%';$('glurl').value=GL.url;$('glsel').value=GL.chon;
+  $('glurlrow').classList.toggle('hide',GL.chon!=='khac');
+  const d=GLDS.find(q=>q[0]===GL.chon);
+  $('glnote').innerHTML=!GL.on?'':(d?`${esc(d[1])}: hiện ở mức phóng ${d[4]}–${d[5]}. `:GL.chon==='auto'?'Hiện ở mức phóng 12–18; một số tỉnh chưa có. ':'')
+    +'Ô ảnh lấy từ nguồn bên ngoài, không chính thức: có thể ngừng bất cứ lúc nào; chỉ để tham khảo, không thay văn bản quy hoạch. Không kèm khi in hoặc lưu ảnh.';
 }
 $('glon').onchange=e=>{GL.on=e.target.checked;glLuu();glVe();if(GL.on&&!BASEKEY)datNen('esri',0);drawMap()};
+$('glsel').onchange=e=>{GL.chon=e.target.value;if(!GL.on){GL.on=true;if(!BASEKEY)datNen('esri',0)}GLT.clear();glLuu();glVe();drawMap()};
 $('glopa').oninput=e=>{GL.opa=+e.target.value;$('glopav').textContent=GL.opa+'%';glLuu();drawMap()};
 $('glurl').onchange=e=>{const v=e.target.value.trim();
   if(v&&!/^https:\/\/.*\{z\}.*\{x\}.*\{y\}/.test(v)){$('glnote').innerHTML='<span style="color:var(--red)">Địa chỉ phải bắt đầu bằng https:// và có đủ {z}, {x}, {y}.</span>';return}

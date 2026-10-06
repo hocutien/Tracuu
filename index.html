@@ -289,6 +289,14 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
   #gpsmsg:empty{display:none}
 }
 /* thẻ thửa đang chỏ tới */
+/* [QĐ 06/10] ô toạ độ và thông báo vị trí mặc định thu gọn để khỏi che bản đồ; nút mfbtn mở ra khi cần.
+   Cảnh báo, lỗi (định vị bị chặn…) thì tự mở; thông báo thường chỉ hiện chấm đỏ trên nút. */
+#mfbtn{align-self:flex-start;padding:9px 12px;min-height:40px;font-size:13px;font-weight:700;border:1px solid var(--rule);background:#fffdf8;color:#12283a;
+  border-radius:20px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+#mfbtn #mfcham{color:var(--red);font-size:12px}
+#mfbtn #mfcham.hide{display:none}
+#mapfoot.thu #locrow,#mapfoot.thu #gpsmsg{display:none!important}
+body.full #mfbtn{display:none!important}
 /* thanh trượt độ đậm lớp quy hoạch, nổi bên mép trái bản đồ (mép phải đã có cụm nút công cụ) */
 #glctl{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;
   touch-action:none;user-select:none}
@@ -355,7 +363,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v24 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v25 · 06/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -559,7 +567,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
     <div style="flex:2 1 220px"><label style="display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px;color:var(--ink);font-weight:700"><input type="checkbox" id="glon" style="width:20px;height:20px;flex:none">Lớp quy hoạch Mạnh Lắm</label>
       <select id="glsel" aria-label="Chọn bản đồ quy hoạch"></select></div>
     <div style="flex:1 1 160px"><label for="glopa" style="margin-top:0">Độ đậm quy hoạch: <span id="glopav">60%</span></label>
-      <input type="range" id="glopa" min="10" max="100" value="60"></div>
+      <input type="range" id="glopa" min="0" max="100" value="60"></div>
   </div>
   <div id="glurlrow" class="hide" style="margin-top:6px"><label for="glurl" style="margin:0 0 2px">Địa chỉ ô ảnh của bản đồ quy hoạch khác</label>
     <input id="glurl" placeholder="https://…/{z}/{x}/{y}.png" style="font-size:13px"></div>
@@ -579,7 +587,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div id="mapwrap"><canvas id="map"></canvas><div id="pickbar"><button id="pickx" title="Ẩn">×</button><span id="picktxt"></span></div>
     <div id="glctl" class="hide" aria-label="Độ đậm lớp quy hoạch">
       <button id="glmin" title="Nhạt bớt lớp quy hoạch" aria-label="Nhạt bớt">−</button>
-      <input type="range" id="glopa2" min="10" max="100" step="5" value="60" aria-label="Độ đậm lớp quy hoạch">
+      <input type="range" id="glopa2" min="0" max="100" step="5" value="60" aria-label="Độ đậm lớp quy hoạch">
       <output id="glval">60</output>
       <button id="glplus" title="Đậm thêm lớp quy hoạch" aria-label="Đậm thêm">+</button>
       <button id="glpal" title="Bảng màu, ký hiệu các loại đất quy hoạch" aria-label="Bảng chú giải màu" style="font-size:20px;margin-top:6px">🎨</button>
@@ -597,7 +605,8 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
     </div></div>
   <div id="fabbr"></div>
   <button id="bthoat" title="Hiện lại bảng điều khiển (phím Esc)">✕ Thoát toàn màn hình</button>
-  <div id="mapfoot">
+  <div id="mapfoot" class="thu">
+<button id="mfbtn" aria-expanded="false" title="Mở / thu gọn ô toạ độ và thông báo vị trí">📍 Toạ độ &amp; vị trí <span id="mfcham" class="hide" title="Có thông báo mới">●</span> <span id="mfmui">▸</span></button>
 <div id="locrow" style="display:flex;gap:8px;margin-top:8px;align-items:flex-end;flex-wrap:wrap">
   <div style="flex:2 1 220px"><label for="mloc" style="margin-top:0">Hoặc dán toạ độ (WGS-84 hay VN-2000)</label>
     <input id="mloc" placeholder="9.919332, 106.352563" spellcheck="false"></div>
@@ -2880,7 +2889,7 @@ const GLTU={
   auto23:{ten:'Kế hoạch sử dụng đất 2023',mau:[GLS3+'guland2/qh-2023/{T}/{H}'],z:[12,16]}
 };
 let GL={on:false,opa:60,url:'',chon:'auto'};
-try{const q=JSON.parse(localStorage.getItem('lopqh')||'null');if(q)GL={on:!!q.on,opa:Math.max(10,Math.min(100,+q.opa||60)),url:String(q.url||''),
+try{const q=JSON.parse(localStorage.getItem('lopqh')||'null');if(q)GL={on:!!q.on,opa:Number.isFinite(+q.opa)&&q.opa!==null&&q.opa!==''?Math.max(0,Math.min(100,+q.opa)):60,url:String(q.url||''),
   chon:q.chon==='khac'||GLTU[q.chon]||GLDS.some(d=>d[0]===q.chon)?q.chon:'auto'}}catch(e){}
 const glLuu=()=>{try{localStorage.setItem('lopqh',JSON.stringify(GL))}catch(e){}};
 const glSlug=x=>nodau(x).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -3222,7 +3231,7 @@ function glVe(){
 $('glon').onchange=e=>{GL.on=e.target.checked;glLuu();glVe();if(GL.on&&!BASEKEY)datNen('esri',0);drawMap()};
 $('glsel').onchange=e=>{GL.chon=e.target.value;GLTT='';if(!GL.on){GL.on=true;if(!BASEKEY)datNen('esri',0)}GLT.clear();glLuu();glVe();drawMap()};
 function glDatOpa(v){
-  v=Math.round(+v);GL.opa=Number.isFinite(v)?Math.max(10,Math.min(100,v)):60;   // 0 là trị số hợp lệ cần kẹp về 10, không phải "thiếu"
+  v=Math.round(+v);GL.opa=Number.isFinite(v)?Math.max(0,Math.min(100,v)):60;   // [QĐ 06/10] thấp nhất 0% = ẩn hẳn lớp quy hoạch mà không phải tắt
   $('glopa').value=GL.opa;$('glopav').textContent=GL.opa+'%';$('glopa2').value=GL.opa;$('glval').textContent=GL.opa;
   glLuu();drawMap();
 }
@@ -3391,6 +3400,20 @@ $('bloc').onclick=()=>{
   }
 };
 $('mloc').onkeydown=e=>{if(e.key==='Enter')$('bloc').click()};
+/* thu gọn / mở khối toạ độ + thông báo vị trí */
+function mfDat(mo,nho){
+  $('mapfoot').classList.toggle('thu',!mo);$('mfbtn').setAttribute('aria-expanded',mo?'true':'false');$('mfmui').textContent=mo?'▾':'▸';
+  if(mo)$('mfcham').classList.add('hide');
+  if(nho){try{localStorage.setItem('mfmo',mo?'1':'0')}catch(e){}}
+}
+$('mfbtn').onclick=()=>mfDat($('mapfoot').classList.contains('thu'),true);
+try{mfDat(localStorage.getItem('mfmo')==='1',false)}catch(e){mfDat(false,false)}
+new MutationObserver(()=>{
+  const g=$('gpsmsg');if(!g.textContent.trim())return $('mfcham').classList.add('hide');
+  if(!$('mapfoot').classList.contains('thu'))return;
+  if(g.querySelector('.warn,.caution'))mfDat(true,false);          // lỗi, cảnh báo: phải thấy ngay
+  else $('mfcham').classList.remove('hide');                        // thông báo thường: chỉ báo chấm
+}).observe($('gpsmsg'),{childList:true,subtree:true,characterData:true});
 /* lấy toạ độ ngay tâm màn hình: khỏi chép từ Google Maps. Kèm tên xã, huyện, tỉnh của tờ địa chính gần nhất */
 $('btam').onclick=async()=>{
   if(!VW||LON0==null)return $('gpsmsg').innerHTML='<div class="warn">Chưa có bản đồ để lấy tâm — bấm "Vị trí của tôi" hoặc nạp một tờ trước.</div>';
@@ -4855,6 +4878,7 @@ $('mpick').onclick=async e=>{
   drawMap();
   if(!coCho){const m='Đã bật <b>Tra thửa tại điểm</b> nhưng chưa biết đưa bản đồ về đâu: máy không cho vị trí và chưa tải được danh sách tờ. Dán toạ độ vào ô "Hoặc dán toạ độ" (chép từ Google Maps) rồi bấm lên bản đồ.';
     $('locrow').classList.remove('hide');olmsg(m,'warn');return}
+  setTimeout(()=>{if(/Đã bật Tra thửa tại điểm/.test($('picktxt').textContent))$('pickbar').style.display='none'},6000);   // lời nhắc này tự ẩn, khỏi che bản đồ
   olmsg((coGPS?'Bản đồ đã về chỗ thiết bị (chấm xanh). ':'Không lấy được vị trí thiết bị — bản đồ ở tờ đang chọn; kéo bản đồ hoặc dán toạ độ để tới nơi cần tra. ')+'Đã bật <b>Tra thửa tại điểm</b>: bấm lên bản đồ vào thửa cần xem, ở bất kỳ tỉnh/xã nào. Bấm lại nút này để tắt.','ok');
 };
 /* nút nổi bật trong mục Mạnh Lắm dùng chung chế độ với nút trên thanh công cụ */

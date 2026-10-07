@@ -373,7 +373,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v34 · 06/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v35 · 07/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -2315,6 +2315,7 @@ let VW=null;                 // {cx,cy,sc} tâm thế giới + tỷ lệ px/m
 let GOTO=true, FLASH=null;
 let SHOWLAB=true, SHOWDIM=false, PRINTMODE=false, VOPA=100;
 let OLPICK=false, OLBUSY=false;   // chế độ tra thửa tại điểm bấm
+let OLTOL=0;                       // v35: độ chính xác của cú bấm gần nhất (m) = số điểm ảnh sai lệch / độ phóng
 let VUNGMODE=false, VRECT=null, vStart=null, OLVUNGDUNG=false, VGAP=null;   // VGAP: ô 10 m trong khung vừa quét mà Mạnh Lắm không có ranh (v34)   // v33: chế độ khoanh vùng (kéo khung), khung đang kéo, điểm bắt đầu, cờ dừng
 let PRECT=null;              // vùng in, toạ độ thế giới {x0,y0,x1,y1}
 let PORIENT='portrait';
@@ -2556,7 +2557,12 @@ function bindMap(){
     }
     if(moved<7&&downPt&&VW){
       const w=S2W(downPt.x,downPt.y);let best=null;
+      /* [v35] cú bấm lệch khoảng 8 điểm ảnh (chuột) hoặc 16 (ngón tay) → đổi ra mét theo độ phóng hiện tại */
+      const tolPx=e.pointerType==='touch'?16:8;OLTOL=Math.min(12,Math.max(1.5,tolPx/VW.sc));
       for(const t of ringsHien()){const b=bbOf(t);if(w[0]<b[0]||w[0]>b[2]||w[1]<b[1]||w[1]>b[3])continue;if(inPoly(w,t.r)&&(!best||t.a<best.a))best=t}
+      if(!best&&!OLPICK){                     // không ở chế độ tra: bấm sát mép thửa đã có (trong sai số cú bấm) thì chọn thửa đó
+        let dm=OLTOL;for(const t of ringsHien()){const b=bbOf(t);if(w[0]<b[0]-dm||w[0]>b[2]+dm||w[1]<b[1]-dm||w[1]>b[3]+dm)continue;const d=olCach([w],t.r);if(d<dm){dm=d;best=t}}
+      }
       if(best){
         if(SEL.has(best.id)){SEL.delete(best.id);if(FLASH&&FLASH.id===best.id)FLASH=null}
         else{SEL.add(best.id);FLASH={id:best.id,z:0}}   // chạm chọn trên bản đồ cũng hiện thanh thông tin + nút chỉ đường
@@ -2571,6 +2577,8 @@ function bindMap(){
      - Firefox: PHẢI đọc deltaMode TRƯỚC deltaY thì mới nhận đơn vị "dòng" (3 dòng mỗi nấc = một bước); đọc deltaY trước thì
        Firefox đổi sang px với trị số khác hẳn. Bản cũ nhân 1,18 cho MỖI sự kiện nên chuột bắn nhiều sự kiện một nấc là phóng vọt.
      - Bàn rê / chuột độ phân giải cao bắn nhiều sự kiện nhỏ: cộng dồn theo độ lớn; trong 50 ms không quá 1,2 bước. */
+  /* [QĐ 07/10] nhanh hơn 15 %: mỗi nấc ×1,18^1,15 ≈ ×1,21 (trước ×1,18) */
+  const OLLAN=Math.pow(1.18,1.15);
   let wT=0,wAcc=0;
   c.addEventListener('wheel',e=>{
     if(!VW)return;e.preventDefault();
@@ -2582,7 +2590,7 @@ function bindMap(){
     const con=Math.max(0,120-Math.abs(wAcc));dy=Math.max(-con,Math.min(con,dy));wAcc+=dy;
     if(!dy)return;
     const w=S2W(e.offsetX,e.offsetY);
-    VW.sc=Math.max(.02,Math.min(80,VW.sc*Math.pow(1.18,-dy/100)));
+    VW.sc=Math.max(.02,Math.min(80,VW.sc*Math.pow(OLLAN,-dy/100)));
     const w2=S2W(e.offsetX,e.offsetY);
     VW.cx+=w[0]-w2[0];VW.cy+=w[1]-w2[1];
     drawMap();
@@ -4894,14 +4902,15 @@ async function olTaiDiem(w){
     cand=cand.map((x,k)=>({...x,k})).sort((a,b)=>nong(a)-nong(b)||a.k-b.k);
     const soNong=cand.filter(x=>nong(x)<1e6).length;
     const daQuen=cand.some(x=>OLNONG.includes(String(x.l.id))||String(x.l.idxa)===OLXANONG);   // quanh điểm bấm có tờ/xã vừa trúng trong phiên này (phạm vi lưu trong máy không tính)
-    const hoiTo=async x=>{try{const [la2,lo2]=olLL(w[0],w[1],LON0!=null?LON0:lon0Chon,x.l.id,K0);
+    const hoiTo=async(x,p=w)=>{try{const [la2,lo2]=olLL(p[0],p[1],LON0!=null?LON0:lon0Chon,x.l.id,K0);
       const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({x:lo2,y:la2,srid:4326,tosrid:3857,idmaplayer:x.l.id,limit:50})});return r.ok?await r.json():null}catch(e){return null}};
     /* chọn: chứa điểm bấm → không bị nghi là ô bảng → diện tích nhỏ nhất; hình khung và ô bảng đã bị loại */
     const hon=(trong,nghi,a)=>!thay||(trong&&!thay.trong)||(trong===thay.trong&&(nghi<thay.nghi||(nghi===thay.nghi&&a<thay.a)));
-    const xet=async(x,j)=>{
+    const xet=async(x,j,chiChua)=>{
       if(!j||j.text==null||!(j.geojsonWGS84||j.polygon_bound))return;
       const lon0=lonCua(x.l),t0=olThua(j,olSoTo(x.l),lon0,x.l.id,true);if(!t0||!t0.r)return;
+      if(chiChua&&!inPoly(w,t0.r))return;                         // hỏi ở điểm lệch: chỉ nhận thửa chứa đúng điểm bấm
       let tt=t0;
       /* [v28] kiểm ô bảng (dò 4 ô kề = 4 lần gọi) chỉ khi hình chữ nhật này còn có thể được chọn; kết quả như cũ vì hình không thể thắng thì không cần biết */
       if(olChuNhat(t0.r)){if(!hon(inPoly(w,t0.r),0,t0.a))return;tt=await olThuaLoc(j,x.l,lon0);if(!tt)return}
@@ -4926,6 +4935,23 @@ async function olTaiDiem(w){
     };
     olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — ${cand.length} tờ quanh đó… Bấm điểm khác để bỏ lượt này.`);
     await Promise.all(Array.from({length:OLPICKLO},tho));
+    /* [v35] Cụm điểm quanh điểm bấm trên 1–2 tờ vừa trúng khi chính điểm bấm không ra thửa chứa nó.
+       [ĐÃ THỬ 07/10, tờ 31 Ngũ Lạc] OnLand tự khép vùng từ các đường ranh quanh điểm: 172 điểm rải trong 43 thửa → 166 ra đúng (96,5 %),
+       4 rỗng ỔN ĐỊNH (hỏi lại vẫn rỗng — "vùng chết" do nét lẻ trong thửa), 0 lỗi mạng. Lệch 2,5–4 m là ra (thửa 48 tại 9.6645421, 106.4334497;
+       thửa 3.320 m² tại 9.6643828, 106.4322015 cần 4 m). Bán kính vòng 1 = độ chính xác của cú bấm theo độ phóng (OLTOL, tối thiểu 3 m), vòng 2 gấp đôi. */
+    if(!dung&&!OLHUY&&soNong&&!(thay&&thay.trong)){
+      const ton=cand.slice(0,Math.min(2,soNong)),r1=Math.max(3,Math.min(8,OLTOL||3));
+      for(const r of [r1,2*r1]){
+        if(OLHUY||(thay&&thay.trong))break;
+        const vc=[];ton.forEach(x=>{for(let h=0;h<8;h++){const g=h*Math.PI/4;vc.push({x,p:[w[0]+r*Math.cos(g),w[1]+r*Math.sin(g)]})}});
+        for(let k=0;k<vc.length&&!OLHUY;k+=OLPICKLO){
+          const rs=await Promise.all(vc.slice(k,k+OLPICKLO).map(async v=>({v,j:await hoiTo(v.x,v.p)})));
+          for(const {v,j} of rs)await xet(v.x,j,true);
+          if(thay&&thay.trong)break;
+        }
+      }
+      if(thay&&thay.trong&&!thay.nghi&&daQuen)dung=true;
+    }
     if(!dung&&!OLHUY&&het<cand.length){het=cand.length;await Promise.all(Array.from({length:OLPICKLO},tho))}
     if(OLHUY)return;
     if(thay){const id=String(thay.l.id),k=OLNONG.indexOf(id);if(k>=0)OLNONG.splice(k,1);OLNONG.unshift(id);OLNONG.length=Math.min(OLNONG.length,8);OLXANONG=String(thay.l.idxa);
@@ -5062,6 +5088,7 @@ function olDua(t,l,lon0){
   const cu=sh.thua.find(q=>q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05);if(cu)return cu;
   sh.thua.push(t);ganId(sh);return t;
 }
+const olGoiYPhong=()=>VW&&VW.sc<1?` Bản đồ đang thu nhỏ (1 điểm ảnh ≈ ${fmt(1/VW.sc,1)} m) — phóng to rồi bấm lại sẽ chính xác hơn.`:'';
 const olLaBang=t=>{const cn=olChuNhat(t.r);return !!cn&&cn.truc&&cn.tron};          // ô bảng biểu: chữ nhật thẳng trục, cạnh tròn mét
 async function olNacDo(){
   const N=OLNAC;if(!N)return;
@@ -5090,7 +5117,7 @@ async function olNacDo(){
   if(!moi.length&&N.nac===0){moi.push(...await olTruyVet(N));if(OLHUY)return}   // [QĐ 06/10] nấc đầu không ra → tự truy vét sạch quanh điểm
   const nacSau=OLNACR[N.nac+1];N.nac++;
   const nutTiep=nacSau?`<div><button class="olkepick" data-nac="1">Dò rộng hơn (tới ${nacSau[nacSau.length-1]} m)</button></div>`:'';
-  if(!moi.length)return olmsg(`Không có thửa tại điểm ${N.la.toFixed(6)}, ${N.lo.toFixed(6)} và trong ${N.vet?OLVET.R:toi} m quanh đó (${N.vet?`đã truy vét sạch lưới ${OLVET.B} m trên ${N.vet.to} tờ có nhãn thửa quanh điểm`:`đã dò trên ${N.ls.length} tờ`}, ${N.goi} lần gọi) — Mạnh Lắm không có ranh thửa ở khu này.${nacSau?' Bấm để dò rộng hơn.':' Đã dò tới nấc cuối.'}${glLyDo(N.k)}${nutTiep}${glNut(N.w,N.huyen)}`,'warn');
+  if(!moi.length)return olmsg(`Không có thửa tại điểm ${N.la.toFixed(6)}, ${N.lo.toFixed(6)} và trong ${N.vet?OLVET.R:toi} m quanh đó (${N.vet?`đã truy vét sạch lưới ${OLVET.B} m trên ${N.vet.to} tờ có nhãn thửa quanh điểm`:`đã dò trên ${N.ls.length} tờ`}, ${N.goi} lần gọi) — Mạnh Lắm không có ranh thửa ở khu này.${olGoiYPhong()}${nacSau?' Bấm để dò rộng hơn.':' Đã dò tới nấc cuối.'}${glLyDo(N.k)}${nutTiep}${glNut(N.w,N.huyen)}`,'warn');
   moi.sort((a,b)=>a.cach-b.cach);
   const nam=moi.map(m=>({...m,tr:olDua(m.t,m.l,m.lon0)})),b=nam[0];
   SEL.add(b.tr.id);FLASH={id:b.tr.id,z:0};
@@ -5100,7 +5127,7 @@ async function olNacDo(){
   if(b.cach===0){olPvThem(id,b.tr.r);
     return olmsg(`<b>${esc(nhanThua(b.tr))}, tờ ${esc(olSoTo(b.l))}</b> (${esc([b.l.tenxa,b.l.tenhuyen,b.l.tentinh].filter(Boolean).join(', '))}): ${b.tr.l?esc(b.tr.l)+', ':''}${b.tr.d?fmt(b.tr.d,1)+' m² ghi trên bản đồ, ':''}${fmt(b.tr.a,1)} m² theo ranh. Hỏi đúng điểm Mạnh Lắm không trả hình, dò lệch trong ${toi} m mới ra (${N.goi} lần gọi).${glNut(N.w,b.l.idhuyen)}`,'ok')}
   const khac=nam.slice(1,4).map(m=>`${esc(coSo(m.tr)?m.tr.s:'chưa rõ số')} (${fmt(m.cach,1)} m)`).join(', ');
-  olmsg(`<b>Điểm bấm không nằm trong thửa nào</b> (khe giữa các thửa, lối đi hoặc mương). Thửa gần nhất: <b>${esc(nhanThua(b.tr))}, tờ ${esc(olSoTo(b.l))}</b> — cách ${fmt(b.cach,1)} m${b.tr.d?`, ${fmt(b.tr.d,1)} m² ghi`:''}, ${fmt(b.tr.a,1)} m² theo ranh (đã chọn)${khac?`. Cũng gần: ${khac}`:''}. ${N.vet?`Nấc 3–10 m không ra, đã truy vét sạch trong ${OLVET.R} m trên ${N.vet.to} tờ`:`Dò trong ${toi} m`}, ${N.goi} lần gọi.${glLyDo(N.k)}${nutTiep}${glNut(N.w,N.huyen)}`,'ok',true);
+  olmsg(`<b>Điểm bấm không nằm trong thửa nào</b> (khe giữa các thửa, lối đi hoặc mương). Thửa gần nhất: <b>${esc(nhanThua(b.tr))}, tờ ${esc(olSoTo(b.l))}</b> — cách ${fmt(b.cach,1)} m${b.tr.d?`, ${fmt(b.tr.d,1)} m² ghi`:''}, ${fmt(b.tr.a,1)} m² theo ranh (đã chọn)${khac?`. Cũng gần: ${khac}`:''}. ${N.vet?`Nấc 3–10 m không ra, đã truy vét sạch trong ${OLVET.R} m trên ${N.vet.to} tờ`:`Dò trong ${toi} m`}, ${N.goi} lần gọi.${olGoiYPhong()}${glLyDo(N.k)}${nutTiep}${glNut(N.w,N.huyen)}`,'ok',true);
 }
 /* [v34, QĐ 06/10] Truy vét sạch quanh điểm bấm khi nấc đầu (3–10 m, 4 tờ) không ra: lưới 5 m trong bán kính 15 m, gần điểm trước,
    trên MỌI tờ có nhãn thửa quanh điểm (tờ vừa trúng, rồi tâm gần nhất; tối đa 24 tờ), trần 600 lần gọi; gặp thửa chứa điểm bấm là dừng.

@@ -383,7 +383,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v39 · 08/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v40 · 08/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -415,6 +415,9 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <div class="note" id="vnbox" style="border-top:1px solid var(--rule);padding-top:8px">
         <label style="display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px;color:var(--ink);font-weight:700"><input type="checkbox" id="vnon" checked style="width:20px;height:20px;flex:none">🧩 Ranh nhanh Mạnh Lắm khi phóng gần</label>
         Phóng tới tầm nhìn khoảng 3 km trở xuống là hiện ranh và số thửa; bấm vào thửa để chọn, xuất KMZ / DGN như thửa tra từ Mạnh Lắm.
+        <label for="vnuu" style="margin-top:6px">Ưu tiên ranh khi nhiều nguồn cùng có</label>
+        <select id="vnuu"></select>
+        <div style="margin:4px 0;font-size:12px"><span style="display:inline-block;width:18px;border-top:2px solid #1d5fd0;vertical-align:middle"></span> ranh .vn (có số thửa) &nbsp; <span style="display:inline-block;width:18px;border-top:2px solid #e8590c;vertical-align:middle"></span> ranh nguồn 2</div>
         <div id="vnmsg" style="margin:4px 0"></div>
         <details><summary>Thêm vùng có ranh nhanh</summary>
           <p style="margin:6px 0">1. Kéo nút <a id="vnbm" href="#" style="display:inline-block;padding:4px 10px;border-radius:6px;background:#12283a;color:#fbeed0;font-weight:700;text-decoration:none">📥 Lấy bộ ranh</a> lên thanh dấu trang.<br>
@@ -2590,7 +2593,7 @@ function bindMap(){
         if(SEL.has(best.id)){SEL.delete(best.id);if(FLASH&&FLASH.id===best.id)FLASH=null}
         else{SEL.add(best.id);FLASH={id:best.id,z:0}}   // chạm chọn trên bản đồ cũng hiện thanh thông tin + nút chỉ đường
         drawResults()}
-      else if(typeof vnTrung==='function'&&VNR.on&&!VUNGMODE&&(()=>{const h=vnTrung(w);if(h)vnChon(h,w);return h})()){}   // v37: bấm trúng ranh nhanh → chọn ngay
+      else if(typeof vnTrung==='function'&&VNR.on&&VNR.uu!=='chigl'&&!VUNGMODE&&(()=>{const h=vnTrung(w);if(h)vnChon(h,w);return h})()){}   // v37: bấm trúng ranh nhanh → chọn ngay
       else if((OLPICK||(typeof vnCanThay==='function'&&vnCanThay()))&&window.olTaiDiem)window.olTaiDiem(w);   // bấm ra ngoài thửa đã có → tra ngược: Mạnh Lắm → ranh nhanh → nguồn 2 (v39: khi đang hiện ranh thì không cần bật chế độ tra)
     }
     downPt=null;
@@ -3018,9 +3021,9 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
   let ghiGL='';
   if(typeof VNR!=='undefined'&&VNR.on&&!forPrint){
     const zr=Math.round(Math.log2(156543.03392*Math.cos(latm/R2D)*vw.sc));
-    if(zr>=VNZ){
+    if(zr>=VNZ&&VNR.uu!=='chivn'){
       const noi=glNoi(latm,(lo0+lo1)/2),kc=Math.cos(latm*Math.PI/180);
-      const tinh=noi&&noi.T?noi.T:glSlug((PROV.map(p=>({p,d:Math.hypot(latm-p[2],((lo0+lo1)/2-p[3])*kc)})).sort((a,b)=>a.d-b.d)[0]||{p:['']}).p[0]);
+      const tinh=VNR.glTinh=noi&&noi.T?noi.T:glSlug((PROV.map(p=>({p,d:Math.hypot(latm-p[2],((lo0+lo1)/2-p[3])*kc)})).sort((a,b)=>a.d-b.d)[0]||{p:['']}).p[0]);
       const zq=Math.min(20,zr),nn=2**zq,dl=OLLECH.tat?[0,0]:OLLECH.chung;
       const [ea,fa]=lonlat2px(la1,lo0,zq),[eb,fb]=lonlat2px(la0,lo1,zq);
       const ax0=Math.floor(ea/256),ax1=Math.floor(eb/256),ay0=Math.floor(fa/256),ay1=Math.floor(fb/256);
@@ -3029,11 +3032,12 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
         for(let tx=ax0;tx<=ax1;tx++)for(let ty=ay0;ty<=ay1;ty++){
           if(tx<0||ty<0||tx>=nn||ty>=nn)continue;
           const [cla,clo]=px2lonlat((tx+.5)*256,(ty+.5)*256,zq),[vx,vy]=vnLL2T(cla,clo,VNZ).map(Math.floor);
-          let coVn=false;for(const o of VNR.o.values())if(o.st==='ok'&&o.x===vx&&o.y===vy&&o.f&&o.f.length){coVn=true;break}
-          if(coVn)continue;
-          const im=glImg(`https://intercdn.guland.vn/land/${tinh}/${zq}/${tx}/${ty}.png`);
-          if(!im||!im.complete||!im.naturalWidth)continue;
-          ghiGL=' · Ranh: nguồn 2';
+          if(VNR.uu==='vn'){let coVn=false;for(const o of VNR.o.values())if(o.st==='ok'&&o.x===vx&&o.y===vy&&o.f&&o.f.length){coVn=true;break}
+            if(coVn)continue}
+          const o=glrImg(glrUrl(tinh,zq,tx,ty));
+          if(o.st!=='ok'||o.rong===true)continue;
+          const im=o.c;
+          ghiGL=' · Ranh cam: nguồn 2';
           const c=[[tx,ty],[tx+1,ty],[tx,ty+1]].map(([ax,ay])=>{const [la,lo]=px2lonlat(ax*256,ay*256,zq),v=toVN(la,lo,LON0,K0);return T([v[0]-dl[0],v[1]-dl[1]])});
           x.setTransform((c[1][0]-c[0][0])/256*k,(c[1][1]-c[0][1])/256*k,(c[2][0]-c[0][0])/256*k,(c[2][1]-c[0][1])/256*k,c[0][0]*k,c[0][1]*k);
           try{x.drawImage(im,0,0,256,256,0,0,256.6,256.6)}catch(e){}
@@ -5106,6 +5110,35 @@ const VNBOMD=[{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1667,b:[9.625,106.48
 let VNR={on:true,bo:VNBOMD.map(b=>({...b,b:[...b.b]})),o:new Map(),cho:[],dang:0,loi:'',tb:false};
 try{const q=JSON.parse(localStorage.getItem('vnbo')||'null');if(Array.isArray(q))for(const b of q)vnThemBo(b.id,b.b,true)}catch(e){}
 try{VNR.on=localStorage.getItem('vnon')!=='0'}catch(e){}
+/* v40: ưu tiên ranh khi cả hai nguồn cùng có — gop: vẽ cả hai (xanh .vn, cam nguồn 2); vn: nguồn 2 chỉ ở chỗ .vn trống;
+   gl: .vn chỉ ở chỗ ô nguồn 2 trống; chivn / chigl: một nguồn */
+const VNUU={gop:'Gộp cả hai (xem tối đa)',vn:'.vn trước, nguồn 2 bù chỗ thiếu',gl:'Nguồn 2 trước, .vn bù chỗ thiếu',chivn:'Chỉ ranh .vn (có số thửa)',chigl:'Chỉ ranh nguồn 2'};
+VNR.uu='gop';try{const u=localStorage.getItem('vnuu');if(VNUU[u])VNR.uu=u}catch(e){}
+VNR.glTinh='';
+/* ô ảnh ranh nguồn 2: tô lại màu cam; nếu đọc được điểm ảnh (CORS) thì nhận ô trống.
+   [ĐÃ THỬ 08/10] CDN nguồn 2 giữ đệm luôn tiêu đề Access-Control-Allow-Origin của lần gọi đầu (ai gọi trước thì người sau nhận gốc đó),
+   nên tải có CORS có thể hỏng bất kỳ lúc nào → hỏng thì tải lại ảnh thường: vẫn tô màu được (canvas phụ bị "bẩn" nhưng vẫn vẽ được),
+   chỉ không biết ô trống hay không (rong = undefined). 404 = không có ranh. */
+const GLR=new Map();let glrTimer=null;
+function glrImg(url){
+  let o=GLR.get(url);if(o)return o;
+  if(GLR.size>500)GLR.clear();
+  o={st:'cho'};GLR.set(url,o);
+  const xong=()=>{clearTimeout(glrTimer);glrTimer=setTimeout(drawMap,60)};
+  const to=(im,doc)=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,256,256);
+    if(doc){const d=g.getImageData(0,0,256,256).data;let net=0;for(let i=3;i<d.length;i+=16)if(d[i]>40){net=1;break}o.rong=!net}
+    g.globalCompositeOperation='source-in';g.fillStyle='#e8590c';g.fillRect(0,0,256,256);o.st='ok';o.c=c};
+  const thuong=()=>{const im2=new Image();im2.onload=()=>{try{to(im2,false)}catch(e){o.st='ok';o.c=im2}xong()};
+    im2.onerror=()=>{o.st='loi';o.rong=true;xong()};im2.src=url};
+  const im=new Image();im.crossOrigin='anonymous';
+  im.onload=()=>{try{to(im,true)}catch(e){o.rong=undefined;try{to(im,false)}catch(e2){o.st='ok';o.c=im}}xong()};
+  im.onerror=thuong;                          // CORS hỏng hoặc 404: thử ảnh thường (404 thì lỗi tiếp → không có ranh)
+  im.src=url;return o;
+}
+const glrUrl=(t,z,x,y)=>`https://intercdn.guland.vn/land/${t}/${z}/${x}/${y}.png`;
+function glrCo(x,y){                          // ô mức 16 (x,y) của nguồn 2 có nét ranh không: true / false / undefined (đang tải)
+  if(!VNR.glTinh)return undefined;const o=glrImg(glrUrl(VNR.glTinh,VNZ,x,y));return o.st==='cho'||(o.st==='ok'&&o.rong===undefined)?undefined:!o.rong;
+}
 function vnLuu(){try{localStorage.setItem('vnbo',JSON.stringify(VNR.bo.map(b=>({id:b.id,b:b.b.map(v=>+v.toFixed(5))}))))}catch(e){}}
 function vnThemBo(id,b,im){                 // thêm / nới phạm vi đã biết của một bộ: b = [vĩ nhỏ, kinh nhỏ, vĩ lớn, kinh lớn]
   id=+id;if(!(id>0)||!Array.isArray(b)||b.length!==4||!b.every(Number.isFinite))return false;
@@ -5215,7 +5248,10 @@ function vnOHien(){                          // các ô đã tải xong trong kh
   return out;
 }
 function vnVe(x,W,H,vw,fs){
-  const os=vnOHien();if(!os.length)return;
+  if(VNR.uu==='chigl')return;
+  let os=vnOHien();
+  if(VNR.uu==='gl'&&VNR.glTinh)os=os.filter(o=>glrCo(o.x,o.y)!==true);   // chỉ ẩn .vn khi CHẮC nguồn 2 có nét ở ô đó   // nguồn 2 trước: .vn chỉ vẽ ở ô mà nguồn 2 trống / không có
+  if(!os.length)return;
   const k=vw.sc,ox=W/2-vw.cx*k,oy=H/2+vw.cy*k,T=p=>[ox+p[0]*k,oy-p[1]*k];
   const wx0=vw.cx-W/2/k,wx1=vw.cx+W/2/k,wy0=vw.cy-H/2/k,wy1=vw.cy+H/2/k;
   const nhan=[];
@@ -5396,6 +5432,8 @@ function vnNhanMa(s){                        // "1663:9.6,106.4,9.7,106.5;1667:�
   const h=location.hash.match(/vnbo=([^&]+)/);
   if(h){const {moi,cu}=vnNhanMa(decodeURIComponent(h[1]));try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}
     setTimeout(()=>pickBar(`Đã nhận ${moi} bộ ranh mới${cu?`, cập nhật ${cu} bộ đã có`:''}. Phóng tới vùng đó để thấy ranh.`,'ok'),800)}
+  const uu=$('vnuu');if(uu){uu.innerHTML=Object.entries(VNUU).map(([k,t])=>`<option value="${k}">${t}</option>`).join('');uu.value=VNR.uu;
+    uu.onchange=()=>{VNR.uu=uu.value;try{localStorage.setItem('vnuu',VNR.uu)}catch(e){}drawMap()}}
   const on=$('vnon');if(on){on.checked=VNR.on;on.onchange=e=>{VNR.on=e.target.checked;try{localStorage.setItem('vnon',VNR.on?'1':'0')}catch(x){}vnMsg();drawMap()}}
   const a=$('vnbm');if(a){a.href=vnDauTrang();a.onclick=e=>{e.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark). Sau đó mở trang quy hoạch của Mạnh Lắm (onland.vn) ở vùng cần lấy, bấm dấu trang, kéo bản đồ một chút rồi bấm "Gửi sang app".')}}
   const g=$('vngo');if(g)g.onclick=()=>{const r=vnNhanMa($('vnma').value);$('vnma').value='';$('vnmsg').innerHTML=`Đã nhận ${r.moi} bộ mới, ${r.cu} bộ cập nhật.`};

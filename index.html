@@ -373,7 +373,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v35 · 07/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v36 · 08/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -4465,7 +4465,20 @@ $('qclr2').onclick=()=>{
 };
 
 /* ===== Hỏi thửa từ OnLand: chọn tỉnh → huyện → xã → tờ, gõ số thửa ===== */
-const OL='https://onland.tech/api';
+/* [v36] Đường chính lỗi (vd. chứng chỉ HTTPS onland.tech hết hạn 08/10/2026) → tự chuyển sang trạm trung chuyển
+   (Cloudflare Worker, chuyển tiếp tới http://onland.tech). Đang dùng trạm thì 10 phút thử lại đường chính một lần. */
+const OLCHINH='https://onland.tech/api', OLTRAM='https://onland-tram.hocutien64.workers.dev/api', OLTHULAI=600000;
+let OL=OLCHINH, OLHETTRAM=0;
+async function olFetch(path,opt){
+  if(OL===OLTRAM&&Date.now()>OLHETTRAM)OL=OLCHINH;
+  const goc=OL;
+  try{return await fetch(goc+path,opt)}
+  catch(e){
+    if(goc!==OLCHINH||(e&&e.name==='AbortError'))throw e;   // lỗi mạng ở đường chính mới chuyển trạm
+    if(OL===OLCHINH){OL=OLTRAM;OLHETTRAM=Date.now()+OLTHULAI;console.info('Mạnh Lắm: đường chính lỗi, dùng trạm trung chuyển')}
+    return fetch(OLTRAM+path,opt);
+  }
+}
 const OLMAX=10, OLNGHI=800, OLTONG=40;      // tối đa số thửa mỗi lần bấm, nghỉ giữa hai lần hỏi (ms), trần tổng số lần hỏi kể cả giáp ranh
 const OLMD={t:'84',h:'851'};                // mặc định Trà Vinh → Duyên Hải (Thị xã)
 let OLTINH=[],OLLOP=[],OLNHO={},OLDANAP=false;
@@ -4501,7 +4514,7 @@ const olLechLuu=()=>{try{localStorage.setItem('ollech',JSON.stringify(OLLECH))}c
 const olLech=lopId=>{if(OLLECH.tat)return [0,0];const h=OLHUYENLOP[lopId];return (h&&OLLECH.huyen[h[0]])||OLLECH.chung};   // huyện đã đo riêng → trị số chung
 const olLL=(E,N,lon0,lopId,k0)=>{const d=olLech(lopId);return conv(E+d[0],N+d[1],lon0,k0||0.9999)};   // điểm trên bản đồ → kinh vĩ độ để hỏi lớp đó
 async function olGoi(path,body){
-  const r=await fetch(OL+path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);
+  const r=await olFetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);
   if(!r.ok)throw new Error('Mạnh Lắm trả mã '+r.status);
   const j=await r.json();
   const ds=Array.isArray(j)?j:(j.list||j.data||[]);
@@ -4646,7 +4659,7 @@ async function olThuaLoc(j,l,lon0){
     const b=t.r[(k+1)%4],L=Math.hypot(b[0]-a[0],b[1]-a[1]),m=[(a[0]+b[0])/2,(a[1]+b[1])/2],nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
     let p=[m[0]+nx*1.5,m[1]+ny*1.5];if(inPoly(p,t.r))p=[m[0]-nx*1.5,m[1]-ny*1.5];
     const [la,lo]=olLL(p[0],p[1],lon0,l.id);
-    try{const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
+    try{const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:l.id,limit:50})});
       if(!r.ok)return;const jj=await r.json();if(!jj||!(jj.geojsonWGS84||jj.polygon_bound))return;
       const u=olThua(jj,t.to,lon0,l.id,true),c2=u&&olChuNhat(u.r);if(c2&&olCungKt(c2,cn))giong++}catch(e){}
@@ -4691,7 +4704,7 @@ async function olTimQuanh(lop,to,lon0,X,tien){
   const nhanX=n=>{const m=n.match(OLGOP);return m?m[2]===X:n.trim()===X};
   const hoiSo=async s=>{goi++;try{return (await olGoi('/map_parcels',{idmaplayer:lop.id,searchString:s,exactly:true,current:1,pageSize:10})).filter(it=>String(it.text)===s)}catch(e){return []}};
   const hoiDiem=async p=>{goi++;try{const [la,lo]=olLL(p[0],p[1],lon0,lop.id);
-    const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:lop.id,limit:50})});
+    const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:lop.id,limit:50})});
     return r.ok?await r.json():null}catch(e){return null}};
   const ds=[];for(let d=1;d<=OLTIMK;d++)ds.push(String(+X-d),String(+X+d));
   const lan=[];
@@ -4903,7 +4916,7 @@ async function olTaiDiem(w){
     const soNong=cand.filter(x=>nong(x)<1e6).length;
     const daQuen=cand.some(x=>OLNONG.includes(String(x.l.id))||String(x.l.idxa)===OLXANONG);   // quanh điểm bấm có tờ/xã vừa trúng trong phiên này (phạm vi lưu trong máy không tính)
     const hoiTo=async(x,p=w)=>{try{const [la2,lo2]=olLL(p[0],p[1],LON0!=null?LON0:lon0Chon,x.l.id,K0);
-      const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
+      const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({x:lo2,y:la2,srid:4326,tosrid:3857,idmaplayer:x.l.id,limit:50})});return r.ok?await r.json():null}catch(e){return null}};
     /* chọn: chứa điểm bấm → không bị nghi là ô bảng → diện tích nhỏ nhất; hình khung và ô bảng đã bị loại */
     const hon=(trong,nghi,a)=>!thay||(trong&&!thay.trong)||(trong===thay.trong&&(nghi<thay.nghi||(nghi===thay.nghi&&a<thay.a)));
@@ -5101,7 +5114,7 @@ async function olNacDo(){
     for(let i=0;i<viec.length;i+=OLPICKLO){
       if(OLHUY)return;
       const kq=await Promise.all(viec.slice(i,i+OLPICKLO).map(async v=>{N.goi++;try{const [la2,lo2]=olLL(v.p[0],v.p[1],LON0,v.l.id,K0);
-        const rr=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo2,y:la2,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
+        const rr=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo2,y:la2,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
         return {v,j:rr.ok?await rr.json():null}}catch(e){return {v,j:null}}}));
       kq.forEach(({v,j})=>{
         if(!j||j.text==null||!(j.geojsonWGS84||j.polygon_bound))return;
@@ -5152,7 +5165,7 @@ async function olTruyVet(N){
       if(!lo.length)continue;
       goi+=lo.length;N.goi+=lo.length;
       const kq=await Promise.all(lo.map(async v=>{try{const [la2,lo2]=olLL(v.p[0],v.p[1],LON0,v.l.id,K0);
-        const rr=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo2,y:la2,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
+        const rr=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo2,y:la2,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
         return {v,j:rr.ok?await rr.json():null}}catch(e){return {v,j:null}}}));
       kq.forEach(({v,j})=>{
         if(!j||j.text==null||!(j.geojsonWGS84||j.polygon_bound))return;
@@ -5209,7 +5222,7 @@ async function olQuetVung(box){
         if(hinh||d){const g=gan.get(String(v.l.id))||{hinh:0,dis:+v.l.dis||1e9};g.hinh+=hinh;gan.set(String(v.l.id),g)}};
       const hoiLo=async viec=>{for(let i=0;i<viec.length&&goi<OLVUNGTRAN&&!OLVUNGDUNG;i+=OLPICKLO){
         const kq=await Promise.all(viec.slice(i,i+OLPICKLO).map(async v=>{goi++;try{const [a,b]=olLL(v.p[0],v.p[1],LON0,v.l.id,K0);
-          const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});return {v,j:r.ok?await r.json():null}}catch(e){return {v,j:null}}}));
+          const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});return {v,j:r.ok?await r.json():null}}catch(e){return {v,j:null}}}));
         kq.forEach(({v,j})=>ghi(v,j));
         if(i%40===0)olmsg(`Khoanh vùng: đang tìm tờ phủ khung — đã hỏi ${goi} lần, thấy ${gan.size} tờ…`+nutDung,undefined,true)}};
       await hoiLo(cand.map(l=>({l,p:c})));
@@ -5246,7 +5259,7 @@ async function olQuetVung(box){
       }
       if(!viec.length)continue;
       const kq=await Promise.all(viec.map(async v=>{goi++;daHoi.set(v.l.id,daHoi.get(v.l.id)+1);try{const [a,b]=olLL(v.q.p[0],v.q.p[1],LON0,v.l.id,K0);
-        const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
+        const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
         return {v,j:r.ok?await r.json():null}}catch(e){return {v,j:null}}}));
       kq.forEach(({v,j})=>{
         if(!j||j.text==null||!(j.geojsonWGS84||j.polygon_bound))return;
@@ -5267,7 +5280,7 @@ async function olQuetVung(box){
     const chuaSo=thay.filter(t=>!coSo(t)&&!t.khoi&&OLLOPID[t.ol]&&trongBox(t.c));
     for(let i=0;i<chuaSo.length&&goi<OLVUNGTRAN&&!OLVUNGDUNG;i+=OLPICKLO){
       await Promise.all(chuaSo.slice(i,i+OLPICKLO).map(async t=>{goi++;try{const l=OLLOPID[t.ol],p=diemTrongThua(t),[a,b]=olLL(p[0],p[1],LON0,l.id,K0);
-        const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:l.id,limit:50})});
+        const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:l.id,limit:50})});
         const j=r.ok?await r.json():null;if(!j||!(j.geojsonWGS84||j.polygon_bound))return;
         const u=olThua(j,olSoTo(l),LON0,l.id,true);if(!u||!coSo(u)||Math.hypot(u.c[0]-t.c[0],u.c[1]-t.c[1])>0.05)return;
         t.s=u.s;t.l=t.l||u.l;t.chu=t.chu||u.chu;if(!t.d&&u.d){t.d=u.d;const dv=Math.abs(t.a-t.d)/t.d;t.ok=dv<0.02;t.bad=t.ok?0:Math.round(dv*100);t.chuaKt=0}
@@ -5286,7 +5299,7 @@ async function olQuetVung(box){
       if(!lo.length)continue;
       const viec=lo.flatMap(p=>lopsK.map(l=>({p,l}))).slice(0,Math.max(0,OLVUNGTRAN-goi));
       const kq=await Promise.all(viec.map(async v=>{goi++;try{const [a,b]=olLL(v.p[0],v.p[1],LON0,v.l.id,K0);
-        const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
+        const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:b,y:a,srid:4326,tosrid:3857,idmaplayer:v.l.id,limit:50})});
         return {v,j:r.ok?await r.json():null}}catch(e){return {v,j:null}}}));
       kq.forEach(({v,j})=>{if(!j||j.text==null||!(j.geojsonWGS84||j.polygon_bound))return;
         const t=olThua(j,olSoTo(v.l),LON0,v.l.id,true);if(!t||!t.r||olLaBang(t))return;
@@ -5391,7 +5404,7 @@ async function olDoLech(){
   try{
     const mau=thua.filter((_,i)=>i%Math.ceil(thua.length/30)===0).slice(0,30);
     const hoi=async(t,id)=>{try{const [la,lo]=conv(t.c[0],t.c[1],LON0,K0||0.9999);
-      const r=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:id,limit:50})});
+      const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:id,limit:50})});
       const j=r.ok?await r.json():null;return j&&(j.geojsonWGS84||j.polygon_bound)?olThua(j,'x',LON0,id,true):null}catch(e){return null}};
     const [la0,lo0]=conv(mau[0].c[0],mau[0].c[1],LON0,K0||0.9999);
     olmsg(`Đang tìm tờ của Mạnh Lắm trùng với tờ ${esc(sh.to)}…`);
@@ -5487,7 +5500,7 @@ async function olKeTaDiem(){
           if(hoi++)await new Promise(ok=>setTimeout(ok,OLNGHI/2));
           const [la,lo]=olLL(p[0],p[1],K.lon0,K.lop.id);
           let jj=null;
-          try{const rr=await fetch(OL+'/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
+          try{const rr=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
             body:JSON.stringify({x:lo,y:la,srid:4326,tosrid:3857,idmaplayer:K.lop.id,limit:50})});if(rr.ok)jj=await rr.json()}catch(e){}
           if(!jj||jj.text==null||!(jj.geojsonWGS84||jj.polygon_bound))continue;
           const t=await olThuaLoc(jj,K.lop,K.lon0);if(!t)continue;

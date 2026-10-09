@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v49 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v51 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -2173,6 +2173,27 @@ function drawResults(){
       const k=t.id,cls=t.ok?'c1':t.r?'c2':t.bang?'c4':'c3';
       return `<button class="chip ${cls}${SEL.has(k)?' on':''}${FLASH&&FLASH.id===t.id?' cur':''}" data-k="${k}" title="${t.khoi?'khối chưa tách ranh · nhãn '+t.khoi.join(', ')+' · '+t.a+' m² cả khối':[coSo(t)?t.s:'chưa rõ số thửa',t.l,t.d?t.d+' m²':'',t.chu].filter(Boolean).join(' · ')}">${t.s}${t.tong>1?`<sup>${t.stt}</sup>`:''}</button>`}).join('')}</div></div>`}).join('')
     ||(SHEETS.length?'<p class="note">Không có thửa nào khớp.</p>':'');
+  /* v51: ô tìm kiếm tìm thêm trong lớp ranh đã tải trên bản đồ (thửa thấy trên bản đồ nhưng chưa vào danh sách).
+     [ĐÃ THỬ 09/10] gõ "872" ở Phường 1 Duyên Hải: thửa 872 tờ 14 có trong ô ranh (bộ 1667) và onland.tech (DC14) nhưng
+     ô tìm chỉ lọc allThua() nên không ra. */
+  const qv=parseQuery(q),vnKq=(qv&&qv.want.size&&!/[A-Za-zÀ-ỹ]{2,}/.test(q.replace(/^\s*(tờ|to)\s*\d+\s*[::]/i,'')))?vnTimTrongLop(qv,list):null;
+  if(vnKq&&vnKq.length){
+    $('res').insertAdjacentHTML('beforeend',`<div class="togrp mo"><div class="tohead"><b style="padding:6px 2px">Trên lớp ranh — bấm để chọn</b></div><div class="chips">${
+      vnKq.map((h,i)=>`<button class="chip c2 vnchip" data-i="${i}" title="Tờ ${esc(h.f.to||'?')} · ${fmt(h.f.a,1)} m² theo ranh">${esc(h.f.so||'?')}<small> tờ ${esc(h.f.to||'?')}</small></button>`).join('')}</div></div>`);
+    if(!list.length)$('res').querySelectorAll(':scope>p.note').forEach(n=>n.remove());
+    $('found').textContent=`${list.length} thửa trong danh sách · ${vnKq.length} thửa trên lớp ranh · đã chọn ${SEL.size}`;
+    $('res').querySelectorAll('.vnchip').forEach(b=>b.onclick=async e=>{
+      const h=vnKq[+e.currentTarget.dataset.i];if(!h)return;
+      await vnChon(h,h.f.lc);
+      const t=allThua().find(x=>FLASH&&x.id===FLASH.id);
+      if(t){if(heptay()&&!document.body.classList.contains('tmap'))tab('map');gotoParcel(t,true)}
+      drawResults();
+    });
+  }else if(vnKq&&!list.length&&q&&vnNapQuanhTim(q)){
+    $('res').insertAdjacentHTML('beforeend','<p class="note">Đang tìm trên lớp ranh quanh chỗ đang xem…</p>');
+  }else if(vnKq&&!list.length&&q){
+    $('res').insertAdjacentHTML('beforeend','<p class="note">Lớp ranh quanh chỗ đang xem cũng chưa có số này. Phóng bản đồ tới vùng có thửa (tầm nhìn ≈ 3 km trở xuống) rồi gõ lại, hoặc hỏi theo số ở mục «Tra cứu thửa từ Mạnh Lắm».</p>');
+  }
   $('res').querySelectorAll('.tog').forEach(b=>b.onclick=e=>{
     const to=e.currentTarget.dataset.to,g=e.currentTarget.closest('.togrp');
     const mo=!g.classList.contains('mo');
@@ -2180,7 +2201,7 @@ function drawResults(){
     if(mo&&!g.querySelector('.chip'))drawResults();   // tờ đóng không dựng sẵn ô số thửa
     else g.classList.toggle('mo',mo);
   });
-  $('res').querySelectorAll('.chip').forEach(b=>b.onclick=e=>{
+  $('res').querySelectorAll('.chip:not(.vnchip)').forEach(b=>b.onclick=e=>{
     const k=e.currentTarget.dataset.k;
     const t=allThua().find(x=>x.id===k);
     const cur=FLASH&&t&&FLASH.id===t.id;
@@ -5118,19 +5139,24 @@ async function olTaiDiem(w){
      "Lấy bộ ranh" trên trang .vn (đọc địa chỉ ô mà chính trang đó tải), app nhớ trong máy. Không dò thử số bộ.
    - [QĐ 08/10] chỉ hiện ranh, số tờ, số thửa; diện tích tính từ ranh; diện tích ghi và loại đất chỉ lấy từ Mạnh Lắm sau khi chọn thửa.
    - [QĐ 08/10] đổi QĐ 06/10 "không quét cả tờ" riêng cho nguồn này: tải ô theo khung nhìn như trang .vn. */
-const VNTRAM=OLTRAM.replace(/\/api$/,'/vn'), VNZ=16, VNLECH=[0.715,0.21], VNBOMAX=10, VNLE=0.15, VNLEBAM=0.25, VNSONG=6, VNOMAX=600;
+/* v50: chạy bằng máy chủ cục bộ cong-cu/maythu.py (127.0.0.1:8737) thì lấy ô ranh / ảnh ranh qua chính máy chủ đó, không cần trạm */
+const MAYTHU=/^(127\.0\.0\.1|localhost):8737$/.test(location.host);
+const VNTRAM=MAYTHU?location.origin+'/vn':OLTRAM.replace(/\/api$/,'/vn'), VNZ=16, VNLECH=[0.715,0.21], VNBOMAX=10, VNLE=0.15, VNLEBAM=0.25, VNSONG=6, VNOMAX=600;
 /* số bộ đã biết: thu ngày 08–09/10/2026 bằng cách nút dấu trang làm (địa chỉ ô mà trang .vn tải) tại 26 huyện / thành phố của tỉnh Vĩnh Long mới
    (Trà Vinh, Vĩnh Long, Bến Tre cũ). Phạm vi là các ô đã thấy; app tự nới khi ô có thửa. */
-const VNBOMD=[{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1667,b:[9.625,106.485,9.682,106.513]},
-  {id:1662,b:[9.671,106.397,9.877,106.512]},{id:1664,b:[9.807,106.194,9.812,106.205]},{id:1777,b:[10.066,105.826,10.077,105.831]},{id:1779,b:[10.196,105.947,10.255,105.974]},
-  {id:1780,b:[10.174,106.078,10.185,106.084]},{id:1781,b:[9.963,105.914,10.055,105.996]},{id:1783,b:[9.963,105.914,10.055,105.996]},{id:1784,b:[9.985,106.177,10.093,106.216]},
-  {id:1785,b:[10.066,105.765,10.115,105.831]},{id:1786,b:[10.245,105.969,10.255,105.974]},{id:1788,b:[9.693,106.254,9.704,106.265]},{id:1789,b:[9.866,106.057,9.877,106.062]},
-  {id:1816,b:[10.034,106.469,10.185,106.705]},{id:1817,b:[10.234,106.326,10.293,106.381]},{id:1818,b:[10.174,106.078,10.277,106.133]},{id:1819,b:[10.147,106.370,10.245,106.474]},
-  {id:1820,b:[10.115,106.265,10.207,106.331]},{id:1821,b:[10.234,106.370,10.245,106.381]},{id:1822,b:[9.796,106.447,10.045,106.595]},{id:2023,b:[10.104,105.765,10.115,105.776]},
-  {id:2198,b:[9.985,106.205,9.996,106.216]},{id:2212,b:[9.931,106.342,9.942,106.348]},{id:2216,b:[9.985,106.205,9.996,106.216]},{id:2217,b:[9.985,106.205,9.996,106.216]},
-  {id:2221,b:[9.866,106.397,9.877,106.403]},{id:2238,b:[9.931,106.342,9.942,106.348]},{id:2250,b:[9.866,106.057,9.877,106.062]},{id:2251,b:[9.866,106.057,9.877,106.062]},
-  {id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2826,b:[9.693,106.254,9.704,106.265]},
-  {id:1905,b:[10.228,105.820,10.239,105.826]}];   // 1905: thu 09/10 tại 10.234161, 105.823816 (người dùng báo không ra)
+const VNBOMD=[
+  {id:1662,b:[9.671,106.397,9.877,106.512]},{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1664,b:[9.807,106.194,9.812,106.205]},{id:1667,b:[9.625,106.485,9.682,106.513]},{id:1777,b:[10.066,105.826,10.077,105.831]},{id:1779,b:[10.196,105.864,10.255,105.974]},
+  {id:1780,b:[10.174,106.078,10.185,106.084]},{id:1781,b:[9.963,105.914,10.055,105.996]},{id:1783,b:[9.963,105.914,10.055,105.996]},{id:1784,b:[9.985,106.177,10.093,106.216]},{id:1785,b:[10.066,105.765,10.115,105.831]},{id:1786,b:[10.245,105.969,10.255,105.974]},
+  {id:1788,b:[9.693,106.254,9.704,106.265]},{id:1789,b:[9.866,106.057,9.877,106.062]},{id:1808,b:[10.358,105.474,10.563,105.524]},{id:1809,b:[10.715,105.298,10.725,105.304]},{id:1816,b:[10.034,106.469,10.277,106.705]},{id:1817,b:[10.234,106.326,10.293,106.381]},
+  {id:1818,b:[10.174,106.078,10.277,106.133]},{id:1819,b:[10.147,106.37,10.245,106.474]},{id:1820,b:[10.115,106.265,10.207,106.331]},{id:1821,b:[10.234,106.37,10.245,106.381]},{id:1822,b:[9.796,106.447,10.045,106.595]},{id:1882,b:[10.288,105.754,10.299,105.76]},
+  {id:1888,b:[10.423,105.694,10.434,105.705]},{id:1898,b:[10.245,105.864,10.255,105.875]},{id:1900,b:[10.245,105.864,10.255,105.875]},{id:1902,b:[10.245,105.864,10.255,105.875]},{id:1905,b:[10.228,105.82,10.239,105.826]},{id:1909,b:[10.801,105.337,10.812,105.342]},
+  {id:1911,b:[10.715,105.298,10.725,105.304]},{id:1920,b:[10.288,105.656,10.293,105.661]},{id:1922,b:[10.288,105.656,10.293,105.661]},{id:1931,b:[10.358,105.518,10.364,105.524]},{id:1932,b:[10.358,105.518,10.364,105.524]},{id:1955,b:[10.666,105.557,10.677,105.562]},
+  {id:1956,b:[10.866,105.458,10.876,105.463]},{id:1957,b:[10.866,105.458,10.876,105.463]},{id:1958,b:[10.866,105.458,10.876,105.463]},{id:1959,b:[10.866,105.458,10.876,105.463]},{id:1963,b:[10.866,105.458,10.876,105.463]},{id:1974,b:[10.558,105.474,10.563,105.485]},
+  {id:1976,b:[10.558,105.474,10.563,105.485]},{id:1977,b:[10.558,105.474,10.563,105.485]},{id:1981,b:[10.515,105.837,10.526,105.842]},{id:1982,b:[10.515,105.837,10.526,105.842]},{id:1991,b:[10.515,105.837,10.526,105.842]},{id:1998,b:[10.455,105.628,10.466,105.639]},
+  {id:2000,b:[10.455,105.628,10.466,105.639]},{id:2002,b:[10.455,105.628,10.466,105.639]},{id:2007,b:[10.801,105.337,10.812,105.342]},{id:2010,b:[10.801,105.337,10.812,105.342]},{id:2011,b:[10.801,105.337,10.812,105.342]},{id:2014,b:[10.288,105.754,10.299,105.76]},
+  {id:2015,b:[10.288,105.754,10.299,105.76]},{id:2016,b:[10.288,105.754,10.299,105.76]},{id:2017,b:[10.288,105.754,10.299,105.76]},{id:2023,b:[10.104,105.765,10.115,105.776]},{id:2198,b:[9.985,106.205,9.996,106.216]},{id:2212,b:[9.931,106.342,9.942,106.348]},
+  {id:2216,b:[9.985,106.205,9.996,106.216]},{id:2217,b:[9.985,106.205,9.996,106.216]},{id:2221,b:[9.866,106.397,9.877,106.403]},{id:2238,b:[9.931,106.342,9.942,106.348]},{id:2250,b:[9.866,106.057,9.877,106.062]},{id:2251,b:[9.866,106.057,9.877,106.062]},
+  {id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2617,b:[10.358,105.518,10.364,105.524]},{id:2826,b:[9.693,106.254,9.704,106.265]}];   // v50: chép từ du-lieu/bo-ranh.json (70 bộ) để mở thẳng file vẫn đủ (file:// không đọc được JSON)
 let VNR={on:true,bo:VNBOMD.map(b=>({...b,b:[...b.b]})),o:new Map(),cho:[],dang:0,loi:'',tb:false};
 try{const q=JSON.parse(localStorage.getItem('vnbo')||'null');if(Array.isArray(q))for(const b of q)vnThemBo(b.id,b.b,true)}catch(e){}
 try{VNR.on=localStorage.getItem('vnon')!=='0'}catch(e){}
@@ -5404,6 +5430,30 @@ async function vnTaiDiem(w){                 // tra tại điểm khi Mạnh L�
   if(h){await vnChon(h,w);return true}
   return false;
 }
+/* v51: chưa thấy trong ô đã tải → tải 3 × 3 ô mức 16 quanh tâm bản đồ (dù đường ranh đang ẩn), xong thì tìm lại một lần.
+   Trả true khi vừa bắt đầu tải cho chuỗi tìm này. */
+let VNTIMDA='';
+function vnNapQuanhTim(q){
+  if(VNTIMDA===q||!VW||LON0==null)return false;
+  VNTIMDA=q;
+  const [la,lo]=conv(VW.cx,VW.cy,vnL0(),K0||0.9999),[fx,fy]=vnLL2T(la,lo,VNZ).map(Math.floor),viec=[];
+  for(const bo of vnBoQuanh([la,lo,la,lo]))for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)viec.push(vnLayO(bo.id,VNZ,fx+dx,fy+dy).catch(()=>null));
+  if(!viec.length)return false;
+  Promise.all(viec).then(()=>{if($('q').value.trim()===q)drawResults()});
+  return true;
+}
+/* v51: tìm số thửa (và tờ nếu gõ "14: 872") trong các ô ranh đã tải; bỏ thửa đã có trong danh sách cùng tờ, cùng số */
+function vnTimTrongLop(q,daCo){
+  const out=new Map(),coRoi=new Set((daCo||[]).map(t=>nodau(String(t.to))+'/'+t.s));
+  for(const o of VNR.o.values())if(o.st==='ok'&&o.f)for(const f of o.f){
+    if(!f.so||!q.want.has(f.so))continue;
+    if(q.to&&nodau(String(f.to)).replace(/^dc/,'')!==nodau(String(q.to)))continue;
+    if(coRoi.has(nodau(String(f.to))+'/'+f.so))continue;
+    const k=f.id||(f.to+'/'+f.so);
+    if(!out.has(k)||f.a>out.get(k).f.a)out.set(k,{f,o});    // thửa vắt hai ô: giữ mảnh lớn
+  }
+  return [...out.values()].sort((a,b)=>SXS(a.f.to,b.f.to)||SXS(a.f.so,b.f.so)).slice(0,40);
+}
 /* v45: thửa ranh tại điểm — ô mức 16 chứa điểm của các bộ quanh đó, tải song song; dùng cả khi đường ranh đang ẩn */
 async function vnTimTaiDiem(w){
   const L0=vnL0();if(L0==null)return null;
@@ -5539,7 +5589,7 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
    Cách tách: ghép 3 × 3 ô quanh điểm (mức 20 ≈ 0,15 m/điểm ảnh; thửa chạm mép khung thì lùi mức 19, 18), tô loang từ điểm bấm tới đường kẻ,
    nới 1 điểm ảnh vào nét kẻ, dò viền (Moore) rồi rút gọn (Douglas–Peucker 1 điểm ảnh), đổi về VN-2000 và trừ độ lệch Mạnh Lắm
    (ranh ảnh trùng Mạnh Lắm chưa hiệu chỉnh). Kết quả: ranh + diện tích, KHÔNG có số tờ / số thửa. */
-const GLTRAM=OLTRAM.replace(/\/api$/,'/gl');
+const GLTRAM=MAYTHU?location.origin+'/gl':OLTRAM.replace(/\/api$/,'/gl');
 function glrTinh(la,lo){
   if(VNR.glTinh)return VNR.glTinh;
   const noi=glNoi(la,lo);if(noi&&noi.T)return noi.T;

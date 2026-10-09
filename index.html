@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v51 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v53 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -2121,7 +2121,19 @@ provSel.onchange=()=>{if(provSel.value){LON0=parseFloat(provSel.value);SAVED=LON
   try{localStorage.setItem('lon0',LON0)}catch(e){}drawKTT();drawResults()}};
 
 /* ===== Tìm kiếm ===== */
+/* v52: các cách gõ thửa + tờ → dạng "tờ: số"; phần chữ còn lại phía sau là tên xã (để lọc khi tìm rộng) */
+function chuanQ(raw){
+  const r=String(raw||'').trim();
+  let m=r.match(/^(?:thửa|thua)?\s*(\d{1,5}[a-zA-Z]?)\s*[,;]?\s*(?:tờ|to)\s*(?:số\s*)?(\d{1,4}[a-zA-Z0-9]*)\s*[,;]?\s*(.*)$/i);
+  if(m)return {q:m[2]+': '+m[1],xa:m[3].trim()};
+  m=r.match(/^(?:tờ|to)\s*(?:số\s*)?(\d{1,4}[a-zA-Z0-9]*)\s*[,;:]?\s*(?:thửa|thua)\s*(\d{1,5}[a-zA-Z]?)\s*[,;]?\s*(.*)$/i);
+  if(m)return {q:m[1]+': '+m[2],xa:m[3].trim()};
+  m=r.match(/^(?:tờ|to)?\s*(\d{1,4}[a-zA-Z0-9]*)\s*[::]\s*(\d{1,5}[a-zA-Z]?)\s*[,;]?\s*([A-Za-zÀ-ỹ].*)$/i);   // "14: 872 phường 1"
+  if(m)return {q:m[1]+': '+m[2],xa:m[3].trim()};
+  return {q:r,xa:''};
+}
 function parseQuery(q){
+  q=chuanQ(q).q;
   q=q.trim();if(!q)return null;
   let to=null,rest=q;
   const m=q.match(/^\s*(?:tờ\s*)?(\d{1,3})\s*[::]\s*(.*)$/i);
@@ -2136,7 +2148,7 @@ function parseQuery(q){
 }
 const nodau=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase();
 function results(){
-  const raw=$('q').value.trim();
+  const raw=chuanQ($('q').value).q;
   let list=allThua();
   if(/[A-Za-zÀ-ỹ]{2,}/.test(raw.replace(/^\s*(tờ|to)\s*\d+\s*[::]/i,''))){
     const k=nodau(raw);
@@ -2155,7 +2167,7 @@ const OPENTO=new Set();          // các tờ đang xổ danh sách thửa
 function drawResults(){
   const list=results(),byTo={};
   list.forEach(t=>(byTo[t.to]=byTo[t.to]||[]).push(t));
-  const q=$('q').value.trim();
+  const q=chuanQ($('q').value).q;
   $('found').textContent=SHEETS.length?`${list.length} thửa${q?' khớp':''} · đã chọn ${SEL.size}`:'Chưa nạp tờ bản đồ nào — mở mục “Nạp tờ bản đồ” bên dưới.';
   capNhatDau();
   /* mỗi tờ một dòng, bấm mới xổ danh sách thửa; đang tìm kiếm thì tự mở tờ có kết quả */
@@ -2189,7 +2201,24 @@ function drawResults(){
       if(t){if(heptay()&&!document.body.classList.contains('tmap'))tab('map');gotoParcel(t,true)}
       drawResults();
     });
-  }else if(vnKq&&!list.length&&q&&vnNapQuanhTim(q)){
+  }
+  /* v52: gõ có số tờ mà danh sách + lớp ranh chưa có → tìm rộng theo tờ quanh vùng đang biết (timRong) */
+  const raw2=$('q').value.trim();
+  const toChon=$('olto')&&$('olto').value?OLLOP.find(l=>String(l.id)===$('olto').value):null;   // v52: tờ đang chọn ở mục Tra cứu từ Mạnh Lắm
+  if(qv&&(qv.to||toChon)&&qv.want.size&&qv.want.size<=5&&!list.length&&!(vnKq&&vnKq.length)){
+    if(TRKQ&&TRKQ.raw===raw2){
+      if(TRKQ.dang)$('res').insertAdjacentHTML('beforeend',`<p class="note">${esc(TRKQ.dang)}</p>`);
+      else if(TRKQ.ds.length){
+        $('res').insertAdjacentHTML('beforeend',`<div class="togrp mo"><div class="tohead"><b style="padding:6px 2px">Kết quả tìm theo tờ — bấm để chọn</b></div><div class="chips">${
+          TRKQ.ds.map((x,i)=>`<button class="chip c1 trchip" data-i="${i}" title="${esc(x.dc)}">${esc(x.t.s)}<small> tờ ${esc(x.t.to)} · ${esc(x.l.tenxa||'')}</small></button>`).join('')}</div></div>`);
+        $('res').querySelectorAll(':scope>p.note').forEach(n=>n.remove());
+        $('res').querySelectorAll('.trchip').forEach(b=>b.onclick=()=>trChon(TRKQ.ds[+b.dataset.i]));
+      }else $('res').insertAdjacentHTML('beforeend',`<p class="note">${esc(TRKQ.ly||'Không tìm thấy.')}</p>`);
+    }else{clearTimeout(window.__trT);window.__trT=setTimeout(()=>timRong(raw2),500)}
+  }
+  if(TRKQ&&TRKQ.raw===raw2&&TRKQ.ds.length){}
+  else if(qv&&(qv.to||toChon)&&!list.length&&!(vnKq&&vnKq.length)){}
+  else if(vnKq&&!list.length&&q&&vnNapQuanhTim(q)){
     $('res').insertAdjacentHTML('beforeend','<p class="note">Đang tìm trên lớp ranh quanh chỗ đang xem…</p>');
   }else if(vnKq&&!list.length&&q){
     $('res').insertAdjacentHTML('beforeend','<p class="note">Lớp ranh quanh chỗ đang xem cũng chưa có số này. Phóng bản đồ tới vùng có thửa (tầm nhìn ≈ 3 km trở xuống) rồi gõ lại, hoặc hỏi theo số ở mục «Tra cứu thửa từ Mạnh Lắm».</p>');
@@ -4612,6 +4641,33 @@ try{const q=JSON.parse(localStorage.getItem('ollech')||'null');if(q&&q.huyen)OLL
 const olLechLuu=()=>{try{localStorage.setItem('ollech',JSON.stringify(OLLECH))}catch(e){}};
 const olLech=lopId=>{if(OLLECH.tat)return [0,0];const h=OLHUYENLOP[lopId];return (h&&OLLECH.huyen[h[0]])||OLLECH.chung};   // huyện đã đo riêng → trị số chung
 const olLL=(E,N,lon0,lopId,k0)=>{const d=olLech(lopId);return conv(E+d[0],N+d[1],lon0,k0||0.9999)};   // điểm trên bản đồ → kinh vĩ độ để hỏi lớp đó
+/* v53: /map_parcels có khi chỉ trả ĐIỂM NHÃN số thửa, không kèm hình.
+   [ĐÃ THỬ 09/10] thửa 872 tờ DC14 Phường 1 (idmaplayer 129411): text "872", polygon_bound null, không có geojsonWGS84,
+   point "POINT (106.4939464 9.6330504)", location {x,y}, labels_outsides ["872","873","874","75.9",…].
+   → hỏi findparcel ngay tại điểm nhãn trên cùng tờ để lấy hình (toạ độ nhãn ở hệ Mạnh Lắm chưa hiệu chỉnh, gửi thẳng). */
+function olDiemNhanCua(it){
+  let x=null,y=null;
+  try{const o=typeof it.location==='string'?JSON.parse(it.location):it.location;if(o&&isFinite(o.x)&&isFinite(o.y)){x=+o.x;y=+o.y}}catch(e){}
+  if(x==null){const m=String(it.point||'').match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);if(m){x=+m[1];y=+m[2]}}
+  return x==null?null:{x,y};
+}
+async function olHinhTuNhan(it,lopId){
+  if(it.geojsonWGS84||it.polygon_bound)return it;
+  const d=olDiemNhanCua(it);if(!d)return null;
+  /* [ĐÃ THỬ 09/10] 872 tờ 14 Phường 1: nhãn nằm NGOÀI hình thửa — findparcel tại nhãn trả text "872" nhưng không hình; hỏi thêm 16 điểm
+     quanh nhãn (2 m, 4 m) cũng không ra hình chứa nhãn (+3,6 s) → chỉ hỏi 1 lần tại nhãn; không ra thì để lớp ranh tìm (vnTimSo) */
+  const hoi1=async(x,y)=>{try{const r=await olFetch('/map_parcels/findparcel',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({x,y,srid:4326,tosrid:3857,idmaplayer:lopId,limit:50})});return r.ok?await r.json():null}catch(e){return null}};
+  const chua=j=>{try{const g=JSON.parse(j.geojsonWGS84||j.polygon_bound);const r=g.type==='Polygon'?g.coordinates[0]:g.coordinates[0][0];return inPoly([d.x,d.y],r)}catch(e){return false}};
+  try{
+    let j=await hoi1(d.x,d.y);
+    if(j&&(j.geojsonWGS84||j.polygon_bound)&&!chua(j))j=null;   // hình phải chứa điểm nhãn; nhãn nằm ngoài hình (như 872 tờ 14) thì để lớp ranh tìm (vnTimSo)
+    if(!j||!(j.geojsonWGS84||j.polygon_bound))return null;
+    if(!String(j.text||'').trim())j.text=it.text;               // số thửa lấy theo nhãn đã hỏi
+    if(!j.code&&it.code)j.code=it.code;
+    j.__nhan=d;return j;
+  }catch(e){return null}
+}
 async function olGoi(path,body){
   const r=await olFetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);
   if(!r.ok)throw new Error('Mạnh Lắm trả mã '+r.status);
@@ -4856,8 +4912,9 @@ $('olgo').onclick=async()=>{
     const kq=(await olGoi('/map_parcels',{idmaplayer:lop.id,searchString:s,exactly:true,current:1,pageSize:10}))
       .filter(it=>String(it.text)===s&&!(laKe&&String(it.areashow)===s));   // nhãn quanh thửa lẫn cả số diện tích của thửa bên cạnh — bỏ
     const thay=new Set(),moi=[],ke=new Set();
-    kq.forEach(it=>{const k=it.geojsonWGS84||it.polygon_bound;if(thay.has(k))return;thay.add(k);
-      const t=olThua(it,to,lon0,lop.id);if(!t)return;moi.push(t);
+    const kq2=await Promise.all(kq.map(it=>olHinhTuNhan(it,lop.id).then(j=>j||it)));   // v53: chỉ có điểm nhãn → lấy hình tại điểm nhãn
+    kq2.forEach(it=>{const k=it.geojsonWGS84||it.polygon_bound;if(!k||thay.has(k))return;thay.add(k);
+      const t=olThua(it,to,lon0,lop.id,!!it.__nhan);if(!t)return;if(!coSo(t))t.s=s;moi.push(t);
       (it.labels_outsides||[]).forEach(n=>{n=String(n);if(/^\d{1,5}$/.test(n)&&n!==s)ke.add(n)})});
     return {moi,ke:[...ke]};
   };
@@ -5429,6 +5486,69 @@ async function vnTaiDiem(w){                 // tra tại điểm khi Mạnh L�
   const h=await vnTimTaiDiem(w);
   if(h){await vnChon(h,w);return true}
   return false;
+}
+/* ===== v52: tìm rộng theo tờ — vừa mở app gõ "872 tờ 14" vẫn ra =====
+   Số tờ không duy nhất (mỗi xã đánh số riêng) → tìm mọi tờ cùng số trong 25 km quanh điểm mốc: tâm bản đồ → vị trí GPS →
+   tờ của xã đang nhớ ở mục Tra cứu từ Mạnh Lắm → tâm tỉnh đang chọn (mặc định Trà Vinh). Tối đa 8 tờ, gần trước;
+   hỏi số thửa trên từng tờ (/map_parcels, song song); không ra thì tìm trong lớp ranh quanh tờ (vnTimSo, 3 tờ đầu).
+   1 kết quả → tự chọn và bay tới; nhiều → liệt kê theo xã. Gõ kèm tên xã ("872 tờ 14 phường 1") thì lọc theo xã. */
+let TRKQ=null;
+function trMoc(){
+  if(VW&&LON0!=null)return conv(VW.cx,VW.cy,LON0,K0||0.9999);
+  if(ME&&isFinite(ME.la))return [ME.la,ME.lo];
+  const c=OLLOP.map(olTamTo).find(Boolean);if(c)return [c[1],c[0]];
+  const ten=olTen($('oltinh'))||'Trà Vinh',pv=PROV.find(p=>nodau(p[0])===nodau(ten))||PROV.find(p=>p[0]==='Trà Vinh');
+  return pv?[pv[2],pv[3]]:null;
+}
+async function timRong(raw){
+  const cq=chuanQ(raw),qv=parseQuery(raw);if(!qv||!qv.want.size)return;
+  const toChon=$('olto').value?OLLOP.find(l=>String(l.id)===$('olto').value):null;
+  if(!qv.to&&!toChon)return;
+  const so=[...qv.want][0],to=qv.to||olSoTo(toChon),xa=cq.xa;
+  TRKQ={raw,dang:`Đang tìm thửa ${so} tờ ${to}${xa?' · '+xa:''}…`,ds:[]};drawResults();
+  const moc=trMoc();
+  if(!moc){TRKQ={raw,ds:[],ly:'Chưa biết tìm ở vùng nào: bật «Vị trí của tôi» hoặc chọn xã ở mục Tra cứu thửa từ Mạnh Lắm.'};return drawResults()}
+  const toK=v=>nodau(String(v)).replace(/^dc/,'').replace(/vn2000$/,'');
+  const lonCua=l=>{let md=l.metadata;if(typeof md==='string'){try{md=JSON.parse(md)}catch(e){md=null}}const cm=md&&parseFloat(md.centralmeridian);
+    if(cm>100&&cm<112)return cm;const pv=PROV.find(p=>nodau(p[0])===nodau(l.tentinh||''));return (pv&&pv[1])||LON0||105.5};
+  let ls=[];
+  /* đã chọn xã ở mục Tra cứu từ Mạnh Lắm (OLLOP = các tờ của xã đó): gõ chỉ số thửa → đúng tờ đang chọn; gõ "tờ: số" → tờ đó trong xã đang chọn */
+  if(!xa&&OLLOP.length){
+    ls=qv.to?OLLOP.filter(l=>toK(olSoTo(l))===toK(qv.to)):(toChon?[toChon]:[]);
+    if(ls.length){TRKQ={raw,dang:`Đang tìm thửa ${so} tờ ${to} · ${olTen($('olxa'))}…`,ds:[]};drawResults()}
+  }
+  if(!ls.length)try{ls=(await olGoi('/map_layers',{type:'dc',current:1,pageSize:OLPICKMAX,x:moc[1],y:moc[0]}))
+    .filter(l=>l.type==='dc'&&l.dis>=0&&l.dis<=25000&&toK(olSoTo(l))===toK(to)&&(!xa||nodau(l.tenxa||'').includes(nodau(xa).replace(/^(xa|phuong|thi tran)\s+/,''))))
+    .sort((a,b)=>a.dis-b.dis).slice(0,8)}catch(e){TRKQ={raw,ds:[],ly:'Không gọi được Mạnh Lắm: '+e.message};return drawResults()}
+  if($('q').value.trim()!==raw)return;
+  if(!ls.length){TRKQ={raw,ds:[],ly:`Không có tờ ${to}${xa?' của '+xa:''} trong 25 km quanh vùng đang xem / vị trí của anh. Kéo bản đồ tới xã đó, hoặc gõ kèm tên xã.`};return drawResults()}
+  const ds=[];
+  const kq=await Promise.all(ls.map(l=>olGoi('/map_parcels',{idmaplayer:l.id,searchString:so,exactly:true,current:1,pageSize:10})
+    .then(async a=>{const it=a.find(x=>String(x.text)===so);return {l,it:it?(await olHinhTuNhan(it,l.id))||it:null}}).catch(()=>({l}))));
+  const dcCua=l=>[l.tenxa||olTen($('olxa')),l.tenhuyen||olTen($('olhuyen')),l.tentinh||olTen($('oltinh'))].filter(Boolean).join(', ');
+  for(const {l,it} of kq)if(it){const t=olThua(it,olSoTo(l),lonCua(l),l.id,!!it.__nhan);if(t&&t.r){if(!coSo(t))t.s=so;ds.push({l,t,dc:dcCua(l),lon0:lonCua(l)})}}
+  if(!ds.length){
+    TRKQ={raw,dang:`Hỏi theo số không ra — đang tìm thêm trên lớp ranh quanh tờ ${to}…`,ds:[]};drawResults();
+    for(const l of ls.slice(0,3)){try{const v=await vnTimSo(l,olSoTo(l),so,lonCua(l));if(v&&v.t){if(!coSo(v.t))v.t.s=so;ds.push({l,t:v.t,dc:dcCua(l),lon0:lonCua(l)});break}}catch(e){}}
+  }
+  if($('q').value.trim()!==raw)return;
+  TRKQ={raw,ds,ly:ds.length?'':`Không tìm thấy thửa ${so} trên ${ls.length} tờ ${to} quanh đây (${[...new Set(ls.map(l=>l.tenxa))].join(', ')}).`};
+  drawResults();
+  if(ds.length===1)trChon(ds[0]);
+}
+function trChon(x){                             // đưa thửa tìm được vào danh sách, chọn, bay tới
+  if(!x)return;
+  if(LON0==null){LON0=x.lon0;K0=0.9999}
+  const t=x.t,to=t.to;let sh=SHEETS.find(q=>q.to===to);
+  if(!sh){sh={to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc:x.dc,lon0:x.lon0,k0:0.9999};SHEETS.push(sh)}
+  if(!sh.dc)sh.dc=x.dc;
+  let ct=sh.thua.find(q=>q.c&&t.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.5);
+  if(!ct){sh.thua.push(t);ganId(sh);ct=t}
+  SEL.add(ct.id);FLASH={id:ct.id,z:0};CHIPID=null;
+  if(!BASEKEY)datNen('esri',0);
+  drawSheets();autoKTT();
+  if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
+  gotoParcel(ct,true);drawResults();drawMap();
 }
 /* v51: chưa thấy trong ô đã tải → tải 3 × 3 ô mức 16 quanh tâm bản đồ (dù đường ranh đang ẩn), xong thì tìm lại một lần.
    Trả true khi vừa bắt đầu tải cho chuỗi tìm này. */

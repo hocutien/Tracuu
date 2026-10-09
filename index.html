@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v45 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v47 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -4990,7 +4990,9 @@ async function olTaiDiem(w){
       olmsg('Không có tờ nào quanh điểm này — đang tìm thêm…');
       const k=await olNguon2(w);if(OLHUY)return;
       if(k.t)return olmsg(glMoTa(k.t,w,''),'ok');
-      return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) không có tờ địa chính nào trong ${OLPICKKM} km — kiểm tra kinh tuyến trục của bản đồ có đúng tỉnh không.${glLyDo(k)}${glNut(w)}`,'warn');
+      /* v46: thông báo rõ — chỉ nhắc kinh tuyến trục khi toạ độ rơi ra ngoài Việt Nam (dấu hiệu chọn sai tỉnh) */
+      if(!onLand(la,lo))return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) nằm ngoài Việt Nam — có thể đang chọn sai kinh tuyến trục (tỉnh) ở mục Kinh tuyến trục.`,'warn');
+      return olmsg(`<b>Chưa có dữ liệu thửa ở điểm này</b> (${la.toFixed(6)}, ${lo.toFixed(6)}).<br>Nếu trang bản đồ ranh thửa có ranh ở đây: mở trang đó đúng chỗ này, bấm dấu trang <b>📥 Lấy bộ ranh</b>, kéo bản đồ một chút rồi bấm «Gửi sang app» — app nhớ vùng này, lần sau bấm là ra.`,'warn');
     }
     let thay=null;
     /* Thứ tự "gần nhất" của Mạnh Lắm tính theo tâm tờ, không theo chỗ có thửa: tờ chứa thửa thật có khi xếp thứ 30–50,
@@ -5112,7 +5114,7 @@ async function olTaiDiem(w){
      "Lấy bộ ranh" trên trang .vn (đọc địa chỉ ô mà chính trang đó tải), app nhớ trong máy. Không dò thử số bộ.
    - [QĐ 08/10] chỉ hiện ranh, số tờ, số thửa; diện tích tính từ ranh; diện tích ghi và loại đất chỉ lấy từ Mạnh Lắm sau khi chọn thửa.
    - [QĐ 08/10] đổi QĐ 06/10 "không quét cả tờ" riêng cho nguồn này: tải ô theo khung nhìn như trang .vn. */
-const VNTRAM=OLTRAM.replace(/\/api$/,'/vn'), VNZ=16, VNLECH=[0.715,0.21], VNBOMAX=10, VNLE=0.1, VNSONG=6, VNOMAX=600;
+const VNTRAM=OLTRAM.replace(/\/api$/,'/vn'), VNZ=16, VNLECH=[0.715,0.21], VNBOMAX=10, VNLE=0.15, VNLEBAM=0.25, VNSONG=6, VNOMAX=600;
 /* số bộ đã biết: thu ngày 08–09/10/2026 bằng cách nút dấu trang làm (địa chỉ ô mà trang .vn tải) tại 26 huyện / thành phố của tỉnh Vĩnh Long mới
    (Trà Vinh, Vĩnh Long, Bến Tre cũ). Phạm vi là các ô đã thấy; app tự nới khi ô có thửa. */
 const VNBOMD=[{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1667,b:[9.625,106.485,9.682,106.513]},
@@ -5123,7 +5125,8 @@ const VNBOMD=[{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1667,b:[9.625,106.48
   {id:1820,b:[10.115,106.265,10.207,106.331]},{id:1821,b:[10.234,106.370,10.245,106.381]},{id:1822,b:[9.796,106.447,10.045,106.595]},{id:2023,b:[10.104,105.765,10.115,105.776]},
   {id:2198,b:[9.985,106.205,9.996,106.216]},{id:2212,b:[9.931,106.342,9.942,106.348]},{id:2216,b:[9.985,106.205,9.996,106.216]},{id:2217,b:[9.985,106.205,9.996,106.216]},
   {id:2221,b:[9.866,106.397,9.877,106.403]},{id:2238,b:[9.931,106.342,9.942,106.348]},{id:2250,b:[9.866,106.057,9.877,106.062]},{id:2251,b:[9.866,106.057,9.877,106.062]},
-  {id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2826,b:[9.693,106.254,9.704,106.265]}];
+  {id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2826,b:[9.693,106.254,9.704,106.265]},
+  {id:1905,b:[10.228,105.820,10.239,105.826]}];   // 1905: thu 09/10 tại 10.234161, 105.823816 (người dùng báo không ra)
 let VNR={on:true,bo:VNBOMD.map(b=>({...b,b:[...b.b]})),o:new Map(),cho:[],dang:0,loi:'',tb:false};
 try{const q=JSON.parse(localStorage.getItem('vnbo')||'null');if(Array.isArray(q))for(const b of q)vnThemBo(b.id,b.b,true)}catch(e){}
 try{VNR.on=localStorage.getItem('vnon')!=='0'}catch(e){}
@@ -5228,10 +5231,12 @@ function vnCanThay(){                        // đủ gần để hiện ranh nh
   if(!VNR.on||!VW)return null;const k=vnKhung();if(!k)return null;
   const z=vnZ((k[0]+k[2])/2,VW.sc);return z>=VNZ-0.01?k:null;
 }
-function vnBoQuanh(k){                       // các bộ đã biết phủ gần khung nhìn, gần nhất trước
+/* các bộ đã biết phủ gần khung nhìn, gần nhất trước. [QĐ 09/10, v47] "nhặt dần": khi kéo bản đồ nhìn rộng VNLE (≈ 16 km) quanh phạm vi đã biết,
+   khi bấm chọn nhìn rộng VNLEBAM (≈ 28 km, mỗi bộ chỉ 1 ô tại điểm); ô nào có thửa thì phạm vi bộ đó tự nới (vnThemBo) → vùng phủ lan dần theo lúc dùng */
+function vnBoQuanh(k,le=VNLE,toiDa=VNBOMAX){
   const cla=(k[0]+k[2])/2,clo=(k[1]+k[3])/2;
-  return VNR.bo.filter(b=>!(b.b[2]+VNLE<k[0]||b.b[0]-VNLE>k[2]||b.b[3]+VNLE<k[1]||b.b[1]-VNLE>k[3]))
-    .map(b=>({b,d:Math.hypot(Math.max(0,b.b[0]-cla,cla-b.b[2]),Math.max(0,b.b[1]-clo,clo-b.b[3]))})).sort((a,c)=>a.d-c.d).slice(0,VNBOMAX).map(x=>x.b);
+  return VNR.bo.filter(b=>!(b.b[2]+le<k[0]||b.b[0]-le>k[2]||b.b[3]+le<k[1]||b.b[1]-le>k[3]))
+    .map(b=>({b,d:Math.hypot(Math.max(0,b.b[0]-cla,cla-b.b[2]),Math.max(0,b.b[1]-clo,clo-b.b[3]))})).sort((a,c)=>a.d-c.d).slice(0,toiDa).map(x=>x.b);
 }
 function vnOTrongKhung(k){
   const [x0,y0]=vnLL2T(k[2],k[1],VNZ),[x1,y1]=vnLL2T(k[0],k[3],VNZ),out=[];
@@ -5399,7 +5404,8 @@ async function vnTaiDiem(w){                 // tra tại điểm khi Mạnh L�
 async function vnTimTaiDiem(w){
   const L0=vnL0();if(L0==null)return null;
   const [la,lo]=conv(w[0],w[1],L0,K0||0.9999),[x,y]=vnLL2T(la,lo,VNZ).map(Math.floor);
-  const os=await Promise.all(vnBoQuanh([la,lo,la,lo]).map(bo=>vnLayO(bo.id,VNZ,x,y).catch(()=>null)));
+  const os=await Promise.all(vnBoQuanh([la,lo,la,lo],VNLEBAM,14).map(bo=>vnLayO(bo.id,VNZ,x,y).catch(()=>null)));
+  for(const o of os)if(o&&o.f.length){const [la1,lo0]=vnTileLL(VNZ,x,y),[la0,lo1]=vnTileLL(VNZ,x+1,y+1);vnThemBo(o.bo,[la0,lo0,la1,lo1])}   // nhặt dần: nới phạm vi bộ vừa trúng
   let best=null;
   for(const o of os)if(o)for(const f of o.f)if(f.rs.some(r=>inPoly(w,r))&&(!best||f.a<best.f.a))best={f,o};
   return best;

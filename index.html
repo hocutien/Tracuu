@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v53 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v54 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -5600,8 +5600,10 @@ async function traNhanh(w){
 async function vnTimSo(lop,to,so,lon0,bao){
   const c=olTamTo(lop);if(!c)return null;
   const [lo,la]=c,bos=vnBoQuanh([la-0.03,lo-0.03,la+0.03,lo+0.03]);if(!bos.length)return null;
-  const z=13,[fx,fy]=vnLL2T(la,lo,z),o9=[];
-  for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)o9.push([Math.floor(fx)+dx,Math.floor(fy)+dy]);
+  /* v54: mức 14 (trạm Cloudflare chỉ nhận mức 14–20; mức 13 bị trả 400 → trên GitHub bước này luôn hỏng, máy thử cục bộ không giới hạn nên không thấy).
+     5 × 5 ô (≈ 12 km), gần tâm tờ trước, thấy là dừng */
+  const z=14,[fx,fy]=vnLL2T(la,lo,z),o9=[];
+  for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)o9.push([Math.floor(fx)+dx,Math.floor(fy)+dy]);
   o9.sort((a,b)=>Math.hypot(a[0]+.5-fx,a[1]+.5-fy)-Math.hypot(b[0]+.5-fx,b[1]+.5-fy));
   const toK=s=>nodau(String(s)).replace(/^dc/,'').replace(/vn2000$/,'');
   let tim=null,n=0;

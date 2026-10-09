@@ -1,6 +1,6 @@
 /* Tra cứu thửa đất — bộ nhớ đệm để mở được khi không có mạng.
    Đổi số PHIEN mỗi lần thay index.html thì máy sẽ tự lấy bản mới. */
-const PHIEN = 'tcdt-v47';
+const PHIEN = 'tcdt-v49';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
                './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
@@ -45,6 +45,17 @@ self.addEventListener('fetch', e => {
         if (r.ok) { const sao = r.clone(); caches.open(PHIEN).then(k => k.put(req, sao)); }
         return r;
       }))
+    );
+    return;
+  }
+
+  /* Danh sách bộ ranh (du-lieu/*.json): ưu tiên bản mới trên mạng, mất mạng thì dùng bản đã lưu */
+  if (url.origin === location.origin && url.pathname.endsWith('.json') && url.pathname.includes('/du-lieu/')) {
+    e.respondWith(
+      fetch(req).then(r => {
+        if (r.ok) { const sao = r.clone(); caches.open(PHIEN).then(k => k.put(req, sao)); }
+        return r;
+      }).catch(() => caches.match(req))
     );
     return;
   }

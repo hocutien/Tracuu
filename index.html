@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v47 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v49 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -4990,6 +4990,8 @@ async function olTaiDiem(w){
       olmsg('Không có tờ nào quanh điểm này — đang tìm thêm…');
       const k=await olNguon2(w);if(OLHUY)return;
       if(k.t)return olmsg(glMoTa(k.t,w,''),'ok');
+      if(await glrTaiDiem(w))return;   // v49: tách ranh từ ảnh bản đồ
+      if(OLHUY)return;
       /* v46: thông báo rõ — chỉ nhắc kinh tuyến trục khi toạ độ rơi ra ngoài Việt Nam (dấu hiệu chọn sai tỉnh) */
       if(!onLand(la,lo))return olmsg(`Điểm vừa bấm (${la.toFixed(6)}, ${lo.toFixed(6)}) nằm ngoài Việt Nam — có thể đang chọn sai kinh tuyến trục (tỉnh) ở mục Kinh tuyến trục.`,'warn');
       return olmsg(`<b>Chưa có dữ liệu thửa ở điểm này</b> (${la.toFixed(6)}, ${lo.toFixed(6)}).<br>Nếu trang bản đồ ranh thửa có ranh ở đây: mở trang đó đúng chỗ này, bấm dấu trang <b>📥 Lấy bộ ranh</b>, kéo bản đồ một chút rồi bấm «Gửi sang app» — app nhớ vùng này, lần sau bấm là ra.`,'warn');
@@ -5058,6 +5060,8 @@ async function olTaiDiem(w){
     if(!thay){
       /* [v37b] Mạnh Lắm không ra → ranh nhanh tại điểm → nguồn 2 → dò theo nấc */
       if(await vnTaiDiem(w).catch(()=>false))return;
+      if(OLHUY)return;
+      if(await glrTaiDiem(w))return;   // v49: tách ranh từ ảnh bản đồ
       if(OLHUY)return;
       olmsg(`Chưa có thửa ngay tại điểm này (đã hỏi ${cand.length} tờ) — đang tìm thêm…`);
       const k=await olNguon2(w);if(OLHUY)return;                 // [v30] nguồn 1 không có thửa → nguồn 2 (đúng điểm bấm)
@@ -5504,6 +5508,13 @@ function glGhep(kq){                          // ghép kết quả nguồn 2 và
 }
 window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data||e.data.tcdt!=='gl')return;glGhep(e.data.kq)});
 (function vnKhoi(){
+  /* v48: danh sách bộ ranh đọc thêm từ du-lieu/bo-ranh.json (cùng thư mục với app trên GitHub) — thêm vùng chỉ cần thay file này.
+     Không đọc được (ngoại tuyến, chưa tải file) thì vẫn dùng danh sách nạp sẵn VNBOMD. */
+  fetch('du-lieu/bo-ranh.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||!Array.isArray(j.bo))return;let n=0;
+    for(const b of j.bo)if(vnThemBo(b.id,b.b,true))n++;
+    if(n){vnLuu();vnMsg();drawMap()}
+  }).catch(()=>{});
   const hg=location.hash.match(/glkq=([^&]+)/);
   if(hg){try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}
     setTimeout(()=>pickBar('Đã nhận số liệu bổ sung nhưng app vừa mở lại nên không còn thửa đang chọn để ghép — lần sau để tab app mở khi bấm «Bổ sung thông tin».','warn'),900)}
@@ -5522,6 +5533,91 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
   const g=$('vngo');if(g)g.onclick=()=>{const r=vnNhanMa($('vnma').value);$('vnma').value='';$('vnmsg').innerHTML=`Đã nhận ${r.moi} bộ mới, ${r.cu} bộ cập nhật.`};
   vnMsg();
 })();
+
+/* ===== v49: tách ranh thửa từ ô ảnh ranh (Guland, intercdn.guland.vn/land/<tỉnh>/…) khi không nguồn nào có thửa =====
+   [ĐÃ THỬ 09/10] ảnh chỉ có đường kẻ (không số); CDN giữ đệm tiêu đề CORS của lần gọi đầu (bỏ qua cả tham số ?…) nên phải lấy qua trạm /gl/.
+   Cách tách: ghép 3 × 3 ô quanh điểm (mức 20 ≈ 0,15 m/điểm ảnh; thửa chạm mép khung thì lùi mức 19, 18), tô loang từ điểm bấm tới đường kẻ,
+   nới 1 điểm ảnh vào nét kẻ, dò viền (Moore) rồi rút gọn (Douglas–Peucker 1 điểm ảnh), đổi về VN-2000 và trừ độ lệch Mạnh Lắm
+   (ranh ảnh trùng Mạnh Lắm chưa hiệu chỉnh). Kết quả: ranh + diện tích, KHÔNG có số tờ / số thửa. */
+const GLTRAM=OLTRAM.replace(/\/api$/,'/gl');
+function glrTinh(la,lo){
+  if(VNR.glTinh)return VNR.glTinh;
+  const noi=glNoi(la,lo);if(noi&&noi.T)return noi.T;
+  const kc=Math.cos(la*Math.PI/180),p=PROV.map(q=>({q,d:Math.hypot(la-q[2],(lo-q[3])*kc)})).sort((a,b)=>a.d-b.d)[0];
+  return p?glSlug(p.q[0]):'';
+}
+async function glrAnh(tinh,z,x,y){
+  const r=await fetch(`${GLTRAM}/${tinh}/${z}/${x}/${y}.png`);
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error('trạm trả mã '+r.status);
+  return await createImageBitmap(await r.blob());
+}
+function glrVien(m,N){                         // dò viền vùng (Moore, 8 hướng, theo chiều kim đồng hồ trên ảnh)
+  let s=-1;for(let k=0;k<N*N;k++)if(m[k]){s=k;break}
+  if(s<0)return [];
+  const D=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+  const huong=(dx,dy)=>D.findIndex(d=>d[0]===dx&&d[1]===dy);
+  let cx=s%N,cy=(s-cx)/N,b=4;const out=[[cx,cy]],x0=cx,y0=cy;
+  for(let buoc=0;buoc<8*N;buoc++){
+    let thay=false;
+    for(let i=1;i<=8;i++){const nd=(b+i)%8,nx=cx+D[nd][0],ny=cy+D[nd][1];
+      if(nx>=0&&ny>=0&&nx<N&&ny<N&&m[ny*N+nx]){const pd=(nd+7)%8,px=cx+D[pd][0],py=cy+D[pd][1];
+        cx=nx;cy=ny;b=huong(px-cx,py-cy);if(b<0)b=(nd+4)%8;thay=true;break}}
+    if(!thay||(cx===x0&&cy===y0))break;
+    out.push([cx,cy]);
+  }
+  return out;
+}
+function glrRutGon(p,e){                       // Douglas–Peucker cho vòng khép kín
+  if(p.length<4)return p;
+  const dp=(a,b2)=>{let mx=0,k=-1;const A=p[a],B=p[b2],L=Math.hypot(B[0]-A[0],B[1]-A[1])||1e-9;
+    for(let i=a+1;i<b2;i++){const d=Math.abs((B[0]-A[0])*(A[1]-p[i][1])-(A[0]-p[i][0])*(B[1]-A[1]))/L;if(d>mx){mx=d;k=i}}
+    return mx>e?[...dp(a,k).slice(0,-1),...dp(k,b2)]:[A,B]};
+  let xa=0,dmax=0;for(let i=1;i<p.length;i++){const d=Math.hypot(p[i][0]-p[0][0],p[i][1]-p[0][1]);if(d>dmax){dmax=d;xa=i}}
+  return [...dp(0,xa).slice(0,-1),...dp(xa,p.length-1).slice(0,-1)];
+}
+async function glrTach(w){
+  if(LON0==null)return null;
+  const dl=OLLECH.tat?[0,0]:OLLECH.chung,k0=K0||0.9999;
+  const [la,lo]=conv(w[0]+dl[0],w[1]+dl[1],LON0,k0),tinh=glrTinh(la,lo);if(!tinh)return null;
+  for(const z of [20,19,18]){
+    const [fx,fy]=vnLL2T(la,lo,z),tx=Math.floor(fx)-1,ty=Math.floor(fy)-1,N=768;
+    const cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d',{willReadFrequently:true});
+    let co=0;
+    await Promise.all([0,1,2].flatMap(i=>[0,1,2].map(async j=>{try{const bm=await glrAnh(tinh,z,tx+i,ty+j);if(bm){g.drawImage(bm,i*256,j*256);co++}}catch(e){}})));
+    if(!co)return null;
+    const d=g.getImageData(0,0,N,N).data,net=new Uint8Array(N*N);
+    let coNet=false;for(let k=0;k<N*N;k++)if(d[k*4+3]>60){net[k]=1;coNet=true}
+    if(!coNet)return null;                     // ô trắng: nơi này không có ranh ảnh
+    let sx=Math.round((fx-tx)*256),sy=Math.round((fy-ty)*256);
+    if(net[sy*N+sx]){let ok=false;for(let r=1;r<=4&&!ok;r++)for(let a=-r;a<=r&&!ok;a++)for(let c=-r;c<=r&&!ok;c++){const X=sx+a,Y=sy+c;if(!net[Y*N+X]){sx=X;sy=Y;ok=true}}if(!ok)return null}
+    const m=new Uint8Array(N*N),st=[sy*N+sx];m[st[0]]=1;let n=0,cham=false;
+    while(st.length){const k=st.pop();n++;const X=k%N,Y=(k-X)/N;if(X===0||Y===0||X===N-1||Y===N-1){cham=true;break}
+      for(const q of [k-1,k+1,k-N,k+N])if(!m[q]&&!net[q]){m[q]=1;st.push(q)}}
+    if(cham)continue;                          // thửa lớn hơn khung ghép → lùi một mức phóng
+    if(n<30)return null;
+    const m2=m.slice();for(let k=N;k<N*N-N;k++)if(!m[k]&&net[k]&&(m[k-1]||m[k+1]||m[k-N]||m[k+N]))m2[k]=1;
+    const vien=glrRutGon(glrVien(m2,N),1);if(vien.length<3)return null;
+    const r=vien.map(([x,y])=>{const [a,b]=vnTileLL(z,tx+(x+0.5)/256,ty+(y+0.5)/256),[E,N2]=toVN(a,b,LON0,k0);return [Math.round((E-dl[0])*100)/100,Math.round((N2-dl[1])*100)/100]});
+    const pp=r.map(([E,N2])=>({E,N:N2}));
+    return {r,a:Math.round(dtShoelace(pp)*10)/10,z};
+  }
+  return null;
+}
+async function glrTaiDiem(w){                  // không nguồn nào có thửa → tách ranh từ ảnh, đưa lên như thửa chưa rõ số
+  let kq=null;try{kq=await glrTach(w)}catch(e){return false}
+  if(!kq||!inPoly(w,kq.r))return false;
+  const p=kq.r.map(([E,N])=>({E,N}));
+  const t={to:'?',s:'?',goiY:[],l:null,chu:null,d:0,tay:1,anh:1,r:kq.r,a:kq.a,chuaKt:1,
+    c:[p.reduce((s,q)=>s+q.E,0)/p.length,p.reduce((s,q)=>s+q.N,0)/p.length]};
+  let sh=SHEETS.find(q=>q.to==='?');
+  if(!sh){sh={to:'?',ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc:'',lon0:LON0,k0:K0||0.9999};SHEETS.push(sh)}
+  sh.thua=sh.thua.filter(q=>!(q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<1));
+  sh.thua.push(t);ganId(sh);SEL.add(t.id);FLASH={id:t.id,z:0};CHIPID=null;
+  drawSheets();drawResults();drawMap();
+  olmsg(`<b>Thửa chưa rõ số</b>: ${fmt(t.a,1)} m² theo ranh (ranh lấy từ ảnh bản đồ, gần đúng ±0,2 m; chưa có số tờ, số thửa, loại đất ở điểm này).`,'ok',true);
+  return true;
+}
 /* ===== Tên xã / phường sau sắp xếp 01/07/2025 — tỉnh Trà Vinh cũ (nay thuộc tỉnh Vĩnh Long)
    Nguồn: toàn văn Nghị quyết 1687/NQ-UBTVQH15, khoản 28–58, 110–115, 121 (xaydungchinhsach.chinhphu.vn, đọc 08/10/2026).
    Khoá xã cũ viết không dấu; phường đánh số kèm nơi: "p1|tp" = Phường 1 TP Trà Vinh, "p1|tx" = Phường 1 TX Duyên Hải. */

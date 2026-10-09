@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v57 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v59 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -426,6 +426,11 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
           2. Mở trang bản đồ ranh thửa ở vùng cần lấy, bấm dấu trang, kéo bản đồ một chút rồi bấm «Gửi sang app».</p>
           <label for="vnma">Hoặc dán mã bộ ranh</label>
           <div class="row" style="gap:6px"><input id="vnma" placeholder="1663:9.65,106.42,9.68,106.45" spellcheck="false" autocomplete="off" style="flex:1"><button id="vngo" type="button">Nhận</button></div>
+        </details>
+        <details id="khobox"><summary>Kho ranh (vùng đã có ranh)</summary>
+          <div id="khoranh" style="margin:6px 0;font-size:13px"></div>
+          <div class="row" style="gap:6px;flex-wrap:wrap"><button id="khoxuat" type="button" style="min-height:44px">Xuất kho ranh (tải file)</button><button id="khochep" type="button" style="min-height:44px">Chép mã bộ ranh</button></div>
+          <div id="khomsg" style="font-size:12px;margin-top:4px"></div>
         </details>
         <div style="margin:6px 0"><button id="demxoa" type="button">Xoá bộ nhớ đệm ranh</button> <span id="demmsg" style="font-size:12px"></span></div>
       </div>
@@ -2608,7 +2613,7 @@ function bindMap(){
     moved+=Math.hypot(e.offsetX-prev.x,e.offsetY-prev.y);
     if(PTR.size===2&&pinch){
       const[a,b]=[...PTR.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);
-      if(pinch.d>4)VW.sc=Math.max(.02,Math.min(80,pinch.sc*d/pinch.d));
+      if(pinch.d>4)VW.sc=Math.max(SCMIN,Math.min(80,pinch.sc*d/pinch.d));
       drawMap();return;
     }
     if(VUNGMODE&&vStart){                    // v33: kéo khung khoanh vùng, cạnh tối đa OLVUNGMAX m
@@ -2676,13 +2681,15 @@ function bindMap(){
     const con=Math.max(0,120-Math.abs(wAcc));dy=Math.max(-con,Math.min(con,dy));wAcc+=dy;
     if(!dy)return;
     const w=S2W(e.offsetX,e.offsetY);
-    VW.sc=Math.max(.02,Math.min(80,VW.sc*Math.pow(OLLAN,-dy/100)));
+    VW.sc=Math.max(SCMIN,Math.min(80,VW.sc*Math.pow(OLLAN,-dy/100)));
     const w2=S2W(e.offsetX,e.offsetY);
     VW.cx+=w[0]-w2[0];VW.cy+=w[1]-w2[1];
     drawMap();
   },{passive:false});
 }
-const zoomBy=f=>{if(VW){VW.sc=Math.max(.02,Math.min(80,VW.sc*f));drawMap()}};
+/* v58: thu nhỏ tới 1 px = 2,5 km để nhìn tổng quan cả nước và kéo sang tỉnh khác (trước 1 px = 50 m, màn 1.000 px chỉ thấy 50 km) */
+var SCMIN=0.0004;
+const zoomBy=f=>{if(VW){VW.sc=Math.max(SCMIN,Math.min(80,VW.sc*f));drawMap()}};
 $('mzin').onclick=()=>zoomBy(1.4);
 $('mzout').onclick=()=>zoomBy(1/1.4);
 $('mfit').onclick=()=>{const s=ringsAll().filter(t=>SEL.has(t.id));fitView(s.length?s:null);drawMap()};
@@ -2908,7 +2915,7 @@ var gotoParcel=function(t,zoom){
   VW.cx=(x0+x1)/2;VW.cy=(y0+y1)/2;
   const {W,H}=cssSize();
   const need=Math.min((W*0.55)/Math.max(x1-x0,2),(H*0.55)/Math.max(y1-y0,2));
-  if(zoom||VW.sc<need*0.25||VW.sc>need*6) VW.sc=Math.max(0.02,Math.min(80,need));
+  if(zoom||VW.sc<need*0.25||VW.sc>need*6) VW.sc=Math.max(SCMIN,Math.min(80,need));
   FLASH={id:t.id,z:(FLASH&&FLASH.id===t.id)?FLASH.z:0};
   drawNext(t);
   drawMap();
@@ -3093,13 +3100,12 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
           const [cla,clo]=px2lonlat((tx+.5)*256,(ty+.5)*256,zq),[vx,vy]=vnLL2T(cla,clo,VNZ).map(Math.floor);
           if(VNR.uu==='vn'){let coVn=false;for(const o of VNR.o.values())if(o.st==='ok'&&o.x===vx&&o.y===vy&&o.f&&o.f.length){coVn=true;break}
             if(coVn)continue}
-          const o=glrImg(glrUrl(tinh,zq,tx,ty));
-          if(o.st!=='ok'||o.rong===true)continue;
-          const im=o.c;
+          const g=glrOCha(tinh,zq,tx,ty);if(!g)continue;
+          const im=g.o.c;
           ghiGL='';
           const c=[[tx,ty],[tx+1,ty],[tx,ty+1]].map(([ax,ay])=>{const [la,lo]=px2lonlat(ax*256,ay*256,zq),v=toVN(la,lo,LON0,K0);return T([v[0]-dl[0],v[1]-dl[1]])});
           x.setTransform((c[1][0]-c[0][0])/256*k,(c[1][1]-c[0][1])/256*k,(c[2][0]-c[0][0])/256*k,(c[2][1]-c[0][1])/256*k,c[0][0]*k,c[0][1]*k);
-          try{x.drawImage(im,0,0,256,256,0,0,256.6,256.6)}catch(e){}
+          try{x.drawImage(im,g.sx,g.sy,g.sw,g.sw,0,0,256.6,256.6)}catch(e){}
         }
       }
     }
@@ -5209,18 +5215,23 @@ const VNTRAM=MAYTHU?location.origin+'/vn':OLTRAM.replace(/\/api$/,'/vn'), VNZ=16
 /* số bộ đã biết: thu ngày 08–09/10/2026 bằng cách nút dấu trang làm (địa chỉ ô mà trang .vn tải) tại 26 huyện / thành phố của tỉnh Vĩnh Long mới
    (Trà Vinh, Vĩnh Long, Bến Tre cũ). Phạm vi là các ô đã thấy; app tự nới khi ô có thửa. */
 const VNBOMD=[
-  {id:1662,b:[9.671,106.397,9.877,106.512]},{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1664,b:[9.807,106.194,9.812,106.205]},{id:1667,b:[9.625,106.485,9.682,106.513]},{id:1777,b:[10.066,105.826,10.077,105.831]},{id:1779,b:[10.196,105.864,10.255,105.974]},
-  {id:1780,b:[10.174,106.078,10.185,106.084]},{id:1781,b:[9.963,105.914,10.055,105.996]},{id:1783,b:[9.963,105.914,10.055,105.996]},{id:1784,b:[9.985,106.177,10.093,106.216]},{id:1785,b:[10.066,105.765,10.115,105.831]},{id:1786,b:[10.245,105.969,10.255,105.974]},
-  {id:1788,b:[9.693,106.254,9.704,106.265]},{id:1789,b:[9.866,106.057,9.877,106.062]},{id:1808,b:[10.358,105.474,10.563,105.524]},{id:1809,b:[10.715,105.298,10.725,105.304]},{id:1816,b:[10.034,106.469,10.277,106.705]},{id:1817,b:[10.234,106.326,10.293,106.381]},
-  {id:1818,b:[10.174,106.078,10.277,106.133]},{id:1819,b:[10.147,106.37,10.245,106.474]},{id:1820,b:[10.115,106.265,10.207,106.331]},{id:1821,b:[10.234,106.37,10.245,106.381]},{id:1822,b:[9.796,106.447,10.045,106.595]},{id:1882,b:[10.288,105.754,10.299,105.76]},
-  {id:1888,b:[10.423,105.694,10.434,105.705]},{id:1898,b:[10.245,105.864,10.255,105.875]},{id:1900,b:[10.245,105.864,10.255,105.875]},{id:1902,b:[10.245,105.864,10.255,105.875]},{id:1905,b:[10.228,105.82,10.239,105.826]},{id:1909,b:[10.801,105.337,10.812,105.342]},
-  {id:1911,b:[10.715,105.298,10.725,105.304]},{id:1920,b:[10.288,105.656,10.293,105.661]},{id:1922,b:[10.288,105.656,10.293,105.661]},{id:1931,b:[10.358,105.518,10.364,105.524]},{id:1932,b:[10.358,105.518,10.364,105.524]},{id:1955,b:[10.666,105.557,10.677,105.562]},
-  {id:1956,b:[10.866,105.458,10.876,105.463]},{id:1957,b:[10.866,105.458,10.876,105.463]},{id:1958,b:[10.866,105.458,10.876,105.463]},{id:1959,b:[10.866,105.458,10.876,105.463]},{id:1963,b:[10.866,105.458,10.876,105.463]},{id:1974,b:[10.558,105.474,10.563,105.485]},
-  {id:1976,b:[10.558,105.474,10.563,105.485]},{id:1977,b:[10.558,105.474,10.563,105.485]},{id:1981,b:[10.515,105.837,10.526,105.842]},{id:1982,b:[10.515,105.837,10.526,105.842]},{id:1991,b:[10.515,105.837,10.526,105.842]},{id:1998,b:[10.455,105.628,10.466,105.639]},
-  {id:2000,b:[10.455,105.628,10.466,105.639]},{id:2002,b:[10.455,105.628,10.466,105.639]},{id:2007,b:[10.801,105.337,10.812,105.342]},{id:2010,b:[10.801,105.337,10.812,105.342]},{id:2011,b:[10.801,105.337,10.812,105.342]},{id:2014,b:[10.288,105.754,10.299,105.76]},
-  {id:2015,b:[10.288,105.754,10.299,105.76]},{id:2016,b:[10.288,105.754,10.299,105.76]},{id:2017,b:[10.288,105.754,10.299,105.76]},{id:2023,b:[10.104,105.765,10.115,105.776]},{id:2198,b:[9.985,106.205,9.996,106.216]},{id:2212,b:[9.931,106.342,9.942,106.348]},
-  {id:2216,b:[9.985,106.205,9.996,106.216]},{id:2217,b:[9.985,106.205,9.996,106.216]},{id:2221,b:[9.866,106.397,9.877,106.403]},{id:2238,b:[9.931,106.342,9.942,106.348]},{id:2250,b:[9.866,106.057,9.877,106.062]},{id:2251,b:[9.866,106.057,9.877,106.062]},
-  {id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2617,b:[10.358,105.518,10.364,105.524]},{id:2826,b:[9.693,106.254,9.704,106.265]}];   // v50: chép từ du-lieu/bo-ranh.json (70 bộ) để mở thẳng file vẫn đủ (file:// không đọc được JSON)
+  {id:1662,b:[9.671,106.397,9.877,106.512]},{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1664,b:[9.807,106.194,9.812,106.205]},{id:1667,b:[9.625,106.485,9.682,106.513]},{id:1769,b:[9.92,105.804,9.926,105.815]},{id:1771,b:[9.633,105.463,9.687,105.573]},
+  {id:1772,b:[9.677,105.562,9.687,105.573]},{id:1773,b:[9.812,105.815,9.823,105.826]},{id:1774,b:[9.677,105.463,10.012,105.826]},{id:1776,b:[9.92,105.634,9.931,105.645]},{id:1777,b:[10.066,105.826,10.077,105.831]},{id:1779,b:[10.196,105.864,10.255,105.974]},
+  {id:1780,b:[10.174,106.078,10.185,106.084]},{id:1781,b:[9.963,105.914,10.055,105.996]},{id:1783,b:[9.963,105.914,10.055,105.996]},{id:1784,b:[9.985,106.177,10.093,106.216]},{id:1785,b:[10.066,105.732,10.115,105.831]},{id:1786,b:[10.245,105.969,10.255,105.974]},
+  {id:1787,b:[9.601,105.815,9.704,105.98]},{id:1788,b:[9.519,106.117,9.704,106.265]},{id:1789,b:[9.763,105.98,9.877,106.062]},{id:1790,b:[9.552,105.98,9.774,106.155]},{id:1791,b:[9.628,105.815,9.704,105.908]},{id:1792,b:[9.552,105.98,9.563,105.991]},
+  {id:1793,b:[9.563,105.59,9.568,105.601]},{id:1794,b:[9.552,105.969,9.606,105.991]},{id:1795,b:[9.46,105.716,9.471,105.727]},{id:1796,b:[9.519,105.98,9.563,106.205]},{id:1797,b:[9.319,105.974,9.33,105.985]},{id:1808,b:[10.358,105.474,10.563,105.524]},
+  {id:1809,b:[10.715,105.298,10.725,105.304]},{id:1813,b:[10.218,105.392,10.228,105.403]},{id:1816,b:[10.034,106.469,10.277,106.705]},{id:1817,b:[10.234,106.326,10.293,106.381]},{id:1818,b:[10.174,106.078,10.277,106.133]},{id:1819,b:[10.147,106.37,10.245,106.474]},
+  {id:1820,b:[10.115,106.265,10.207,106.331]},{id:1821,b:[10.234,106.37,10.245,106.381]},{id:1822,b:[9.796,106.447,10.045,106.595]},{id:1882,b:[10.288,105.754,10.299,105.76]},{id:1888,b:[10.423,105.694,10.434,105.705]},{id:1898,b:[10.245,105.864,10.255,105.875]},
+  {id:1900,b:[10.245,105.864,10.255,105.875]},{id:1902,b:[10.245,105.864,10.255,105.875]},{id:1905,b:[10.228,105.82,10.239,105.826]},{id:1909,b:[10.801,105.337,10.812,105.342]},{id:1911,b:[10.715,105.298,10.725,105.304]},{id:1920,b:[10.288,105.656,10.293,105.661]},
+  {id:1922,b:[10.288,105.656,10.293,105.661]},{id:1931,b:[10.358,105.518,10.364,105.524]},{id:1932,b:[10.358,105.518,10.364,105.524]},{id:1955,b:[10.666,105.557,10.677,105.562]},{id:1956,b:[10.866,105.458,10.876,105.463]},{id:1957,b:[10.866,105.458,10.876,105.463]},
+  {id:1958,b:[10.866,105.458,10.876,105.463]},{id:1959,b:[10.866,105.458,10.876,105.463]},{id:1963,b:[10.866,105.458,10.876,105.463]},{id:1974,b:[10.558,105.474,10.563,105.485]},{id:1976,b:[10.558,105.474,10.563,105.485]},{id:1977,b:[10.558,105.474,10.563,105.485]},
+  {id:1981,b:[10.515,105.837,10.526,105.842]},{id:1982,b:[10.515,105.837,10.526,105.842]},{id:1991,b:[10.515,105.837,10.526,105.842]},{id:1998,b:[10.455,105.628,10.466,105.639]},{id:2000,b:[10.455,105.628,10.466,105.639]},{id:2002,b:[10.455,105.628,10.466,105.639]},
+  {id:2007,b:[10.801,105.337,10.812,105.342]},{id:2010,b:[10.801,105.337,10.812,105.342]},{id:2011,b:[10.801,105.337,10.812,105.342]},{id:2014,b:[10.288,105.754,10.299,105.76]},{id:2015,b:[10.288,105.754,10.299,105.76]},{id:2016,b:[10.288,105.754,10.299,105.76]},
+  {id:2017,b:[10.288,105.754,10.299,105.76]},{id:2023,b:[10.066,105.732,10.115,105.776]},{id:2024,b:[10.001,105.782,10.012,105.793]},{id:2025,b:[10.001,105.732,10.077,105.793]},{id:2026,b:[10.061,105.557,10.115,105.628]},{id:2027,b:[9.996,105.667,10.001,105.677]},
+  {id:2028,b:[10.266,105.529,10.277,105.54]},{id:2198,b:[9.985,106.205,9.996,106.216]},{id:2212,b:[9.931,106.342,9.942,106.348]},{id:2216,b:[9.985,106.205,9.996,106.216]},{id:2217,b:[9.985,106.205,9.996,106.216]},{id:2221,b:[9.866,106.397,9.877,106.403]},
+  {id:2238,b:[9.931,106.342,9.942,106.348]},{id:2250,b:[9.866,106.057,9.877,106.062]},{id:2251,b:[9.866,106.057,9.877,106.062]},{id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2617,b:[10.358,105.518,10.364,105.524]},
+  {id:2826,b:[9.693,106.254,9.704,106.265]}];   // chép từ du-lieu/bo-ranh.json (91 bộ) bằng cong-cu/gop_bo_ranh.py
+const VNKHO=[{"t":"Vĩnh Long mới (Trà Vinh, Vĩnh Long, Bến Tre cũ)","d":26,"b":34,"n":"2026-10-08","h":[],"r":[],"k":[]},{"t":"Đồng Tháp mới","d":13,"b":38,"n":"2026-10-09","h":["Châu Thành ĐT","H Cao Lãnh","H Hồng Ngự","Lai Vung","Lấp Vò","TP Cao Lãnh","TP Hồng Ngự","TP Sa Đéc","Tam Nông","Thanh Bình","Tháp Mười","Tân Hồng","Tân Phú Đông"],"r":["10 huyện ở phần Tiền Giang cũ"],"k":[]},{"t":"Cần Thơ mới (Cần Thơ, Hậu Giang, Sóc Trăng cũ)","d":21,"b":25,"n":"2026-10-09","h":["Bình Thủy","Châu Thành (Sóc Trăng)","Châu Thành A","Cái Răng","Cù Lao Dung","H Long Mỹ","Kế Sách","Long Phú","Mỹ Tú","Mỹ Xuyên","Ninh Kiều","Phong Điền","Phụng Hiệp","TP Ngã Bảy","TP Sóc Trăng","TX Long Mỹ","TX Ngã Năm","TX Vĩnh Châu","Thạnh Trị","Trần Đề","Ô Môn"],"r":["Cờ Đỏ"],"k":["Thốt Nốt","Thới Lai","Vĩnh Thạnh","TP Vị Thanh","Vị Thủy","Châu Thành (Hậu Giang)"]}];   // chép từ du-lieu/bo-ranh.json bằng cong-cu/gop_bo_ranh.py
 let VNR={on:true,bo:VNBOMD.map(b=>({...b,b:[...b.b]})),o:new Map(),cho:[],dang:0,loi:'',tb:false};
 try{const q=JSON.parse(localStorage.getItem('vnbo')||'null');if(Array.isArray(q))for(const b of q)vnThemBo(b.id,b.b,true)}catch(e){}
 try{VNR.on=localStorage.getItem('vnon')!=='0'}catch(e){}
@@ -5248,6 +5259,17 @@ function glrImg(url){
   im.onload=()=>{try{to(im,true)}catch(e){o.rong=undefined;try{to(im,false)}catch(e2){o.st='ok';o.c=im}}xong()};
   im.onerror=thuong;                          // CORS hỏng hoặc 404: thử ảnh thường (404 thì lỗi tiếp → không có ranh)
   im.src=url;return o;
+}
+/* v58 [ĐÃ THỬ 09/10]: mức sâu nhất có ô ảnh khác nhau theo nơi (Thái Nguyên tới 18; Hà Nội, Tây Ninh tới 19; Trà Vinh tới 20; Hải Phòng,
+   Nghệ An chỉ 18) → phóng quá mức đó thì ô 404 và ranh biến mất. Ô không có thì lùi lên ô cha (tối đa 4 mức, không dưới 14), vẽ đúng phần của nó.
+   Trả {o, sx, sy, sw} = ô ảnh + vùng nguồn trong ô đó; null = đang tải / ô trống / không có. */
+function glrOCha(tinh,z,tx,ty){
+  for(let d=0;d<=4&&z-d>=14;d++){
+    const o=glrImg(glrUrl(tinh,z-d,tx>>d,ty>>d));
+    if(o.st==='cho')return null;
+    if(o.st==='ok'){if(o.rong===true)return null;const sw=256/(1<<d);return {o,sx:(tx-((tx>>d)<<d))*sw,sy:(ty-((ty>>d)<<d))*sw,sw}}
+  }
+  return null;
 }
 const glrUrl=(t,z,x,y)=>`https://intercdn.guland.vn/land/${t}/${z}/${x}/${y}.png`;
 function glrCo(x,y){                          // ô mức 16 (x,y) của nguồn 2 có nét ranh không: true / false / undefined (đang tải)
@@ -5776,6 +5798,23 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
   dongBo();
   const a=$('vnbm');if(a){a.href=vnDauTrang();a.onclick=e=>{e.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark). Sau đó mở trang quy hoạch của Mạnh Lắm (onland.vn) ở vùng cần lấy, bấm dấu trang, kéo bản đồ một chút rồi bấm "Gửi sang app".')}}
   const g=$('vngo');if(g)g.onclick=()=>{const r=vnNhanMa($('vnma').value);$('vnma').value='';$('vnmsg').innerHTML=`Đã nhận ${r.moi} bộ mới, ${r.cu} bộ cập nhật.`};
+  /* v59: Kho ranh — liệt kê tỉnh đã thu (VNKHO, chép từ du-lieu/bo-ranh.json) + bộ tự thu trên máy này; xuất ra file / mã để gộp cho máy khác */
+  const khoVe=()=>{const el=$('khoranh');if(!el)return;
+    const md=new Set(VNBOMD.map(b=>b.id)),rieng=VNR.bo.filter(b=>!md.has(b.id));
+    const dong=VNKHO.map(k=>`<tr><td style="padding:3px 6px 3px 0;vertical-align:top"><b>${esc(k.t)}</b>${k.h.length?`<details><summary style="font-size:12px">${k.h.length} huyện có ranh</summary><span style="font-size:12px">${esc(k.h.join(', '))}</span></details>`:''}${k.r&&k.r.length?`<div style="font-size:12px;color:#a8700f">Chưa có ranh: ${esc(k.r.join(', '))}</div>`:''}${k.k&&k.k.length?`<div style="font-size:12px;color:#a8700f">Chưa thấy thửa ở trung tâm (có thể có ở xã khác): ${esc(k.k.join(', '))}</div>`:''}</td><td style="padding:3px 6px;text-align:right;white-space:nowrap;vertical-align:top">${k.d} huyện</td><td style="padding:3px 6px;text-align:right;white-space:nowrap;vertical-align:top">${k.b} bộ</td><td style="padding:3px 0;white-space:nowrap;vertical-align:top;font-size:12px">${esc(k.n)}</td></tr>`).join('');
+    el.innerHTML=`<table style="border-collapse:collapse;width:100%"><tr style="font-size:12px;text-align:left"><th>Tỉnh</th><th style="text-align:right">Có ranh</th><th style="text-align:right">Bộ ranh</th><th>Ngày</th></tr>${dong}</table>
+      <div style="margin-top:6px">Tổng: <b>${VNKHO.length}</b> vùng · <b>${VNKHO.reduce((s,k)=>s+k.d,0)}</b> huyện có ranh · <b>${VNBOMD.length}</b> bộ nạp sẵn${rieng.length?` · <b>${rieng.length}</b> bộ tự thu trên máy này`:''}.</div>`};
+  const kb=$('khobox');if(kb)kb.addEventListener('toggle',()=>{if(kb.open)khoVe()});
+  const kx=$('khoxuat');if(kx)kx.onclick=()=>{
+    const md=new Set(VNBOMD.map(b=>b.id));
+    const j={mo_ta:'Kho ranh xuất từ app Tra cứu thửa đất: số bộ + phạm vi [vĩ nhỏ, kinh nhỏ, vĩ lớn, kinh lớn]. Không chứa dữ liệu cá nhân.',ngay:new Date().toISOString().slice(0,10),phien_ban:($('appver')||{}).textContent||'',
+      vung:VNKHO,bo:VNR.bo.map(b=>({id:b.id,b:b.b.map(v=>+v.toFixed(5)),tu_thu:!md.has(b.id)}))};
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(j,null,1)],{type:'application/json'}));a.download='kho-ranh-'+j.ngay+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    $('khomsg').textContent=`Đã xuất ${j.bo.length} bộ (${j.bo.filter(b=>b.tu_thu).length} bộ tự thu) ra file ${a.download}.`};
+  const kc=$('khochep');if(kc)kc.onclick=async()=>{
+    const ma=VNR.bo.map(b=>b.id+':'+b.b.map(v=>v.toFixed(5)).join(',')).join(';');
+    try{await navigator.clipboard.writeText(ma);$('khomsg').textContent=`Đã chép mã của ${VNR.bo.length} bộ. Trên máy khác: dán vào ô «Hoặc dán mã bộ ranh» rồi bấm Nhận.`}
+    catch(e){$('vnma').value=ma;$('khomsg').textContent='Không chép được vào bộ nhớ tạm — mã đã nằm trong ô «dán mã bộ ranh» ở trên, hãy tự chép.'}};
   const dx=$('demxoa');if(dx)dx.onclick=async()=>{dx.disabled=true;await demXoa();GLR.clear();VNO2.clear();GLRNHO.clear();$('demmsg').textContent='Đã xoá. Ranh sẽ tải lại mới.';dx.disabled=false};
   vnMsg();
 })();
@@ -5879,7 +5918,7 @@ async function glrTachGoc(w){
     const cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d',{willReadFrequently:true});
     let co=0;
     await Promise.all([0,1,2].flatMap(i=>[0,1,2].map(async j=>{try{const bm=await glrAnh(tinh,z,tx+i,ty+j);if(bm){g.drawImage(bm,i*256,j*256);co++}}catch(e){}})));
-    if(!co)return null;
+    if(!co)continue;                           // v58: mức này không có ô ảnh → thử mức nông hơn
     const d=g.getImageData(0,0,N,N).data,net=new Uint8Array(N*N);
     let coNet=false;for(let k=0;k<N*N;k++)if(d[k*4+3]>60){net[k]=1;coNet=true}
     if(!coNet)return null;                     // ô trắng: nơi này không có ranh ảnh
@@ -5909,7 +5948,7 @@ async function glrTaiDiem(w){                  // không nguồn nào có thửa
   sh.thua=sh.thua.filter(q=>!(q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<1));
   sh.thua.push(t);ganId(sh);SEL.add(t.id);FLASH={id:t.id,z:0};CHIPID=null;
   drawSheets();drawResults();drawMap();
-  GLRMSG=`<b>Thửa chưa rõ số</b>: ${fmt(t.a,1)} m² theo ranh (ranh lấy từ ảnh bản đồ, gần đúng ±0,2 m; chưa có số tờ, số thửa, loại đất ở điểm này).`;
+  GLRMSG=`<b>Thửa chưa rõ số</b>: ${fmt(t.a,1)} m² theo ranh (ranh lấy từ ảnh bản đồ, gần đúng ±${kq.z>=20?'0,2':kq.z===19?'0,4':'0,8'} m${kq.z<20?', diện tích có thể lệch nhiều với thửa nhỏ':''}; chưa có số tờ, số thửa, loại đất ở điểm này).`;
   olmsg(GLRMSG,'ok',true);
   return true;
 }

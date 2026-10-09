@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v54 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v55 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -2474,7 +2474,7 @@ function veBanDo(){
   const {x,W,H}=setupCanvas();
   x.clearRect(0,0,W,H);
   const ghi=paintBase(x,W,H,VW,DPR(),false);
-  if(typeof vnVe==='function'&&VNR.on)vnVe(x,W,H,VW,1);   // v37: ranh nhanh nằm dưới các tờ đã nạp
+  if(typeof vnVe==='function'&&(VNR.on||VNR.toTo))vnVe(x,W,H,VW,1);   // v37: ranh nhanh nằm dưới các tờ đã nạp
   veCacLop(x,W,H,VW,DPR(),1,{lab:SHOWLAB,dim:SHOWDIM,fs:1});
   drawMe(x,W,H,VW,1);
   if(ghi){x.font='10px Helvetica,Arial,sans-serif';x.textAlign='right';x.textBaseline='bottom';
@@ -4956,6 +4956,9 @@ $('olgo').onclick=async()=>{
     }
   }catch(e){dong.push('Dừng giữa chừng: không gọi được Mạnh Lắm ('+esc(e.message)+').')}
   nut.disabled=false;
+  if(khong.length&&khong.length===ds.length){                  // v55: không ra số nào → mở ranh của tờ đang chọn
+    vnHienTo(lop,to,olTen($('olxa'))).then(ok=>{if(ok)olmsg(dong.join('<br>')+'<br><b>Đã mở ranh tờ '+esc(to)+' trên bản đồ (tô vàng)</b> — tìm thửa bằng mắt rồi bấm vào để chọn.','warn')});
+  }
   if(sh){ganId(sh);drawSheets();autoKTT();}
   let lech='';
   if(cuoi&&LON0!=null&&LON0!==lon0)lech=`<br/><b>Chú ý:</b> thửa được tính theo kinh tuyến trục ${dms(lon0)} của ${esc(tinh.name||'tỉnh đã chọn')}, còn bản đồ đang dùng ${dms(LON0)} — vị trí trên ảnh vệ tinh sẽ lệch cho tới khi chọn lại ở mục Kinh tuyến trục.`;
@@ -5315,7 +5318,8 @@ function vnKhung(){                          // khung nhìn → [vĩ nhỏ, kinh
   return [Math.min(...ps.map(p=>p[0])),Math.min(...ps.map(p=>p[1])),Math.max(...ps.map(p=>p[0])),Math.max(...ps.map(p=>p[1]))];
 }
 function vnCanThay(){                        // đủ gần để hiện ranh nhanh không
-  if(!VNR.on||!VW)return null;const k=vnKhung();if(!k)return null;
+  /* v55: đang xem một tờ thì vẫn tải ô để tô vàng */
+  if((!VNR.on&&!VNR.toTo)||!VW)return null;const k=vnKhung();if(!k)return null;
   const z=vnZ((k[0]+k[2])/2,VW.sc);return z>=VNZ-0.01?k:null;
 }
 /* các bộ đã biết phủ gần khung nhìn, gần nhất trước. [QĐ 09/10, v47] "nhặt dần": khi kéo bản đồ nhìn rộng VNLE (≈ 16 km) quanh phạm vi đã biết,
@@ -5367,12 +5371,16 @@ function vnVe(x,W,H,vw,fs){
   x.save();x.lineJoin='round';
   for(const o of os){
     x.save();x.beginPath();o.goc.forEach((p,i)=>{const s=T(p);i?x.lineTo(s[0],s[1]):x.moveTo(s[0],s[1])});x.closePath();x.clip();   // cắt theo mép ô: bỏ phần đệm
-    const P=new Path2D();
+    const P=new Path2D(),PT=new Path2D();let coT=false;
     for(const f of o.f){const b=f.bb;if(b[2]<wx0||b[0]>wx1||b[3]<wy0||b[1]>wy1)continue;
-      for(const r of f.rs){P.moveTo(ox+r[0][0]*k,oy-r[0][1]*k);for(let i=1;i<r.length;i++)P.lineTo(ox+r[i][0]*k,oy-r[i][1]*k);P.closePath()}
+      const laTo=VNR.toTo&&vnToK(f.to)===VNR.toTo.to&&(!VNR.toIds||!VNR.toIds.size||!f.id||VNR.toIds.has(f.id)||vnGanCum(f));   // v55: thửa thuộc tờ đang xem (đúng xã) → tô vàng
+      if(!VNR.on&&!laTo)continue;                               // đường ranh đang ẩn: chỉ vẽ phần tô vàng
+      const Q=laTo?PT:P;if(laTo)coT=true;
+      for(const r of f.rs){Q.moveTo(ox+r[0][0]*k,oy-r[0][1]*k);for(let i=1;i<r.length;i++)Q.lineTo(ox+r[i][0]*k,oy-r[i][1]*k);Q.closePath()}
       if(SHOWLAB&&f.so&&(b[2]-b[0])*k>26*fs&&(b[3]-b[1])*k>14*fs)nhan.push({f,o})}
     x.lineWidth=1.6*fs;x.strokeStyle='rgba(255,255,255,.55)';x.stroke(P);
     x.lineWidth=0.9*fs;x.strokeStyle='#1d5fd0';x.stroke(P);
+    if(coT){x.fillStyle='rgba(255,205,0,.22)';x.fill(PT,'evenodd');x.lineWidth=2.4*fs;x.strokeStyle='rgba(255,255,255,.7)';x.stroke(PT);x.lineWidth=1.4*fs;x.strokeStyle='#d99a00';x.stroke(PT)}
     x.restore();
   }
   /* số thửa: mỗi thửa một lần, ở ô chứa tâm của nó */
@@ -5532,6 +5540,7 @@ async function timRong(raw){
     for(const l of ls.slice(0,3)){try{const v=await vnTimSo(l,olSoTo(l),so,lonCua(l));if(v&&v.t){if(!coSo(v.t))v.t.s=so;ds.push({l,t:v.t,dc:dcCua(l),lon0:lonCua(l)});break}}catch(e){}}
   }
   if($('q').value.trim()!==raw)return;
+  if(!ds.length&&ls[0])vnHienTo(ls[0],to,ls[0].tenxa||olTen($('olxa')));   // v55: không ra → mở ranh của tờ
   TRKQ={raw,ds,ly:ds.length?'':`Không tìm thấy thửa ${so} trên ${ls.length} tờ ${to} quanh đây (${[...new Set(ls.map(l=>l.tenxa))].join(', ')}).`};
   drawResults();
   if(ds.length===1)trChon(ds[0]);
@@ -5550,6 +5559,47 @@ function trChon(x){                             // đưa thửa tìm được v�
   if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
   gotoParcel(ct,true);drawResults();drawMap();
 }
+/* ===== v55: không tìm ra thửa → mở ranh của tờ đã chọn (xã cố định theo mục tìm kiếm), tô vàng các thửa của tờ =====
+   Vị trí tờ: tâm tờ (olTamTo) có thể cách vùng có thửa 3–3,5 km → tải 5 × 5 ô mức 14 quanh tâm, gom thửa có số tờ trùng → khung tờ → bay tới
+   (giữ mức ≥ 16 để lớp ranh còn hiện; tờ lớn hơn khung thì bay tới tâm cụm thửa). */
+const vnGanCum=f=>{const k=VNR.toTo&&VNR.toTo.b;return !!k&&f.bb[0]>=k[0]-30&&f.bb[2]<=k[2]+30&&f.bb[1]>=k[1]-30&&f.bb[3]<=k[3]+30};
+const vnToK=v=>nodau(String(v||'')).replace(/^dc/,'').replace(/vn2000$/,'');
+async function vnHienTo(lop,to,tenXa){
+  const c=olTamTo(lop);if(!c)return false;
+  if(LON0==null){let md=lop.metadata;if(typeof md==='string'){try{md=JSON.parse(md)}catch(e){md=null}}const cm=md&&parseFloat(md.centralmeridian);
+    LON0=cm>100&&cm<112?cm:(olLon0().lon0||105.5);K0=0.9999}
+  const [lo,la]=c,bos=vnBoQuanh([la-0.03,lo-0.03,la+0.03,lo+0.03]);if(!bos.length)return false;
+  const z=14,[fx,fy]=vnLL2T(la,lo,z).map(Math.floor),viec=[];
+  for(const bo of bos)for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)viec.push(vnLayO(bo.id,z,fx+dx,fy+dy).catch(()=>null));
+  /* điểm mốc thật của tờ: vị trí nhãn vài số thửa trên đúng tờ đó (onland.tech /map_parcels trả point/location) */
+  const neo=(await Promise.all(['1','2','5','10','20','50','100','200'].map(so=>olGoi('/map_parcels',{idmaplayer:lop.id,searchString:so,exactly:true,current:1,pageSize:3})
+    .then(a=>{const it=a.find(x=>String(x.text)===so);const d=it&&olDiemNhanCua(it);return d?toVN(d.y,d.x,LON0,K0||0.9999):null}).catch(()=>null)))).filter(Boolean);
+  const os=await Promise.all(viec),tk=vnToK(to),ung=new Map();
+  for(const o of os)if(o)for(const f of o.f)if(vnToK(f.to)===tk&&!ung.has(f.id||f.lc.join()))ung.set(f.id||f.lc.join(),f);
+  const ds=[...ung.values()];if(!ds.length)return false;
+  /* "tờ 14" có ở nhiều xã trong cùng bộ ranh → chỉ giữ cụm thửa liền kề quanh các điểm mốc của đúng tờ đã chọn */
+  const moc=neo.length?neo:[toVN(la,lo,LON0,K0||0.9999)];
+  const kc=(f,p)=>Math.hypot(Math.max(f.bb[0]-p[0],0,p[0]-f.bb[2]),Math.max(f.bb[1]-p[1],0,p[1]-f.bb[3]));
+  const hd=(f,g)=>Math.hypot(Math.max(f.bb[0]-g.bb[2],0,g.bb[0]-f.bb[2]),Math.max(f.bb[1]-g.bb[3],0,g.bb[1]-f.bb[3]));
+  let hat=ds.filter(f=>moc.some(p=>kc(f,p)<(neo.length?60:1e9)));
+  if(!hat.length){const g=ds.reduce((m,f)=>{const d=Math.min(...moc.map(p=>kc(f,p)));return !m||d<m.d?{f,d}:m},null);hat=[g.f]}
+  const trong=new Set(hat),hang=[...hat];
+  while(hang.length){const f=hang.pop();for(const g of ds)if(!trong.has(g)&&hd(f,g)<15){trong.add(g);hang.push(g)}}
+  let b=[Infinity,Infinity,-Infinity,-Infinity],n=0;
+  for(const f of trong){n++;b=[Math.min(b[0],f.bb[0]),Math.min(b[1],f.bb[1]),Math.max(b[2],f.bb[2]),Math.max(b[3],f.bb[3])]}
+  VNR.toIds=new Set([...trong].map(f=>f.id).filter(Boolean));
+  VNR.toTo={to:tk,ten:`tờ ${to}${tenXa?' – '+tenXa:''}`,n,b};
+  if(!BASEKEY)datNen('esri',0);
+  if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
+  const {W,H}=cssSize(),la0=(conv((b[0]+b[2])/2,(b[1]+b[3])/2,LON0,K0||0.9999))[0];
+  const scMin=Math.pow(2,VNZ)/(156543.03392*Math.cos(la0*Math.PI/180));   // mức 16
+  let sc=Math.min((W||800)/(b[2]-b[0]+40),(H||600)/(b[3]-b[1]+40));
+  VW={cx:(b[0]+b[2])/2,cy:(b[1]+b[3])/2,sc:Math.max(sc,scMin*1.02)};VWok=true;DAKHOP=true;
+  drawMap();
+  pickBar(`Đang hiện ranh <b>${esc(VNR.toTo.ten)}</b> (tô vàng, ${n} thửa). Bấm vào thửa để chọn; kéo bản đồ để xem tiếp.<div><button class="olkepick" data-botot="1">Bỏ tô</button></div>`,'ok');
+  return true;
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-botot]');if(!b)return;VNR.toTo=null;VNR.toIds=null;$('pickbar').style.display='none';drawMap()});
 /* v51: chưa thấy trong ô đã tải → tải 3 × 3 ô mức 16 quanh tâm bản đồ (dù đường ranh đang ẩn), xong thì tìm lại một lần.
    Trả true khi vừa bắt đầu tải cho chuỗi tìm này. */
 let VNTIMDA='';

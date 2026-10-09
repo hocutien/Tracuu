@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v55 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v57 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -427,6 +427,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
           <label for="vnma">Hoặc dán mã bộ ranh</label>
           <div class="row" style="gap:6px"><input id="vnma" placeholder="1663:9.65,106.42,9.68,106.45" spellcheck="false" autocomplete="off" style="flex:1"><button id="vngo" type="button">Nhận</button></div>
         </details>
+        <div style="margin:6px 0"><button id="demxoa" type="button">Xoá bộ nhớ đệm ranh</button> <span id="demmsg" style="font-size:12px"></span></div>
       </div>
       <div class="note" id="ollechbox" style="border-top:1px solid var(--rule);padding-top:8px">
         <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink)"><input type="checkbox" id="ollechon" style="width:20px;height:20px;flex:none">Hiệu chỉnh ranh Mạnh Lắm theo DGN gốc</label>
@@ -3082,7 +3083,7 @@ function paintBase(x,W,H,vw,k,forPrint,coll){
     if(zr>=VNZ&&VNR.uu!=='chivn'){
       const noi=glNoi(latm,(lo0+lo1)/2),kc=Math.cos(latm*Math.PI/180);
       const tinh=VNR.glTinh=noi&&noi.T?noi.T:glSlug((PROV.map(p=>({p,d:Math.hypot(latm-p[2],((lo0+lo1)/2-p[3])*kc)})).sort((a,b)=>a.d-b.d)[0]||{p:['']}).p[0]);
-      const zq=Math.min(20,zr),nn=2**zq,dl=OLLECH.tat?[0,0]:OLLECH.chung;
+      const zq=Math.min(20,zr),nn=2**zq,dl=olLechViTri(latm,(lo0+lo1)/2);
       const [ea,fa]=lonlat2px(la1,lo0,zq),[eb,fb]=lonlat2px(la0,lo1,zq);
       const ax0=Math.floor(ea/256),ax1=Math.floor(eb/256),ay0=Math.floor(fa/256),ay1=Math.floor(fb/256);
       if(tinh&&(ax1-ax0+1)*(ay1-ay0+1)<=120){
@@ -4599,8 +4600,8 @@ const OLCHINH='https://onland.tech/api', OLTRAM='https://onland-tram.hocutien64.
 let OL=OLCHINH, OLHETTRAM=0;
 async function olFetch(path,opt){
   if(OL===OLTRAM&&Date.now()>OLHETTRAM)OL=OLCHINH;
-  const goc=OL;
-  try{return await fetch(goc+path,opt)}
+  const goc=OL,dem=opt&&opt.method==='POST'&&/^\/(map_layers|map_parcels\/findparcel)$/.test(path);   // v57: hai câu hỏi này nhớ 1 ngày
+  try{return dem?await demFetch(goc+path,DEM_NGAY,0,opt,'T '+path+'#'+opt.body):await fetch(goc+path,opt)}
   catch(e){
     if(goc!==OLCHINH||(e&&e.name==='AbortError'))throw e;   // lỗi mạng ở đường chính mới chuyển trạm
     if(OL===OLCHINH){OL=OLTRAM;OLHETTRAM=Date.now()+OLTHULAI;console.info('Mạnh Lắm: đường chính lỗi, dùng trạm trung chuyển')}
@@ -4639,7 +4640,10 @@ let OLLECH={tat:false,huyen:{...OLLECHMD},chung:[...OLLECHCHUNG]};
 try{const q=JSON.parse(localStorage.getItem('ollech')||'null');if(q&&q.huyen)OLLECH={tat:!!q.tat,huyen:{...OLLECHMD,...q.huyen},
   chung:Array.isArray(q.chung)&&q.chung.length===2&&q.chung.every(Number.isFinite)?q.chung:[...OLLECHCHUNG]}}catch(e){}
 const olLechLuu=()=>{try{localStorage.setItem('ollech',JSON.stringify(OLLECH))}catch(e){}};
-const olLech=lopId=>{if(OLLECH.tat)return [0,0];const h=OLHUYENLOP[lopId];return (h&&OLLECH.huyen[h[0]])||OLLECH.chung};   // huyện đã đo riêng → trị số chung
+/* [QĐ 09/10 v56] trị số chung chỉ áp ở Trà Vinh (nơi đã đo); tỉnh khác → 0 (ranh Mạnh Lắm vẽ đúng như họ trả về) cho tới khi đo riêng bằng nút «Đo độ lệch…» */
+const olLechViTri=(la,lo)=>{if(OLLECH.tat)return [0,0];const kc=Math.cos(la*Math.PI/180),p=PROV.map(q=>({q,d:Math.hypot(la-q[2],(lo-q[3])*kc)})).sort((a,b)=>a.d-b.d)[0];return p&&p.q[0]==='Trà Vinh'?OLLECH.chung:[0,0]};
+const olLech=lopId=>{if(OLLECH.tat)return [0,0];const h=OLHUYENLOP[lopId];if(h&&OLLECH.huyen[h[0]])return OLLECH.huyen[h[0]];
+  const t=OLLOPID[lopId]&&OLLOPID[lopId].tentinh;return t&&nodau(t)!=='tra vinh'?[0,0]:OLLECH.chung};   // huyện đã đo riêng → trị số chung chỉ ở Trà Vinh   // huyện đã đo riêng → trị số chung
 const olLL=(E,N,lon0,lopId,k0)=>{const d=olLech(lopId);return conv(E+d[0],N+d[1],lon0,k0||0.9999)};   // điểm trên bản đồ → kinh vĩ độ để hỏi lớp đó
 /* v53: /map_parcels có khi chỉ trả ĐIỂM NHÃN số thửa, không kèm hình.
    [ĐÃ THỬ 09/10] thửa 872 tờ DC14 Phường 1 (idmaplayer 129411): text "872", polygon_bound null, không có geojsonWGS84,
@@ -5260,7 +5264,7 @@ const vnL0=()=>LON0!=null?LON0:olLon0().lon0;
 const vnZ=(la,sc)=>Math.log2(156543.03392*Math.cos(la*Math.PI/180)*sc);   // độ phóng web tương đương với VW.sc (px/m)
 const vnTileLL=(z,x,y)=>{const n=2**z;return [Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI, x/n*360-180]};
 const vnLL2T=(la,lo,z)=>{const n=2**z;return [(lo+180)/360*n,(1-Math.asinh(Math.tan(la*Math.PI/180))/Math.PI)/2*n]};
-function vnLechNay(){const d=OLLECH.tat?[0,0]:OLLECH.chung;return [d[0]-VNLECH[0],d[1]-VNLECH[1]]}
+function vnLechNay(la,lo){const d=la==null?(OLLECH.tat?[0,0]:OLLECH.chung):olLechViTri(la,lo);return [d[0]-VNLECH[0],d[1]-VNLECH[1]]}
 /* đọc MVT (protobuf) — chỉ phần cần: lớp, khoá/giá trị chuỗi, đối tượng vùng */
 function vnGiai(buf){
   const b=new Uint8Array(buf);let i=0;
@@ -5297,7 +5301,7 @@ function vnGiai(buf){
 }
 /* một ô: đổi toạ độ ô → VN-2000 bằng nội suy từ 4 góc (sai số < 1 mm trên 600 m), rồi chỉnh độ lệch */
 function vnDungO(ds,z,tx,ty){
-  const L0=vnL0(),k0=K0||0.9999,dl=vnLechNay();
+  const L0=vnL0(),k0=K0||0.9999,[la_,lo_]=vnTileLL(z,tx+.5,ty+.5),dl=vnLechNay(la_,lo_);
   const goc=[[0,0],[1,0],[1,1],[0,1]].map(([u,v])=>{const [la,lo]=vnTileLL(z,tx+u,ty+v);const [E,N]=toVN(la,lo,L0,k0);return [E-dl[0],N-dl[1]]});
   const [A,B,C,D]=goc;
   const P=(px,py,ext)=>{const u=px/ext,v=py/ext;return [(1-u)*(1-v)*A[0]+u*(1-v)*B[0]+u*v*C[0]+(1-u)*v*D[0],(1-u)*(1-v)*A[1]+u*(1-v)*B[1]+u*v*C[1]+(1-u)*v*D[1]]};
@@ -5341,7 +5345,7 @@ function vnHoi(bo,x,y){
 function vnChay(){
   while(VNR.dang<VNSONG&&VNR.cho.length){
     const o=VNR.cho.shift();VNR.dang++;
-    fetch(`${VNTRAM}/${o.bo}/${VNZ}/${o.x}/${o.y}.mvt`).then(async r=>{
+    demFetch(`${VNTRAM}/${o.bo}/${VNZ}/${o.x}/${o.y}.mvt`,DEM_NGAY,6*DEM_NGAY).then(async r=>{
       if(!r.ok)throw new Error(r.status===404?'trạm chưa cập nhật (xem tram/HUONG-DAN.md)':'trạm trả mã '+r.status);
       const ds=vnGiai(await r.arrayBuffer());
       Object.assign(o,{st:'ok'},vnDungO(ds,VNZ,o.x,o.y));VNR.loi='';
@@ -5425,7 +5429,7 @@ async function vnChon(hit,w){
   if(f.cat){                                  // thửa vắt qua mép ô: lấy ô mức 15 (rộng gấp đôi, đơn giản hoá ≤ 0,37 m) nếu ở đó còn nguyên
     gan=1;
     try{const [la,lo]=conv(w[0],w[1],vnL0(),K0||0.9999),[tx,ty]=vnLL2T(la,lo,15).map(Math.floor);
-      const rr=await fetch(`${VNTRAM}/${hit.o.bo}/15/${tx}/${ty}.mvt`);
+      const rr=await demFetch(`${VNTRAM}/${hit.o.bo}/15/${tx}/${ty}.mvt`,DEM_NGAY,6*DEM_NGAY);
       if(rr.ok){const d=vnDungO(vnGiai(await rr.arrayBuffer()),15,tx,ty).f.find(q=>q.id===f.id&&!q.cat);if(d){r=d.r;gan=2}}}catch(e){}
     if(lan!==VNDANG)return;
   }
@@ -5483,7 +5487,7 @@ function vnLayO(bo,z,x,y){
   const key=`${bo}/${z}/${x}/${y}`;
   if(z===VNZ&&VNR.o.has(key)&&VNR.o.get(key).st==='ok')return Promise.resolve(VNR.o.get(key));
   if(VNO2.has(key))return VNO2.get(key);
-  const p=fetch(`${VNTRAM}/${bo}/${z}/${x}/${y}.mvt`).then(async r=>{if(!r.ok)throw new Error('trạm trả mã '+r.status);
+  const p=demFetch(`${VNTRAM}/${bo}/${z}/${x}/${y}.mvt`,DEM_NGAY,6*DEM_NGAY).then(async r=>{if(!r.ok)throw new Error('trạm trả mã '+r.status);
     const o={st:'ok',bo,x,y,z,...vnDungO(vnGiai(await r.arrayBuffer()),z,x,y)};if(z===VNZ)VNR.o.set(key,o);return o})
     .catch(e=>{VNO2.delete(key);throw e});
   VNO2.set(key,p);if(VNO2.size>80)VNO2.delete(VNO2.keys().next().value);
@@ -5636,14 +5640,33 @@ async function vnTimTaiDiem(w){
 }
 const vnGan=()=>{if(!VW)return false;const k=vnKhung();return !!k&&vnZ((k[0]+k[2])/2,VW.sc)>=VNZ-0.01};   // đủ gần (≈ 3 km trở xuống), không phụ thuộc công tắc hiển thị
 /* bấm một điểm: lớp ranh đã tải → ô ranh tại điểm → (không có) tra kiểu cũ olTaiDiem */
+let TRAN=0, GLRMSG='';
 async function traNhanh(w){
+  const lan=++TRAN;
   try{
     let h=vnTrung(w);
     if(!h)h=await vnTimTaiDiem(w);
     if(h){await vnChon(h,w);return}
   }catch(e){}
   finally{if(!OLBUSY)setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}
-  return olTaiDiem(w);
+  /* v57: ranh ảnh (Guland) tách CÙNG LÚC với chuỗi Mạnh Lắm: về trước thì hiện làm thửa tạm (chưa rõ số), Mạnh Lắm ra thửa thật thì thay.
+     Phạm vi tìm của chuỗi Mạnh Lắm giữ nguyên [QĐ ưu tiên tìm ra thửa]. */
+  let ket=false;
+  const thuc=()=>SHEETS.some(sh=>sh.thua.some(t=>!t.anh&&t.r&&inPoly(w,t.r)));
+  glrTach(w).then(kq=>{if(lan!==TRAN||!kq||(ket&&thuc()))return;return glrTaiDiem(w)}).catch(()=>{});
+  await olTaiDiem(w);
+  ket=true;
+  if(lan!==TRAN)return;
+  let tam=false;
+  for(const sh of SHEETS)if(sh.thua.some(t=>t.tam===lan))tam=true;
+  if(!tam)return;
+  if(thuc()){                                // đã có thửa thật → bỏ thửa tạm
+    for(let i=SHEETS.length-1;i>=0;i--){const sh=SHEETS[i];
+      for(const t of sh.thua)if(t.tam===lan)SEL.delete(t.id);
+      sh.thua=sh.thua.filter(t=>t.tam!==lan);
+      if(!sh.thua.length&&sh.to==='?')SHEETS.splice(i,1)}
+    CHIPID=null;drawSheets();drawResults();drawMap();
+  }else if(GLRMSG)olmsg(GLRMSG,'ok',true);   // chuỗi Mạnh Lắm kết thúc không ra: nhắc lại thông báo của thửa tạm
 }
 /* hỏi theo số không ra: tìm số tờ + số thửa trong ô .vn mức 13 quanh tâm tờ (tâm tờ có thể cách vùng có thửa 3–3,5 km),
    rồi lấy ranh gốc Mạnh Lắm tại một điểm trong thửa; Mạnh Lắm không có thì dùng ranh .vn mức 16. */
@@ -5753,8 +5776,50 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
   dongBo();
   const a=$('vnbm');if(a){a.href=vnDauTrang();a.onclick=e=>{e.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark). Sau đó mở trang quy hoạch của Mạnh Lắm (onland.vn) ở vùng cần lấy, bấm dấu trang, kéo bản đồ một chút rồi bấm "Gửi sang app".')}}
   const g=$('vngo');if(g)g.onclick=()=>{const r=vnNhanMa($('vnma').value);$('vnma').value='';$('vnmsg').innerHTML=`Đã nhận ${r.moi} bộ mới, ${r.cu} bộ cập nhật.`};
+  const dx=$('demxoa');if(dx)dx.onclick=async()=>{dx.disabled=true;await demXoa();GLR.clear();VNO2.clear();GLRNHO.clear();$('demmsg').textContent='Đã xoá. Ranh sẽ tải lại mới.';dx.disabled=false};
   vnMsg();
 })();
+
+/* ===== v57: bộ nhớ đệm bền (IndexedDB «tcdt-dem») cho ô ranh .vn, ô ảnh ranh Guland và câu trả lời onland.tech =====
+   Hạn dùng: ô .vn 1 ngày (trạm cũng giữ 1 ngày; máy chủ .vn trả no-store), ô ảnh Guland 7 ngày (ngày sửa ô 2024, CDN cho giữ 30 ngày),
+   onland.tech (map_layers, findparcel) 1 ngày. Ô .vn / Guland quá hạn nhưng chưa quá «cửa sổ cũ» thì dùng ngay rồi làm mới ngầm
+   (tối đa 3 lời gọi nền); onland.tech quá hạn thì hỏi lại. Ô trống (404) của Guland cũng được nhớ. Giữ tối đa DEMMAX mục, xoá cũ nhất. */
+var DEMDB=null, DEMLAM=0, DEMGHI=0, DEMDANG=new Set();
+var DEM_NGAY=86400000, DEMMAX=1200;
+function demMo(){
+  if(DEMDB)return DEMDB;
+  return DEMDB=new Promise((ok,er)=>{try{const r=indexedDB.open('tcdt-dem',1);
+    r.onupgradeneeded=()=>{const st=r.result.createObjectStore('o');st.createIndex('t','t')};
+    r.onsuccess=()=>ok(r.result);r.onerror=()=>er(r.error)}catch(e){er(e)}}).catch(()=>null);
+}
+function demDoc(k){return demMo().then(db=>db?new Promise(ok=>{try{const q=db.transaction('o').objectStore('o').get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)}catch(e){ok(null)}}):null)}
+function demGhi(k,v){return demMo().then(db=>db&&new Promise(ok=>{try{const t=db.transaction('o','readwrite');t.objectStore('o').put(v,k);t.oncomplete=t.onerror=t.onabort=()=>ok()}catch(e){ok()}})).then(()=>{if(++DEMGHI%40===0)demDon()})}
+function demDon(){                              // xoá mục quá 40 ngày, rồi xoá cũ nhất nếu quá DEMMAX (duyệt khoá của chỉ mục, không đọc nội dung)
+  demMo().then(db=>{if(!db)return;try{const st=db.transaction('o','readwrite').objectStore('o'),ix=st.index('t');
+    const cu=ix.openKeyCursor(IDBKeyRange.upperBound(Date.now()-40*DEM_NGAY));
+    cu.onsuccess=()=>{const c=cu.result;if(c){st.delete(c.primaryKey);c.continue()}};
+    const n=st.count();n.onsuccess=()=>{let thua=n.result-Math.floor(DEMMAX*0.85);if(n.result<=DEMMAX||thua<=0)return;
+      const c2=ix.openKeyCursor();c2.onsuccess=()=>{const c=c2.result;if(c&&thua-->0){st.delete(c.primaryKey);c.continue()}}}}catch(e){}});
+}
+function demXoa(){return demMo().then(db=>db&&new Promise(ok=>{try{const t=db.transaction('o','readwrite');t.objectStore('o').clear();t.oncomplete=t.onerror=t.onabort=()=>ok()}catch(e){ok()}}))}
+function demLay(k,url,opt){
+  return fetch(url,opt).then(async r=>{
+    const post=opt&&opt.method==='POST';
+    if(r.ok||(r.status===404&&!post))demGhi(k,{t:Date.now(),s:r.status,b:r.ok?await r.clone().arrayBuffer():null});
+    return r;
+  });
+}
+function demLam(k,url,opt){                     // làm mới ngầm một mục quá hạn
+  if(DEMLAM>=3||DEMDANG.has(k))return;DEMLAM++;DEMDANG.add(k);
+  demLay(k,url,opt).catch(()=>{}).finally(()=>{DEMLAM--;DEMDANG.delete(k)});
+}
+async function demFetch(url,ttl,cuaSo,opt,khoa){   // như fetch; ttl, cuaSo tính bằng ms
+  const k=khoa||((opt&&opt.method==='POST'?'P ':'')+url+(opt&&opt.body?'#'+opt.body:''));
+  let d=null;try{d=await demDoc(k)}catch(e){}
+  if(d){const tuoi=Date.now()-d.t;
+    if(tuoi<ttl||(cuaSo&&tuoi<ttl+cuaSo)){if(tuoi>=ttl)demLam(k,url,opt);return new Response(d.s===404?null:d.b,{status:d.s})}}
+  return demLay(k,url,opt);
+}
 
 /* ===== v49: tách ranh thửa từ ô ảnh ranh (Guland, intercdn.guland.vn/land/<tỉnh>/…) khi không nguồn nào có thửa =====
    [ĐÃ THỬ 09/10] ảnh chỉ có đường kẻ (không số); CDN giữ đệm tiêu đề CORS của lần gọi đầu (bỏ qua cả tham số ?…) nên phải lấy qua trạm /gl/.
@@ -5769,7 +5834,7 @@ function glrTinh(la,lo){
   return p?glSlug(p.q[0]):'';
 }
 async function glrAnh(tinh,z,x,y){
-  const r=await fetch(`${GLTRAM}/${tinh}/${z}/${x}/${y}.png`);
+  const r=await demFetch(`${GLTRAM}/${tinh}/${z}/${x}/${y}.png`,7*DEM_NGAY,23*DEM_NGAY,null,`G ${tinh}/${z}/${x}/${y}`);
   if(r.status===404)return null;
   if(!r.ok)throw new Error('trạm trả mã '+r.status);
   return await createImageBitmap(await r.blob());
@@ -5798,9 +5863,16 @@ function glrRutGon(p,e){                       // Douglas–Peucker cho vòng kh
   let xa=0,dmax=0;for(let i=1;i<p.length;i++){const d=Math.hypot(p[i][0]-p[0][0],p[i][1]-p[0][1]);if(d>dmax){dmax=d;xa=i}}
   return [...dp(0,xa).slice(0,-1),...dp(xa,p.length-1).slice(0,-1)];
 }
-async function glrTach(w){
+const GLRNHO=new Map();                         // v57: nhớ 60 giây để chuỗi Mạnh Lắm và nhánh chạy song song dùng chung một lần tách
+function glrTach(w){
+  const k=LON0+'|'+Math.round(w[0]*10)+'|'+Math.round(w[1]*10),n=GLRNHO.get(k),now=Date.now();
+  if(n&&now-n.t<60000)return n.p;
+  if(GLRNHO.size>20)GLRNHO.clear();
+  const p=glrTachGoc(w);GLRNHO.set(k,{t:now,p});return p;
+}
+async function glrTachGoc(w){
   if(LON0==null)return null;
-  const dl=OLLECH.tat?[0,0]:OLLECH.chung,k0=K0||0.9999;
+  const k0=K0||0.9999,[la0_,lo0_]=conv(w[0],w[1],LON0,k0),dl=olLechViTri(la0_,lo0_);
   const [la,lo]=conv(w[0]+dl[0],w[1]+dl[1],LON0,k0),tinh=glrTinh(la,lo);if(!tinh)return null;
   for(const z of [20,19,18]){
     const [fx,fy]=vnLL2T(la,lo,z),tx=Math.floor(fx)-1,ty=Math.floor(fy)-1,N=768;
@@ -5830,14 +5902,15 @@ async function glrTaiDiem(w){                  // không nguồn nào có thửa
   let kq=null;try{kq=await glrTach(w)}catch(e){return false}
   if(!kq||!inPoly(w,kq.r))return false;
   const p=kq.r.map(([E,N])=>({E,N}));
-  const t={to:'?',s:'?',goiY:[],l:null,chu:null,d:0,tay:1,anh:1,r:kq.r,a:kq.a,chuaKt:1,
+  const t={to:'?',s:'?',goiY:[],l:null,chu:null,d:0,tay:1,anh:1,tam:TRAN,r:kq.r,a:kq.a,chuaKt:1,
     c:[p.reduce((s,q)=>s+q.E,0)/p.length,p.reduce((s,q)=>s+q.N,0)/p.length]};
   let sh=SHEETS.find(q=>q.to==='?');
   if(!sh){sh={to:'?',ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc:'',lon0:LON0,k0:K0||0.9999};SHEETS.push(sh)}
   sh.thua=sh.thua.filter(q=>!(q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<1));
   sh.thua.push(t);ganId(sh);SEL.add(t.id);FLASH={id:t.id,z:0};CHIPID=null;
   drawSheets();drawResults();drawMap();
-  olmsg(`<b>Thửa chưa rõ số</b>: ${fmt(t.a,1)} m² theo ranh (ranh lấy từ ảnh bản đồ, gần đúng ±0,2 m; chưa có số tờ, số thửa, loại đất ở điểm này).`,'ok',true);
+  GLRMSG=`<b>Thửa chưa rõ số</b>: ${fmt(t.a,1)} m² theo ranh (ranh lấy từ ảnh bản đồ, gần đúng ±0,2 m; chưa có số tờ, số thửa, loại đất ở điểm này).`;
+  olmsg(GLRMSG,'ok',true);
   return true;
 }
 /* ===== Tên xã / phường sau sắp xếp 01/07/2025 — tỉnh Trà Vinh cũ (nay thuộc tỉnh Vĩnh Long)
@@ -5899,7 +5972,7 @@ function glDoc(j){
   let p=Array.isArray(j&&j.points)?j.points.map(q=>[+q.lat,+q.lng]).filter(q=>isFinite(q[0])&&isFinite(q[1])):[];
   if(p.length>1&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1])p=p.slice(0,-1);
   if(p.length<3)return {khong:1};
-  const dl=OLLECH.tat?[0,0]:(OLLECH.huyen[String(j.district_id)]||OLLECH.chung);
+  const dl=OLLECH.tat?[0,0]:(OLLECH.huyen[String(j.district_id)]||olLechViTri(p[0][0],p[0][1]));
   const v=p.map(([a,b])=>{const [E,N]=toVN(a,b,LON0,K0||0.9999);return {E:E-dl[0],N:N-dl[1]}});
   const m=String(j.address||'').match(/Thửa\s+([0-9]{1,5}[a-zA-Z]?)\s*,\s*tờ\s+([0-9A-Za-z]+)(?:\.\s*Diện tích:\s*([0-9]+(?:\.[0-9]+)?))?/i);
   const chu=String(j.ma||j.html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ');
@@ -5929,7 +6002,7 @@ const glMoTa=(t,w,ly)=>`<b>${esc(nhanThua(t))}, tờ ${esc(t.to)}</b> ${ly?` (${
    (thửa 4664 Cầu Ngang trùng ≤ 0,19 m) nên cộng lại độ lệch theo huyện, như olLL. Chỉ mở khi người dùng bấm. */
 function glLink(w,huyen){
   if(LON0==null||!w)return '';
-  const d=OLLECH.tat?[0,0]:(OLLECH.huyen[String(huyen||'')]||OLLECH.chung);
+  const d=OLLECH.tat?[0,0]:(OLLECH.huyen[String(huyen||'')]||olLechViTri(...conv(w[0],w[1],LON0,K0||0.9999)));
   const [la,lo]=conv(w[0]+d[0],w[1]+d[1],LON0,K0||0.9999);
   return `https://guland.vn/soi-quy-hoach?lat=${la.toFixed(7)}&lng=${lo.toFixed(7)}`;
 }

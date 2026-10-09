@@ -383,7 +383,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v40 · 08/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v42 · 09/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -597,6 +597,11 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
     <label for="vopa" style="margin-top:0">Độ đậm lớp thửa: <span id="vopav">100%</span></label>
     <input type="range" id="vopa" min="0" max="100" value="100"></div>
 </div>
+<div id="vnbox2" style="margin-top:10px;border-top:1px solid var(--rule);padding-top:8px">
+  <label style="display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px;color:var(--ink);font-weight:700"><input type="checkbox" id="vnon2" style="width:20px;height:20px;flex:none">🧩 Ranh thửa khi phóng gần</label>
+  <select id="vnuu2" aria-label="Ưu tiên ranh khi nhiều nguồn cùng có"></select>
+  <div class="note" style="margin:4px 0 0;font-size:12px"><span style="display:inline-block;width:18px;border-top:2px solid #1d5fd0;vertical-align:middle"></span> có số thửa &nbsp; <span style="display:inline-block;width:18px;border-top:2px solid #e8590c;vertical-align:middle"></span> nguồn 2 (chỉ ranh)</div>
+</div>
 <div id="glbox" style="margin-top:10px;border-top:1px solid var(--rule);padding-top:8px">
   <div class="row" style="align-items:flex-end">
     <div style="flex:2 1 220px"><label style="display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:13px;color:var(--ink);font-weight:700"><input type="checkbox" id="glon" style="width:20px;height:20px;flex:none">Lớp quy hoạch Mạnh Lắm</label>
@@ -649,7 +654,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div style="flex:1 1 100%"><button id="btam" title="Lấy toạ độ và địa chỉ ngay tâm màn hình bản đồ, không cần dán tay" style="width:100%;min-height:44px;padding:10px 8px;font-size:14px;border:0;background:#12283a;color:#fff;border-radius:6px;cursor:pointer;font-weight:700">⌖ Lấy vị trí ngay tâm màn hình</button></div>
 </div>
 <div id="gpsmsg"></div>
-<div id="mapchip"><b></b><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button><a id="chipgl" class="cb" target="_blank" rel="noopener" title="Mở trang nguồn 2 tại thửa này (tab mới) để xem số tờ, số thửa, thông tin của họ">Nguồn 2 ↗</a></div></div></div>
+<div id="mapchip"><b></b><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button><button id="chipgl" class="cb" title="Mở nguồn 2 (Guland) ở các thửa đang chọn để lấy thêm số tờ, số thửa, loại đất">🔎 Lấy thêm từ Guland</button></div></div></div>
 <div id="printbox" class="hide" style="border:1px solid var(--rule);border-radius:3px;padding:10px;margin-top:8px;background:#fff">
   <p class="note" id="pscale" style="margin:0 0 8px">Kéo một khung trên bản đồ để chọn vùng in.</p>
   <div class="row">
@@ -2338,7 +2343,7 @@ drawKTT();
 let VW=null;                 // {cx,cy,sc} tâm thế giới + tỷ lệ px/m
 let GOTO=true, FLASH=null;
 let SHOWLAB=true, SHOWDIM=false, PRINTMODE=false, VOPA=100;
-let OLPICK=false, OLBUSY=false;   // chế độ tra thửa tại điểm bấm
+let OLPICK=false, OLBUSY=false, OLTAM=false;   // OLTAM (v41): lượt tra do bấm vào chỗ đang hiện ranh, chưa bật chế độ tra → vẫn báo trên bản đồ   // chế độ tra thửa tại điểm bấm
 let OLTOL=0;                       // v35: độ chính xác của cú bấm gần nhất (m) = số điểm ảnh sai lệch / độ phóng
 let VUNGMODE=false, VRECT=null, vStart=null, OLVUNGDUNG=false, VGAP=null;   // VGAP: ô 10 m trong khung vừa quét mà Mạnh Lắm không có ranh (v34)   // v33: chế độ khoanh vùng (kéo khung), khung đang kéo, điểm bắt đầu, cờ dừng
 let PRECT=null;              // vùng in, toạ độ thế giới {x0,y0,x1,y1}
@@ -2594,7 +2599,7 @@ function bindMap(){
         else{SEL.add(best.id);FLASH={id:best.id,z:0}}   // chạm chọn trên bản đồ cũng hiện thanh thông tin + nút chỉ đường
         drawResults()}
       else if(typeof vnTrung==='function'&&VNR.on&&VNR.uu!=='chigl'&&!VUNGMODE&&(()=>{const h=vnTrung(w);if(h)vnChon(h,w);return h})()){}   // v37: bấm trúng ranh nhanh → chọn ngay
-      else if((OLPICK||(typeof vnCanThay==='function'&&vnCanThay()))&&window.olTaiDiem)window.olTaiDiem(w);   // bấm ra ngoài thửa đã có → tra ngược: Mạnh Lắm → ranh nhanh → nguồn 2 (v39: khi đang hiện ranh thì không cần bật chế độ tra)
+      else if((OLPICK||(typeof vnCanThay==='function'&&vnCanThay()))&&window.olTaiDiem){if(!OLPICK)OLTAM=true;window.olTaiDiem(w)}   // bấm ra ngoài thửa đã có → tra ngược: Mạnh Lắm → ranh nhanh → nguồn 2 (v39: khi đang hiện ranh thì không cần bật chế độ tra)
     }
     downPt=null;
   };
@@ -3769,17 +3774,18 @@ function chipThua(){
   ]).filter(Boolean).join(' · ');
   /* v37: dòng địa chỉ như trang .vn — tên xã/tỉnh mới (Trà Vinh cũ), tên cũ, toạ độ điểm trong thửa + chép, quy hoạch */
   const moi=xaMoi(t.dc),cuDc=t.dc||'';
-  $('chipxa').textContent=moi||cuDc;$('chipcu').textContent=moi&&cuDc?cuDc+' (cũ)':'';
+  $('chipxa').textContent=(moi||cuDc)+(t.gl?` · Guland: thửa ${t.gl.s} tờ ${t.gl.to}${t.gl.l?' · '+t.gl.l:''}${t.gl.d?' · '+fmt(t.gl.d,1)+' m²':''}`:'');$('chipcu').textContent=moi&&cuDc?cuDc+' (cũ)':'';
   let td='';const L0=LON0!=null?LON0:olLon0().lon0,pt=diemTrongThua(t);
   if(pt&&L0!=null){const [la,lo]=conv(pt[0],pt[1],L0,K0||0.9999);td=la.toFixed(6)+', '+lo.toFixed(6)}
   $('chiptd').textContent=td?'Toạ độ: '+td:'';
-  {const u=pt?glLink(pt):'',a=$('chipgl');a.style.display=u?'':'none';if(u)a.href=u}$('chipcp').dataset.td=td;$('chipcp').style.display=td?'':'none';
+  $('chipcp').dataset.td=td;$('chipcp').style.display=td?'':'none';
   $('chipdc').classList.toggle('an',khoi||(!moi&&!cuDc&&!td));
   box.classList.add('on');
 }
 $('chipcp').onclick=e=>{e.stopPropagation();const td=e.currentTarget.dataset.td;if(!td)return;
   const xong=()=>{e.target.textContent='✓ Đã chép';setTimeout(()=>{e.target.textContent='📋 Chép'},1500)};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(td).then(xong,()=>prompt('Chép toạ độ:',td));else prompt('Chép toạ độ:',td)};
+$('chipgl').onclick=e=>{e.stopPropagation();glMoLay()};
 $('chipqh').onclick=e=>{e.stopPropagation();const c=$('glon');if(!c.checked){c.checked=true;c.onchange({target:c})}
   pickBar('Đã bật lớp quy hoạch. Kéo thanh độ đậm bên phải để xem rõ hơn.','ok');setTimeout(()=>{if($('picktxt').textContent.startsWith('Đã bật lớp quy hoạch'))$('pickbar').style.display='none'},5000)};
 $('chipx').onclick=()=>{
@@ -4558,7 +4564,7 @@ try{OLNHO=JSON.parse(localStorage.getItem('olsel')||'{}')||{}}catch(e){}
 /* [QĐ 06/10, v33] khung trên bản đồ chỉ hiện khi KHÔNG có thửa, lỗi, hoặc đang tra; kết quả có thửa ('ok') chỉ ở mục Mạnh Lắm
    và thanh thông tin dưới bản đồ. banDo=true: vẫn hiện trên bản đồ (bấm hụt chọn thửa gần nhất, kết quả khoanh vùng). */
 const olmsg=(h,loai,banDo)=>{$('olmsg').innerHTML=loai?`<div class="${loai}">${h}</div>`:h;
-  if(typeof OLPICK==='undefined'||!h||!(OLPICK||banDo))return;
+  if(typeof OLPICK==='undefined'||!h||!(OLPICK||OLTAM||banDo))return;
   if(loai==='ok'&&!banDo)$('pickbar').style.display='none';else pickBar(h,loai)};
 function pickBar(h,loai){const b=$('pickbar');b.className=loai||'';b.style.display='block';const p=$('picktxt');p.innerHTML=h;
   /* [v31] gom các nút về một hàng riêng cuối khung, không chen vào dòng chữ */
@@ -5090,7 +5096,7 @@ async function olTaiDiem(w){
     if(k.t)olmsg(glMoTa(k.t,w,'không gọi được nguồn 1: '+esc(e.message)),'ok');
     else olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.'+glLyDo(k)+glNut(w),'warn');
   }
-  finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}}
+  finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}else setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}
 }
 /* ===== v37: Ranh nhanh — ô ranh vector như trang onland.vn (giao diện ghi "Ranh nhanh Mạnh Lắm") =====
    [ĐÃ THỬ 08/10/2026] onland.vn vẽ ranh thửa bằng ô vector MVT theo "bộ dữ liệu" (mỗi bộ ≈ một huyện/thị xã):
@@ -5104,9 +5110,18 @@ async function olTaiDiem(w){
      "Lấy bộ ranh" trên trang .vn (đọc địa chỉ ô mà chính trang đó tải), app nhớ trong máy. Không dò thử số bộ.
    - [QĐ 08/10] chỉ hiện ranh, số tờ, số thửa; diện tích tính từ ranh; diện tích ghi và loại đất chỉ lấy từ Mạnh Lắm sau khi chọn thửa.
    - [QĐ 08/10] đổi QĐ 06/10 "không quét cả tờ" riêng cho nguồn này: tải ô theo khung nhìn như trang .vn. */
-const VNTRAM=OLTRAM.replace(/\/api$/,'/vn'), VNZ=16, VNLECH=[0.715,0.21], VNBOMAX=6, VNLE=0.05, VNSONG=6, VNOMAX=600;
-const VNBOMD=[{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1667,b:[9.625,106.485,9.645,106.51]},
-  {id:2217,b:[10.0,106.205,10.006,106.215]},{id:2216,b:[10.0,106.205,10.006,106.215]},{id:2198,b:[10.0,106.205,10.006,106.215]},{id:1784,b:[10.0,106.205,10.006,106.215]}];
+const VNTRAM=OLTRAM.replace(/\/api$/,'/vn'), VNZ=16, VNLECH=[0.715,0.21], VNBOMAX=10, VNLE=0.1, VNSONG=6, VNOMAX=600;
+/* số bộ đã biết: thu ngày 08–09/10/2026 bằng cách nút dấu trang làm (địa chỉ ô mà trang .vn tải) tại 26 huyện / thành phố của tỉnh Vĩnh Long mới
+   (Trà Vinh, Vĩnh Long, Bến Tre cũ). Phạm vi là các ô đã thấy; app tự nới khi ô có thửa. */
+const VNBOMD=[{id:1663,b:[9.655,106.425,9.675,106.445]},{id:1667,b:[9.625,106.485,9.682,106.513]},
+  {id:1662,b:[9.671,106.397,9.877,106.512]},{id:1664,b:[9.807,106.194,9.812,106.205]},{id:1777,b:[10.066,105.826,10.077,105.831]},{id:1779,b:[10.196,105.947,10.255,105.974]},
+  {id:1780,b:[10.174,106.078,10.185,106.084]},{id:1781,b:[9.963,105.914,10.055,105.996]},{id:1783,b:[9.963,105.914,10.055,105.996]},{id:1784,b:[9.985,106.177,10.093,106.216]},
+  {id:1785,b:[10.066,105.765,10.115,105.831]},{id:1786,b:[10.245,105.969,10.255,105.974]},{id:1788,b:[9.693,106.254,9.704,106.265]},{id:1789,b:[9.866,106.057,9.877,106.062]},
+  {id:1816,b:[10.034,106.469,10.185,106.705]},{id:1817,b:[10.234,106.326,10.293,106.381]},{id:1818,b:[10.174,106.078,10.277,106.133]},{id:1819,b:[10.147,106.370,10.245,106.474]},
+  {id:1820,b:[10.115,106.265,10.207,106.331]},{id:1821,b:[10.234,106.370,10.245,106.381]},{id:1822,b:[9.796,106.447,10.045,106.595]},{id:2023,b:[10.104,105.765,10.115,105.776]},
+  {id:2198,b:[9.985,106.205,9.996,106.216]},{id:2212,b:[9.931,106.342,9.942,106.348]},{id:2216,b:[9.985,106.205,9.996,106.216]},{id:2217,b:[9.985,106.205,9.996,106.216]},
+  {id:2221,b:[9.866,106.397,9.877,106.403]},{id:2238,b:[9.931,106.342,9.942,106.348]},{id:2250,b:[9.866,106.057,9.877,106.062]},{id:2251,b:[9.866,106.057,9.877,106.062]},
+  {id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2826,b:[9.693,106.254,9.704,106.265]}];
 let VNR={on:true,bo:VNBOMD.map(b=>({...b,b:[...b.b]})),o:new Map(),cho:[],dang:0,loi:'',tb:false};
 try{const q=JSON.parse(localStorage.getItem('vnbo')||'null');if(Array.isArray(q))for(const b of q)vnThemBo(b.id,b.b,true)}catch(e){}
 try{VNR.on=localStorage.getItem('vnon')!=='0'}catch(e){}
@@ -5428,13 +5443,58 @@ function vnNhanMa(s){                        // "1663:9.6,106.4,9.7,106.5;1667:�
   for(const [k,o] of VNR.o)if(o.st==='ok'&&!o.f.length)VNR.o.delete(k);
   vnMsg();drawMap();return {moi,cu};
 }
+/* ===== v42: "Lấy thêm từ Guland" — app mở guland.vn đúng vị trí các thửa đang chọn (kèm #tcdt=…), người dùng bấm dấu trang
+   "📥 Lấy thửa Guland" trên tab đó: dấu trang hỏi get-bound-2 bằng jQuery CỦA CHÍNH TRANG Guland (phiên của người dùng, đúng như tự bấm),
+   mỗi thửa cách 0,8 s, tối đa 10, rồi gửi về app (postMessage cho tab mở nó; không có thì mở app kèm #glkq=…). Bỏ tên chủ ngay trên trang Guland.
+   [ĐÃ THỬ 09/10] phản hồi tại 9.83, 106.47: address "Thửa 4664, tờ 3. Diện tích: 1630.7m²", 7 đỉnh, html có loại đất "CLN 1630.7m² Đất trồng cây lâu năm",
+   xã, huyện và "Tên chủ: …" (không lấy). Ngũ Lạc: points null, chỉ có tên xã (nguồn 2 không có thửa ở Duyên Hải). */
+const GLMAX=10, GLBM="(async()=>{const h=location.hash.match(/tcdt=([^&]+)/);if(!h)return alert('Mở trang này bằng nút «Lấy thêm từ Guland» trong app Tra cứu thửa đất.');\nlet q;try{q=JSON.parse(decodeURIComponent(h[1]))}catch(e){return alert('Mã trong địa chỉ bị hỏng.')}\nif(!window.jQuery)return alert('Trang Guland chưa tải xong, đợi vài giây rồi bấm lại.');\nconst B=document.createElement('div');B.style.cssText='position:fixed;z-index:2147483647;top:70px;left:50%;transform:translateX(-50%);background:#12283a;color:#fbeed0;font:14px/1.4 Arial,sans-serif;padding:10px 14px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:92vw';document.body.appendChild(B);\nconst kq=[];for(let i=0;i<q.d.length&&i<10;i++){const p=q.d[i];B.textContent='Đang lấy thửa '+(i+1)+'/'+q.d.length+' từ Guland…';\nlet j=null;try{j=await new Promise((ok,er)=>jQuery.ajax({url:'/get-bound-2',method:'POST',data:{marker_lat:p.la,marker_lng:p.lo,area:'',shape:'',force_remap_id:'',force_hcm_bddc_id:'',province_id:p.t||''},dataType:'json',success:ok,error:(x,s)=>er(new Error(s+' '+x.status))}))}catch(e){kq.push({k:p.k,loi:String(e.message)});continue}\nconst d=document.createElement('div');d.innerHTML=String(j&&j.html||'');const txt=d.textContent.replace(/\\s+/g,' ').replace(/Tên chủ.*?(?=Dữ liệu|$)/,' ');\nconst ma=(txt.match(/\\b([0-9]?[A-Z]{2,4}(?:[+-][A-Z]{2,4})*)\\s+[0-9.,]+\\s*m²\\s*([^0-9]*?)(?=Dữ liệu|Xem đầy đủ|$)/)||[]);\nconst A=[...d.querySelectorAll('a')].map(x=>x.textContent.trim()),ix=A.findIndex(x=>/^(Xã|Phường|Thị trấn)\\s/.test(x)),ok3=x=>x&&x.length<40&&!/[0-9]/.test(x)&&!/Chỉ đường|Đo vẽ|Bảng|Ký hiệu|Xem/.test(x),dc=ix<0?[]:['',A[ix],ok3(A[ix+1])?A[ix+1]:'',ok3(A[ix+2])?A[ix+2]:''];\nkq.push({k:p.k,j:{status:j&&j.status,points:j&&j.points,address:j&&j.address,district_id:j&&j.district_id,ward_id:j&&j.ward_id,ma:ma[0]||'',loai:(ma[2]||'').trim(),xa:dc[1]||'',huyen:dc[2]||'',tinh:dc[3]||''}});\nif(i+1<q.d.length)await new Promise(r=>setTimeout(r,800))}\nconst n=kq.filter(x=>x.j&&x.j.points).length;\nif(window.opener&&!window.opener.closed){window.opener.postMessage({tcdt:'gl',kq},q.o);B.textContent='Đã gửi '+n+'/'+kq.length+' thửa có số liệu về app. Tab này tự đóng…';setTimeout(()=>window.close(),1500)}\nelse{B.textContent='Đã lấy '+n+'/'+kq.length+' thửa — đang mở app…';location.href=q.a+'#glkq='+encodeURIComponent(JSON.stringify(kq))}})()";
+const glDauTrang=()=>'javascript:'+encodeURIComponent(GLBM);
+const GLDANG={};                              // k → mã thửa trong app, chờ kết quả từ tab Guland
+function glMoLay(){
+  const ds=allThua().filter(t=>SEL.has(t.id)&&t.r&&t.r.length>=3).slice(0,GLMAX);
+  if(!ds.length)return pickBar('Chọn ít nhất một thửa trên bản đồ trước.','warn');
+  if(LON0==null)return pickBar('Chưa có kinh tuyến trục.','warn');
+  const d=ds.map((t,i)=>{const w=diemTrongThua(t),u=glLink(w,t.ol&&OLHUYENLOP[t.ol]?OLHUYENLOP[t.ol][0]:''),m=u.match(/lat=([-\d.]+)&lng=([-\d.]+)/);
+    GLDANG['g'+i]=t.id;return {k:'g'+i,la:m[1],lo:m[2]}});
+  const q={d,o:location.origin,a:location.href.split('#')[0]};
+  const url=`https://guland.vn/soi-quy-hoach?lat=${d[0].la}&lng=${d[0].lo}#tcdt=${encodeURIComponent(JSON.stringify(q))}`;
+  const tab=window.open(url,'_blank');
+  pickBar(`Đã mở Guland ở ${ds.length} thửa đang chọn. Trên tab đó, khi bản đồ hiện xong, bấm dấu trang <b>📥 Lấy thửa Guland</b> — số liệu tự gửi về đây.<div><a class="olkepick olphu" href="${glDauTrang()}" onclick="event.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark) một lần là dùng được mãi.')">📥 Lấy thửa Guland (kéo lên thanh dấu trang)</a></div>`,tab?'ok':'warn');
+}
+function glGhep(kq){                          // ghép kết quả nguồn 2 vào thửa đang có
+  const dong=[];let n=0;
+  for(const x of kq||[]){
+    const id=GLDANG[x.k],t0=SHEETS.flatMap(sh=>sh.thua).find(t=>t.id===id);if(!t0)continue;
+    if(!x.j||!x.j.points){dong.push(`${esc(nhanThua(t0))} tờ ${esc(t0.to)}: nguồn 2 không có thửa ở đây${x.loi?' ('+esc(x.loi)+')':''}.`);continue}
+    const g=glDoc(x.j);if(!g.t){dong.push(`${esc(nhanThua(t0))}: nguồn 2 không có ranh.`);continue}
+    const t=g.t,doi=[];
+    if(!coSo(t0)&&coSo(t)){t0.s=t.s;doi.push('số thửa')}
+    if(!t0.l&&t.l){t0.l=t.l;doi.push('loại đất')}
+    if(!t0.d&&t.d){t0.d=t.d;const dv=Math.abs(t0.a-t0.d)/t0.d;t0.ok=dv<0.02;t0.bad=t0.ok?0:Math.round(dv*100);t0.chuaKt=0;doi.push('diện tích ghi')}
+    t0.gl={s:t.s,to:t.to,d:t.d,l:t.l,loai:x.j.loai||'',dc:[x.j.xa,x.j.huyen,x.j.tinh].filter(Boolean).join(', '),a:t.a};
+    const sh=SHEETS.find(q=>q.thua.includes(t0));if(sh&&!sh.dc&&t0.gl.dc)sh.dc=t0.gl.dc;
+    const lech=t0.a?Math.abs(t.a-t0.a)/t0.a*100:0,khac=(coSo(t0)&&coSo(t)&&t0.s!==t.s)||(t.to&&t0.to&&String(t.to)!==String(t0.to));
+    n++;dong.push(`<b>${esc(nhanThua(t0))} tờ ${esc(t0.to)}</b> — nguồn 2: thửa ${esc(t.s)} tờ ${esc(t.to)}${t.l?', '+esc(t.l):''}${x.j.loai?' ('+esc(x.j.loai)+')':''}${t.d?', '+fmt(t.d,1)+' m² ghi':''}; ranh ${fmt(t.a,1)} m²${lech>3?` <b>lệch ${fmt(lech,1)} % so với ranh đang có</b>`:' khớp ranh đang có'}${khac?' · <b>số tờ / thửa khác nguồn 1</b>':''}${doi.length?' · đã bổ sung '+doi.join(', '):''}.`);
+  }
+  for(const sh of SHEETS)ganId(sh);CHIPID=null;drawSheets();drawResults();drawMap();
+  pickBar((n?`Đã nhận ${n} thửa từ nguồn 2.<br>`:'')+dong.join('<br>'),n?'ok':'warn');
+}
+window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data||e.data.tcdt!=='gl')return;glGhep(e.data.kq)});
 (function vnKhoi(){
+  const hg=location.hash.match(/glkq=([^&]+)/);
+  if(hg){try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}
+    setTimeout(()=>pickBar('Đã nhận số liệu nguồn 2 nhưng app vừa mở lại nên không còn thửa đang chọn để ghép — lần sau để tab app mở khi bấm «Lấy thêm từ Guland».','warn'),900)}
   const h=location.hash.match(/vnbo=([^&]+)/);
   if(h){const {moi,cu}=vnNhanMa(decodeURIComponent(h[1]));try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}
     setTimeout(()=>pickBar(`Đã nhận ${moi} bộ ranh mới${cu?`, cập nhật ${cu} bộ đã có`:''}. Phóng tới vùng đó để thấy ranh.`,'ok'),800)}
-  const uu=$('vnuu');if(uu){uu.innerHTML=Object.entries(VNUU).map(([k,t])=>`<option value="${k}">${t}</option>`).join('');uu.value=VNR.uu;
-    uu.onchange=()=>{VNR.uu=uu.value;try{localStorage.setItem('vnuu',VNR.uu)}catch(e){}drawMap()}}
-  const on=$('vnon');if(on){on.checked=VNR.on;on.onchange=e=>{VNR.on=e.target.checked;try{localStorage.setItem('vnon',VNR.on?'1':'0')}catch(x){}vnMsg();drawMap()}}
+  /* v41: hai chỗ điều khiển (mục Mạnh Lắm và menu Lớp nền / Tuỳ chọn bản đồ) luôn đồng bộ */
+  const dongBo=()=>{for(const id of ['vnon','vnon2'])if($(id))$(id).checked=VNR.on;for(const id of ['vnuu','vnuu2'])if($(id))$(id).value=VNR.uu};
+  for(const id of ['vnuu','vnuu2']){const uu=$(id);if(!uu)continue;uu.innerHTML=Object.entries(VNUU).map(([k,t])=>`<option value="${k}">${t}</option>`).join('');
+    uu.onchange=()=>{VNR.uu=uu.value;try{localStorage.setItem('vnuu',VNR.uu)}catch(e){}dongBo();drawMap()}}
+  for(const id of ['vnon','vnon2']){const on=$(id);if(!on)continue;
+    on.onchange=e=>{VNR.on=e.target.checked;try{localStorage.setItem('vnon',VNR.on?'1':'0')}catch(x){}dongBo();vnMsg();drawMap()}}
+  dongBo();
   const a=$('vnbm');if(a){a.href=vnDauTrang();a.onclick=e=>{e.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark). Sau đó mở trang quy hoạch của Mạnh Lắm (onland.vn) ở vùng cần lấy, bấm dấu trang, kéo bản đồ một chút rồi bấm "Gửi sang app".')}}
   const g=$('vngo');if(g)g.onclick=()=>{const r=vnNhanMa($('vnma').value);$('vnma').value='';$('vnmsg').innerHTML=`Đã nhận ${r.moi} bộ mới, ${r.cu} bộ cập nhật.`};
   vnMsg();
@@ -5491,13 +5551,17 @@ async function glTaiDiem(w){
     j=await r.json();
   }catch(e){return {loi:e&&e.name==='AbortError'?`quá ${GLCHO/1000} giây không trả lời`:'bị chặn hoặc mất mạng'}}
   finally{clearTimeout(hen)}
+  return glDoc(j);
+}
+/* đọc một phản hồi get-bound-2 (gọi thẳng, hoặc do nút dấu trang "Lấy thửa Guland" gửi về) → {t} / {khong} — KHÔNG đọc tên chủ */
+function glDoc(j){
   let p=Array.isArray(j&&j.points)?j.points.map(q=>[+q.lat,+q.lng]).filter(q=>isFinite(q[0])&&isFinite(q[1])):[];
   if(p.length>1&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1])p=p.slice(0,-1);
   if(p.length<3)return {khong:1};
   const dl=OLLECH.tat?[0,0]:(OLLECH.huyen[String(j.district_id)]||OLLECH.chung);
   const v=p.map(([a,b])=>{const [E,N]=toVN(a,b,LON0,K0||0.9999);return {E:E-dl[0],N:N-dl[1]}});
   const m=String(j.address||'').match(/Thửa\s+([0-9]{1,5}[a-zA-Z]?)\s*,\s*tờ\s+([0-9A-Za-z]+)(?:\.\s*Diện tích:\s*([0-9]+(?:\.[0-9]+)?))?/i);
-  const chu=String(j.html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ');
+  const chu=String(j.ma||j.html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ');
   const ma=(chu.match(/\b([0-9]?[A-Z]{2,4}(?:[+-][A-Z]{2,4})*)\s+[0-9.,]+\s*m²/)||[])[1]||null;   // "LUK 7813.9m² Đất trồng lúa…"
   const d=m&&m[3]?parseFloat(m[3]):0;
   const t={to:m?m[2]:'?',s:m?m[1]:'?',goiY:[],hc:(dl[0]||dl[1])?dl:null,l:ma,chu:null,d,tay:1,ng:2,
@@ -5640,7 +5704,7 @@ async function olNacTiep(){
   if(!OLNAC||OLBUSY)return;
   OLBUSY=true;OLHUY=null;document.querySelectorAll('.olkepick').forEach(b=>b.disabled=true);
   try{await olNacDo()}catch(e){olmsg('Không dò được quanh điểm: '+esc(e.message)+'.','warn')}
-  finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}}
+  finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}else setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}
 }
 
 /* ===== Khoanh vùng: kéo khung chữ nhật trên bản đồ → lấy toàn bộ thửa Mạnh Lắm trong khung (v33) =====

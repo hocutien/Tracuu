@@ -385,7 +385,7 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v60 · 09/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v61 · 10/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
@@ -663,7 +663,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div style="flex:1 1 100%"><button id="btam" title="Lấy toạ độ và địa chỉ ngay tâm màn hình bản đồ, không cần dán tay" style="width:100%;min-height:44px;padding:10px 8px;font-size:14px;border:0;background:#12283a;color:#fff;border-radius:6px;cursor:pointer;font-weight:700">⌖ Lấy vị trí ngay tâm màn hình</button></div>
 </div>
 <div id="gpsmsg"></div>
-<div id="mapchip"><b></b><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button></div></div></div>
+<div id="mapchip"><b></b><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button><button id="chipgl" class="cb" title="Lấy thêm số tờ, số thửa, loại đất, diện tích ghi cho các thửa đang chọn (tối đa 10)">🔎 Bổ sung</button></div></div></div>
 <div id="printbox" class="hide" style="border:1px solid var(--rule);border-radius:3px;padding:10px;margin-top:8px;background:#fff">
   <p class="note" id="pscale" style="margin:0 0 8px">Kéo một khung trên bản đồ để chọn vùng in.</p>
   <div class="row">
@@ -2208,10 +2208,13 @@ function drawResults(){
       drawResults();
     });
   }
+  /* v61: danh sách và lớp ranh đang tải chưa có → tra sổ «vùng đã xem» trước (không tốn lời gọi nào nếu ô còn trong bộ nhớ đệm) */
+  const choSo=!!(q&&qv&&qv.want.size&&qv.want.size<=5&&!list.length&&!(vnKq&&vnKq.length)&&typeof soTimNap==='function'&&soTimNap(q,qv));
+  if(choSo)$('res').insertAdjacentHTML('beforeend','<p class="note">Đang tìm trong các vùng đã xem…</p>');
   /* v52: gõ có số tờ mà danh sách + lớp ranh chưa có → tìm rộng theo tờ quanh vùng đang biết (timRong) */
   const raw2=$('q').value.trim();
   const toChon=$('olto')&&$('olto').value?OLLOP.find(l=>String(l.id)===$('olto').value):null;   // v52: tờ đang chọn ở mục Tra cứu từ Mạnh Lắm
-  if(qv&&(qv.to||toChon)&&qv.want.size&&qv.want.size<=5&&!list.length&&!(vnKq&&vnKq.length)){
+  if(!choSo&&qv&&(qv.to||toChon)&&qv.want.size&&qv.want.size<=5&&!list.length&&!(vnKq&&vnKq.length)){
     if(TRKQ&&TRKQ.raw===raw2){
       if(TRKQ.dang)$('res').insertAdjacentHTML('beforeend',`<p class="note">${esc(TRKQ.dang)}</p>`);
       else if(TRKQ.ds.length){
@@ -2222,11 +2225,12 @@ function drawResults(){
       }else $('res').insertAdjacentHTML('beforeend',`<p class="note">${esc(TRKQ.ly||'Không tìm thấy.')}</p>`);
     }else{clearTimeout(window.__trT);window.__trT=setTimeout(()=>timRong(raw2),500)}
   }
-  if(TRKQ&&TRKQ.raw===raw2&&TRKQ.ds.length){}
+  if(choSo){}
+  else if(TRKQ&&TRKQ.raw===raw2&&TRKQ.ds.length){}
   else if(qv&&(qv.to||toChon)&&!list.length&&!(vnKq&&vnKq.length)){}
-  else if(vnKq&&!list.length&&q&&vnNapQuanhTim(q)){
+  else if(vnKq&&!vnKq.length&&!list.length&&q&&vnNapQuanhTim(q)){   // v61: đã thấy trên lớp ranh thì không tải thêm ô quanh tâm bản đồ
     $('res').insertAdjacentHTML('beforeend','<p class="note">Đang tìm trên lớp ranh quanh chỗ đang xem…</p>');
-  }else if(vnKq&&!list.length&&q){
+  }else if(vnKq&&!vnKq.length&&!list.length&&q){
     $('res').insertAdjacentHTML('beforeend','<p class="note">Lớp ranh quanh chỗ đang xem cũng chưa có số này. Phóng bản đồ tới vùng có thửa (tầm nhìn ≈ 3 km trở xuống) rồi gõ lại, hoặc hỏi theo số ở mục «Tra cứu thửa từ Mạnh Lắm».</p>');
   }
   $('res').querySelectorAll('.tog').forEach(b=>b.onclick=e=>{
@@ -3847,6 +3851,7 @@ $('chipcp').onclick=e=>{e.stopPropagation();const td=e.currentTarget.dataset.td;
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(td).then(xong,()=>prompt('Chép toạ độ:',td));else prompt('Chép toạ độ:',td)};
 $('chipqh').onclick=e=>{e.stopPropagation();const c=$('glon');if(!c.checked){c.checked=true;c.onchange({target:c})}
   pickBar('Đã bật lớp quy hoạch. Kéo thanh độ đậm bên phải để xem rõ hơn.','ok');setTimeout(()=>{if($('picktxt').textContent.startsWith('Đã bật lớp quy hoạch'))$('pickbar').style.display='none'},5000)};
+$('chipgl').onclick=e=>{e.stopPropagation();if(FLASH&&!SEL.has(FLASH.id))SEL.add(FLASH.id);glMoLay()};   // v61: bổ sung thông tin từ nguồn 2 (thẻ mới + tiện ích tự chạy / dấu trang)
 $('chipx').onclick=()=>{
   if(FLASH){SEL.delete(FLASH.id);FLASH=null}
   drawResults();
@@ -5374,7 +5379,7 @@ function vnChay(){
     demFetch(`${VNTRAM}/${o.bo}/${VNZ}/${o.x}/${o.y}.mvt`,DEM_NGAY,6*DEM_NGAY).then(async r=>{
       if(!r.ok)throw new Error(r.status===404?'trạm chưa cập nhật (xem tram/HUONG-DAN.md)':'trạm trả mã '+r.status);
       const ds=vnGiai(await r.arrayBuffer());
-      Object.assign(o,{st:'ok'},vnDungO(ds,VNZ,o.x,o.y));VNR.loi='';
+      Object.assign(o,{st:'ok'},vnDungO(ds,VNZ,o.x,o.y));VNR.loi='';soGhi(o);
       if(o.f.length){const [la1,lo0]=vnTileLL(VNZ,o.x,o.y),[la0,lo1]=vnTileLL(VNZ,o.x+1,o.y+1);vnThemBo(o.bo,[la0,lo0,la1,lo1])}
     }).catch(e=>{o.st='loi';o.t=Date.now();VNR.loi=e.message||'lỗi mạng'}).finally(()=>{VNR.dang--;vnChay();vnMsg();drawMap()});
   }
@@ -5514,7 +5519,7 @@ function vnLayO(bo,z,x,y){
   if(z===VNZ&&VNR.o.has(key)&&VNR.o.get(key).st==='ok')return Promise.resolve(VNR.o.get(key));
   if(VNO2.has(key))return VNO2.get(key);
   const p=demFetch(`${VNTRAM}/${bo}/${z}/${x}/${y}.mvt`,DEM_NGAY,6*DEM_NGAY).then(async r=>{if(!r.ok)throw new Error('trạm trả mã '+r.status);
-    const o={st:'ok',bo,x,y,z,...vnDungO(vnGiai(await r.arrayBuffer()),z,x,y)};if(z===VNZ)VNR.o.set(key,o);return o})
+    const o={st:'ok',bo,x,y,z,...vnDungO(vnGiai(await r.arrayBuffer()),z,x,y)};if(z===VNZ){VNR.o.set(key,o);soGhi(o)}return o})
     .catch(e=>{VNO2.delete(key);throw e});
   VNO2.set(key,p);if(VNO2.size>80)VNO2.delete(VNO2.keys().next().value);
   return p;
@@ -5757,7 +5762,8 @@ function glMoLay(){
   const q={d,o:location.origin,a:location.href.split('#')[0]};
   const url=`https://guland.vn/soi-quy-hoach?lat=${d[0].la}&lng=${d[0].lo}#tcdt=${encodeURIComponent(JSON.stringify(q))}`;
   const tab=window.open(url,'_blank');
-  pickBar(`Đã mở tab bổ sung cho ${ds.length} thửa đang chọn. Trên tab đó, khi bản đồ hiện xong, bấm dấu trang <b>📥 Bổ sung thửa</b> — số liệu tự gửi về đây.<div><a class="olkepick olphu" href="${glDauTrang()}" onclick="event.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark) một lần là dùng được mãi.')">📥 Bổ sung thửa (kéo lên thanh dấu trang)</a></div>`,tab?'ok':'warn');
+  /* v61: máy đã cài tiện ích tự chạy (cong-cu/bo-sung-tu-dong.user.js, Tampermonkey) thì thẻ đó tự lấy, tự gửi về, tự đóng; chưa cài thì bấm dấu trang */
+  pickBar(`Đã mở thẻ bổ sung cho ${ds.length} thửa đang chọn. Máy đã cài <b>tiện ích tự động</b> thì chờ vài giây, số liệu tự về đây và thẻ tự đóng. Chưa cài: trên thẻ đó bấm dấu trang <b>📥 Bổ sung thửa</b>.<div><a class="olkepick olphu" href="cong-cu/bo-sung-tu-dong.user.js" target="_blank" rel="noopener">⚙ Cài tiện ích tự động</a><a class="olkepick olphu" href="${glDauTrang()}" onclick="event.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark) một lần là dùng được mãi.')">📥 Bổ sung thửa (kéo lên thanh dấu trang)</a></div>`,tab?'ok':'warn');
 }
 function glGhep(kq){                          // ghép kết quả nguồn 2 vào thửa đang có
   const dong=[];let n=0;
@@ -5777,6 +5783,25 @@ function glGhep(kq){                          // ghép kết quả nguồn 2 và
   for(const sh of SHEETS)ganId(sh);CHIPID=null;drawSheets();drawResults();drawMap();
   pickBar((n?`Đã bổ sung ${n} thửa.<br>`:'')+dong.join('<br>'),n?'ok':'warn');
 }
+/* v61: thẻ bổ sung không gửi thẳng về được (app mở lại kèm #glkq=…) → không còn thửa đang chọn để ghép: đưa chính các thửa nhận được lên bản đồ */
+function glNhanRoi(kq){
+  if(!Array.isArray(kq))return pickBar('Số liệu bổ sung gửi về bị hỏng.','warn');
+  if(LON0==null){                              // máy chưa từng chọn tỉnh: lấy kinh tuyến trục của tỉnh gần điểm đầu tiên nhận được
+    const d=kq.map(x=>x&&x.j&&x.j.points&&x.j.points[0]).find(Boolean),la=d&&parseFloat(d.lat),lo=d&&parseFloat(d.lng);
+    if(isFinite(la)&&isFinite(lo)){const kc=Math.cos(la*Math.PI/180),pv=PROV.map(q=>({q,d:Math.hypot(la-q[2],(lo-q[3])*kc)})).sort((a,b)=>a.d-b.d)[0];if(pv){LON0=pv.q[1];K0=0.9999}}
+    if(LON0==null)return pickBar('Nguồn bổ sung chưa có dữ liệu thửa ở các điểm đã hỏi.','warn')}
+  let n=0,cuoi=null;
+  for(const x of kq){if(!x||!x.j||!x.j.points)continue;const g=glDoc(x.j);if(!g.t)continue;const t=g.t;
+    t.gl={s:t.s,to:t.to,d:t.d,l:t.l,loai:x.j.loai||'',dc:[x.j.xa,x.j.huyen,x.j.tinh].filter(Boolean).join(', '),a:t.a};
+    let sh=SHEETS.find(q=>q.to===t.to&&q.ol);
+    if(!sh){sh={to:t.to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc:t.gl.dc,lon0:LON0,k0:K0||0.9999};SHEETS.push(sh)}
+    sh.thua=sh.thua.filter(q=>!(q.ng===2&&q.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.05));
+    sh.thua.push(t);ganId(sh);SEL.add(t.id);cuoi=t;n++}
+  if(!n)return pickBar('Nguồn bổ sung chưa có dữ liệu thửa ở các điểm đã hỏi.','warn');
+  FLASH={id:cuoi.id,z:0};CHIPID=null;VW={cx:cuoi.c[0],cy:cuoi.c[1],sc:Math.max(VW?VW.sc:0,2)};
+  drawSheets();drawResults();drawMap();
+  pickBar(`Đã nhận ${n} thửa từ nguồn bổ sung (app vừa mở lại nên đưa thẳng lên bản đồ, không ghép vào thửa cũ).`,'ok');
+}
 window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data||e.data.tcdt!=='gl')return;glGhep(e.data.kq)});
 (function vnKhoi(){
   /* v48: danh sách bộ ranh đọc thêm từ du-lieu/bo-ranh.json (cùng thư mục với app trên GitHub) — thêm vùng chỉ cần thay file này.
@@ -5788,7 +5813,8 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
   }).catch(()=>{});
   const hg=location.hash.match(/glkq=([^&]+)/);
   if(hg){try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}
-    setTimeout(()=>pickBar('Đã nhận số liệu bổ sung nhưng app vừa mở lại nên không còn thửa đang chọn để ghép — lần sau để tab app mở khi bấm «Bổ sung thông tin».','warn'),900)}
+    let kq=null;try{kq=JSON.parse(decodeURIComponent(hg[1]))}catch(e){}
+    setTimeout(()=>glNhanRoi(kq),900)}
   const h=location.hash.match(/vnbo=([^&]+)/);
   if(h){const {moi,cu}=vnNhanMa(decodeURIComponent(h[1]));try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}
     setTimeout(()=>pickBar(`Đã nhận ${moi} bộ ranh mới${cu?`, cập nhật ${cu} bộ đã có`:''}. Phóng tới vùng đó để thấy ranh.`,'ok'),800)}
@@ -5807,7 +5833,8 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
     const md=new Set(VNBOMD.map(b=>b.id)),rieng=VNR.bo.filter(b=>!md.has(b.id));
     const dong=VNKHO.map(k=>`<tr><td style="padding:3px 6px 3px 0;vertical-align:top"><b>${esc(k.t)}</b>${k.h.length?`<details><summary style="font-size:12px">${k.h.length} nơi có ranh (bấm xem)</summary><span style="font-size:12px">${esc(k.h.join(', '))}</span></details>`:''}${k.r&&k.r.length?`<div style="font-size:12px;color:#a8700f">Chưa có ranh: ${esc(k.r.join(', '))}</div>`:''}${k.k&&k.k.length?`<div style="font-size:12px;color:#a8700f">Chưa thấy thửa ở trung tâm (có thể có ở xã khác): ${esc(k.k.join(', '))}</div>`:''}</td><td style="padding:3px 6px;text-align:right;white-space:nowrap;vertical-align:top">${k.d} huyện</td><td style="padding:3px 6px;text-align:right;white-space:nowrap;vertical-align:top">${k.b} bộ</td><td style="padding:3px 0;white-space:nowrap;vertical-align:top;font-size:12px">${esc(k.n)}</td></tr>`).join('');
     el.innerHTML=`<table style="border-collapse:collapse;width:100%"><tr style="font-size:12px;text-align:left"><th>Tỉnh</th><th style="text-align:right">Có ranh</th><th style="text-align:right">Bộ ranh</th><th>Ngày</th></tr>${dong}</table>
-      <div style="margin-top:6px">Tổng: <b>${VNKHO.length}</b> vùng · <b>${VNKHO.reduce((s,k)=>s+k.d,0)}</b> huyện có ranh · <b>${VNBOMD.length}</b> bộ nạp sẵn${rieng.length?` · <b>${rieng.length}</b> bộ tự thu trên máy này`:''}.</div>`};
+      <div style="margin-top:6px">Tổng: <b>${VNKHO.length}</b> vùng · <b>${VNKHO.reduce((s,k)=>s+k.d,0)}</b> huyện có ranh · <b>${VNBOMD.length}</b> bộ nạp sẵn${rieng.length?` · <b>${rieng.length}</b> bộ tự thu trên máy này`:''}.</div><div id="khoso" style="margin-top:4px"></div>`;
+    soDem().then(n=>{const e=$('khoso');if(e)e.textContent=n?`Máy này đang nhớ số tờ, số thửa của ${fmt(n,0)} ô ranh đã xem (mỗi ô ≈ 600 × 600 m) — gõ số thửa ở ô tìm kiếm là ra, không cần phóng lại tới đó.`:'Máy này chưa nhớ vùng nào: phóng gần tới đâu thì app nhớ số tờ, số thửa ở đó.'})};
   const kb=$('khobox');if(kb)kb.addEventListener('toggle',()=>{if(kb.open)khoVe()});
   const kx=$('khoxuat');if(kx)kx.onclick=()=>{
     const md=new Set(VNBOMD.map(b=>b.id));
@@ -5819,9 +5846,50 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
     const ma=VNR.bo.map(b=>b.id+':'+b.b.map(v=>v.toFixed(5)).join(',')).join(';');
     try{await navigator.clipboard.writeText(ma);$('khomsg').textContent=`Đã chép mã của ${VNR.bo.length} bộ. Trên máy khác: dán vào ô «Hoặc dán mã bộ ranh» rồi bấm Nhận.`}
     catch(e){$('vnma').value=ma;$('khomsg').textContent='Không chép được vào bộ nhớ tạm — mã đã nằm trong ô «dán mã bộ ranh» ở trên, hãy tự chép.'}};
-  const dx=$('demxoa');if(dx)dx.onclick=async()=>{dx.disabled=true;await demXoa();GLR.clear();VNO2.clear();GLRNHO.clear();$('demmsg').textContent='Đã xoá. Ranh sẽ tải lại mới.';dx.disabled=false};
+  const dx=$('demxoa');if(dx)dx.onclick=async()=>{dx.disabled=true;await demXoa();await soXoa();GLR.clear();VNO2.clear();GLRNHO.clear();$('demmsg').textContent='Đã xoá bộ nhớ đệm và sổ vùng đã xem. Ranh sẽ tải lại mới.';dx.disabled=false};
   vnMsg();
 })();
+
+/* ===== v61: nhớ số tờ / số thửa của những vùng đã xem (IndexedDB «tcdt-so», chỉ trên máy này, không đưa lên GitHub) =====
+   Mỗi ô ranh mức 16 đã dựng xong → ghi một dòng {bo, x, y, t, s: "tờ|thửa\n…"} (≈ vài KB / ô, tối đa SOMAX ô, xoá cũ nhất).
+   Gõ số thửa mà danh sách và lớp ranh đang tải chưa có → tra sổ này, nạp lại đúng các ô có số đó (gần tâm bản đồ trước) rồi tìm lại.
+   Sổ chỉ nói «ô nào có số này»; ranh vẫn lấy từ ô ranh (bộ nhớ đệm hoặc mạng) nên không bao giờ hiện ranh cũ hơn bộ nhớ đệm. */
+var SODB=null, SODAGHI=new Set(), SOGHI=0, SOMAX=3000, SOTIMDA='';
+function soMo(){
+  if(SODB)return SODB;
+  return SODB=new Promise((ok,er)=>{try{const r=indexedDB.open('tcdt-so',1);
+    r.onupgradeneeded=()=>{const st=r.result.createObjectStore('o');st.createIndex('t','t')};
+    r.onsuccess=()=>ok(r.result);r.onerror=()=>er(r.error)}catch(e){er(e)}}).catch(()=>null);
+}
+function soGhi(o){
+  if(!o||o.z!==undefined&&o.z!==VNZ||!o.f||!o.f.length)return;
+  const k=o.bo+'/'+o.x+'/'+o.y;if(SODAGHI.has(k))return;SODAGHI.add(k);
+  const s=o.f.map(f=>String(f.to||'').replace(/[|\n]/g,'')+'|'+String(f.so||'').replace(/[|\n]/g,'')+'\n').join('');
+  soMo().then(db=>{if(!db)return;try{const t=db.transaction('o','readwrite'),st=t.objectStore('o');st.put({bo:o.bo,x:o.x,y:o.y,t:Date.now(),s},k);
+    if(++SOGHI%50===0){const n=st.count();n.onsuccess=()=>{let thua=n.result-Math.floor(SOMAX*0.85);if(n.result<=SOMAX)return;
+      const c2=st.index('t').openKeyCursor();c2.onsuccess=()=>{const c=c2.result;if(c&&thua-->0){st.delete(c.primaryKey);c.continue()}}}}}catch(e){}});
+}
+function soDem(){return soMo().then(db=>db?new Promise(ok=>{try{const n=db.transaction('o').objectStore('o').count();n.onsuccess=()=>ok(n.result);n.onerror=()=>ok(0)}catch(e){ok(0)}}):0)}
+function soXoa(){SODAGHI.clear();return soMo().then(db=>db&&new Promise(ok=>{try{const t=db.transaction('o','readwrite');t.objectStore('o').clear();t.oncomplete=t.onerror=t.onabort=()=>ok()}catch(e){ok()}}))}
+function soTim(qv){                             // → [{bo,x,y}] các ô có số đang tìm, gần tâm bản đồ trước, tối đa 12
+  const toK=v=>nodau(String(v)).replace(/^dc/,'').replace(/vn2000$/,''),to=qv.to?toK(qv.to):'',want=[...qv.want].map(String);
+  return soMo().then(db=>db?new Promise(ok=>{const out=[];try{
+    const cu=db.transaction('o').objectStore('o').openCursor();
+    cu.onsuccess=()=>{const c=cu.result;if(!c)return ok(out);const v=c.value,s=v.s||'';
+      if(want.some(so=>s.includes('|'+so+'\n'))&&(!to||s.split('\n').some(d=>{const i=d.indexOf('|');return i>=0&&want.includes(d.slice(i+1))&&toK(d.slice(0,i))===to})))out.push({bo:v.bo,x:v.x,y:v.y,t:v.t});
+      c.continue()};
+    cu.onerror=()=>ok(out)}catch(e){ok(out)}}):[]).then(out=>{
+    let fx=null,fy=null;try{if(VW&&vnL0()!=null){const [la,lo]=conv(VW.cx,VW.cy,vnL0(),K0||0.9999);[fx,fy]=vnLL2T(la,lo,VNZ)}}catch(e){}
+    out.sort(fx==null?(a,b)=>b.t-a.t:(a,b)=>Math.hypot(a.x-fx,a.y-fy)-Math.hypot(b.x-fx,b.y-fy));
+    return out.slice(0,12)});
+}
+function soTimNap(q,qv){                        // true = vừa bắt đầu tra sổ cho chuỗi tìm này (xong sẽ tự vẽ lại kết quả)
+  if(SOTIMDA===q||!qv||!qv.want.size)return false;
+  SOTIMDA=q;
+  const lai=()=>{if(chuanQ($('q').value).q===q)drawResults()};
+  soTim(qv).then(ks=>ks.length?Promise.all(ks.map(k=>vnLayO(k.bo,VNZ,k.x,k.y).catch(()=>null))).then(lai):lai()).catch(lai);
+  return true;
+}
 
 /* ===== v57: bộ nhớ đệm bền (IndexedDB «tcdt-dem») cho ô ranh .vn, ô ảnh ranh Guland và câu trả lời onland.tech =====
    Hạn dùng: ô .vn 1 ngày (trạm cũng giữ 1 ngày; máy chủ .vn trả no-store), ô ảnh Guland 7 ngày (ngày sửa ô 2024, CDN cho giữ 30 ngày),

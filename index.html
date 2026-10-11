@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Bản đồ địa chính → KMZ</title>
+<title>Tra cứu thửa đất</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#3d6b4f">
 <meta name="mobile-web-app-capable" content="yes">
@@ -345,6 +345,14 @@ body.full #mfbtn{display:none!important}
 #mapchip button{flex:0 0 auto;border:0;background:none;color:var(--dim);font-size:17px;
   line-height:1;padding:2px 4px;cursor:pointer}
 #mapchip #chipdir{font-size:13px;font-weight:600;color:#fff;background:var(--moss);border-radius:6px;padding:7px 10px;white-space:nowrap}
+/* v64: khổ điện thoại — dòng tờ · diện tích · loại đất xuống hàng riêng, không cắt chữ; nút đủ lớn cho ngón tay; thanh độ đậm quy hoạch nhích lên khỏi nút «Toạ độ & vị trí» */
+@media(max-width:900px){
+  #mapchip.on:not(.khoi)>b{flex:1 1 auto;font-size:14px}
+  #mapchip.on:not(.khoi)>span{flex:1 1 100%;order:3;white-space:normal;overflow:visible;color:#16211c;font-size:14px;font-weight:600}
+  #mapchip .cb,#mapchip #chipdir{min-height:44px}
+  #mapchip #chipx{min-width:44px;min-height:44px;font-size:22px}
+  #glctl{top:40%}
+}
 /* khối chưa tách ranh: dòng 1 "⚠ Khối" + nút, dòng 2 nội dung đầy đủ (không cắt chữ, khổ điện thoại chỉ còn ~77 px nếu để một dòng) */
 #mapchip.khoi{border-color:#a8700f;background:#fdf3e1;flex-wrap:wrap;row-gap:4px}
 #mapchip.khoi b{color:#6b4500;white-space:nowrap;flex:1}
@@ -375,6 +383,36 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
 .olkepick.olphu:active,#pickbar .olkepick.olphu:active{background:#e6ebf0}
 #pickbar .olkepick:disabled,#pickbar .olkebtn:disabled{background:#6d6a60;color:#e6e2d7}
 .olkebtn{background:#12283a;color:#fff;font-weight:700}
+/* ===== v65: kiểu dáng mới — chữ hệ thống, bo góc mềm, nền sáng, bóng nhẹ. Chỉ ghi đè kiểu, không đổi bố cục ===== */
+:root{--paper:#f3f5f1;--field:#ffffff;--rule:#d9ddd5;--dim:#5f665f;--r:10px}
+html,body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+button{font-family:inherit}
+textarea,select,input{border-radius:var(--r)}
+textarea:focus,select:focus,input:focus{outline:2px solid rgba(61,107,79,.35);outline-offset:1px;border-color:var(--moss)}
+button:focus-visible{outline:2px solid #1d5fd0;outline-offset:2px}
+fieldset,.sheet,.cand,#sidebody>details{border-radius:var(--r)}
+#sidebody>details{box-shadow:0 1px 3px rgba(22,33,28,.06);overflow:hidden}
+.mini button,.tohead button,.sheet button{border-radius:9px;transition:background-color .12s}
+.mini button:not(.on):not(.go):not([disabled]):hover,.tohead button:hover{background-color:#eef2ea}
+.go{border-radius:12px;box-shadow:0 2px 6px rgba(180,36,31,.22)}
+.go[disabled]{box-shadow:none}
+.chip{border-radius:8px}
+.warn,.ok,.caution{border-radius:8px}
+#qbox input{border-radius:12px;border-width:1.5px}
+#mapchip{border-radius:14px;border-color:transparent;box-shadow:0 6px 20px rgba(22,33,28,.22)}
+#pickbar{border-radius:12px}
+#mtim{display:none}
+@media(max-width:900px){
+  /* ô tìm nổi trên bản đồ: bấm là sang thẻ Tra cứu, con trỏ nằm sẵn trong ô tìm */
+  #mtim{display:flex;align-items:center;gap:8px;position:absolute;z-index:6;top:calc(10px + env(safe-area-inset-top));left:10px;right:66px;
+    min-height:46px;padding:0 14px;border:1px solid var(--rule);border-radius:23px;background:#fff;color:var(--dim);font-size:15px;text-align:left;
+    cursor:pointer;box-shadow:0 2px 9px rgba(22,33,28,.24);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.full #mtim{display:none}
+  #pickbar{top:calc(64px + env(safe-area-inset-top));right:66px}
+  #mobtab{height:56px;box-shadow:0 -1px 8px rgba(22,33,28,.08)}
+  #mobtab button{font-size:14px}
+  #mobtab button.on{box-shadow:inset 0 3px 0 var(--moss);background:#f3f7f3}
+}
 </style>
 </head>
 <body>
@@ -385,10 +423,10 @@ a.olkepick{display:inline-block;text-decoration:none;text-align:center;box-sizin
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v63 · 10/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v65 · 11/10/2026</small>
     </div>
     <div id="qbox">
-      <input id="q" placeholder="Gõ số thửa · 32: 459-470 · tên chủ" spellcheck="false" autocomplete="off">
+      <input id="q" placeholder="Số thửa · 32: 459-470 · tên · toạ độ" spellcheck="false" autocomplete="off">
       <button id="qclr" class="hide" title="Xoá">×</button>
     </div>
     <div class="mini" id="qacts">
@@ -633,7 +671,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
 </div>
 </details>
   </div>
-  <div id="mapwrap"><canvas id="map"></canvas><div id="pickbar"><button id="pickx" title="Ẩn">×</button><span id="picktxt"></span></div>
+  <div id="mapwrap"><canvas id="map"></canvas><button id="mtim" type="button" aria-label="Tìm thửa theo số tờ, số thửa hoặc toạ độ">🔎 Tìm số thửa · toạ độ</button><div id="pickbar"><button id="pickx" title="Ẩn">×</button><span id="picktxt"></span></div>
     <div id="glctl" class="hide" aria-label="Độ đậm lớp quy hoạch">
       <button id="glmin" title="Nhạt bớt lớp quy hoạch" aria-label="Nhạt bớt">−</button>
       <input type="range" id="glopa2" min="0" max="100" step="5" value="60" aria-label="Độ đậm lớp quy hoạch">
@@ -690,8 +728,8 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div id="sheetbody"></div>
 </div>
 <div id="mobtab">
-  <button id="tside" class="on">Bảng điều khiển <span class="dem" id="demsel"></span></button>
-  <button id="tmap">Bản đồ</button>
+  <button id="tside" class="on">🔎 Tra cứu <span class="dem" id="demsel"></span></button>
+  <button id="tmap">🗺 Bản đồ</button>
 </div>
 <div id="printout"></div>
 <script>
@@ -2263,7 +2301,17 @@ function drawResults(){
   $('nm').placeholder=autoTitle();
   drawMap();
 }
-$('q').oninput=()=>{$('qclr').classList.toggle('hide',!$('q').value);drawResults()};
+/* v64: gõ / dán «vĩ độ, kinh độ» vào ô tìm → nút tới thẳng chỗ đó (trước đây ô toạ độ nằm tận đáy bảng Tuỳ chọn trên điện thoại) */
+const qToaDo=v=>{const m=String(v||'').trim().match(/^(\d{1,3}[.,]\d{3,})\s*[,;\s]\s*(\d{1,3}[.,]\d{3,})$/);if(!m)return null;
+  const a=+m[1].replace(',','.'),b=+m[2].replace(',','.'),vi=x=>x>7&&x<24,ki=x=>x>100&&x<112;
+  return vi(a)&&ki(b)?[a,b]:vi(b)&&ki(a)?[b,a]:null};
+const qToi=()=>{const t=qToaDo($('q').value);if(!t)return false;
+  $('mloc').value=t[0]+', '+t[1];$('q').value='';$('qclr').classList.add('hide');drawResults();
+  if(heptay())tab('map');$('bloc').click();return true};
+$('q').oninput=()=>{$('qclr').classList.toggle('hide',!$('q').value);
+  if(qToaDo($('q').value)){$('res').innerHTML='';$('found').innerHTML='<button type="button" id="qtoi" style="width:100%;min-height:44px;padding:10px 8px;font-size:14px;font-weight:700;border:0;border-radius:6px;background:#12283a;color:#fff;cursor:pointer">📍 Tới toạ độ này trên bản đồ</button>';$('qtoi').onclick=qToi;return}
+  drawResults()};
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter'&&qToi())e.preventDefault()});
 $('qclr').onclick=()=>{$('q').value='';$('qclr').classList.add('hide');drawResults();$('q').focus()};
 $('bclear').onclick=()=>{SEL.clear();drawResults()};
 $('ball').onclick=()=>{results().forEach(t=>SEL.add(t.id));drawResults()};
@@ -3532,7 +3580,7 @@ $('bnen').onclick=()=>{
   datNen(ds[(i+1)%ds.length],1);
   $('bnen').title='Nguồn ảnh: '+SRC[BASEKEY].ten;
 };
-try{const k=localStorage.getItem('nen');if(k&&SRC[k])datNen(k,0)}catch(e){}
+try{const k=localStorage.getItem('nen');if(k&&SRC[k])datNen(k,0);else if(k===null&&navigator.onLine!==false)datNen('esri',0)}catch(e){}   // v65: lần đầu mở bật sẵn ảnh vệ tinh
 glVe();
 $('bopa').oninput=e=>{BASEOPA=+e.target.value;$('bopav').textContent=BASEOPA+'%';drawMap()};
 $('vopa').oninput=e=>{VOPA=+e.target.value;$('vopav').textContent=VOPA+'%';drawMap()};
@@ -3540,13 +3588,19 @@ $('vopa').oninput=e=>{VOPA=+e.target.value;$('vopav').textContent=VOPA+'%';drawM
 /* ===== Định vị vị trí hiện tại ===== */
 /* chưa nạp tờ nào và chưa chọn tỉnh: tạm lấy kinh tuyến trục của tỉnh gần vị trí nhất
    (chỉ để hiện đúng chỗ trên nền; nạp tờ vào sẽ dùng kinh tuyến trục của tờ) */
+let KTTMD=false;                                  // v65: LON0 đang là trị số tạm đặt lúc mở app (theo chỗ xem lần trước / mặc định)
 function kttTheoViTri(la,lo){
-  if(LON0!=null)return true;
+  if(LON0!=null&&!(KTTMD&&KTTTAM&&!SHEETS.length))return true;
   if(!(la>7&&la<24&&lo>100&&lo<112))return false;
   let best=null,bd=1e9;
   for(const p of PROV){const d=Math.hypot(la-p[2],(lo-p[3])*Math.cos(la*Math.PI/180));if(d<bd){bd=d;best=p}}
   if(!best)return false;
+  const cuL=LON0;
   LON0=best[1];K0=0.9999;KTTTAM=best[0];
+  if(KTTMD&&cuL!=null&&cuL!==LON0){              // đổi kinh tuyến trục tạm: chuyển tâm khung nhìn sang hệ mới, bỏ ô ranh đã dựng theo hệ cũ
+    if(VW){const [a,b]=conv(VW.cx,VW.cy,cuL,0.9999),w=toVN(a,b,LON0,K0);VW.cx=w[0];VW.cy=w[1]}
+    try{VNR.o.clear()}catch(e){}
+  }
   return true;
 }
 let ME=null, WATCH=null;
@@ -3570,7 +3624,7 @@ function placeMe(vn,acc,la,lo,move){
   const coTo=ringsAll().length>0;
   if(!coTo){
     if(!BASEKEY)datNen('esri',0);        // chưa có tờ nào: cần lớp nền để thấy mình đang ở đâu
-    if(!VW||move)VW={cx:vn[0],cy:vn[1],sc:VW?VW.sc:0.9};
+    if(!VW||move)VW={cx:vn[0],cy:vn[1],sc:VW&&VW.sc>=0.3?VW.sc:0.9};   // v65: khung mở app nhìn rất xa → tới vị trí thì phóng gần như trước
     if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
   }
   if(!VW)fitView();
@@ -3588,7 +3642,7 @@ function placeMe(vn,acc,la,lo,move){
   const tam=KTTTAM?`<br><span class="note" style="margin:0">Chưa nạp tờ bản đồ: tạm lấy kinh tuyến trục ${dms(LON0)} của ${KTTTAM}. Cần toạ độ VN-2000 chính xác thì chọn tỉnh ở mục 3.</span>`:'';
   $('gpsmsg').innerHTML=`<div class="${xa?'caution':'ok'}">${la!=null?`Vị trí: ${la.toFixed(7)}, ${lo.toFixed(7)}${acc?` — sai số ±${fmt(acc,0)} m`:''}<br>`:''}
     VN-2000 (KTT ${dms(LON0)}): X (Bắc) ${fmt(vn[1],2)} · Y (Đông) ${fmt(vn[0],2)}${tam}
-    ${host?`<br><b>Đang đứng trong thửa ${host.s}, tờ ${host.to}</b>${host.chu?' — '+host.chu:''}`:'<br>Không nằm trong thửa nào đã dựng được ranh.'}${xa}</div>`;
+    ${host?`<br><b>Đang đứng trong thửa ${host.s}, tờ ${host.to}</b>${host.chu?' — '+host.chu:''}`:'<span class="kothua"><br>Không nằm trong thửa nào đã dựng được ranh.</span>'}${xa}</div>`;
 }
 function showMe(pos,move){
   const {latitude:la,longitude:lo,accuracy:acc}=pos.coords;
@@ -3731,7 +3785,7 @@ $('tside').onclick=()=>tab('side');
 const heptay=()=>matchMedia('(max-width:900px)').matches;
 // máy tính: mục Lớp nền để gập sẵn, nhường chỗ cho bản đồ
 capNhatDau();
-if(heptay())tab('side');
+if(heptay())tab('map');                           // v65 [QĐ 11/10]: mở app vào thẳng bản đồ
 /* trên điện thoại: chỏ tới thửa thì tự nhảy sang tab bản đồ */
 const _goto=gotoParcel;
 gotoParcel=function(t,zoom){
@@ -3762,6 +3816,16 @@ function toanMan(on){
 }
 $('bfull').onclick=()=>toanMan(true);
 $('bthoat').onclick=()=>toanMan(false);
+/* v64: nút Quay lại (điện thoại) đóng lớp đang mở trước — khay tuỳ chọn, bảng chú giải, toàn màn hình, thẻ Tra cứu (về bản đồ) — hết lớp mới rời app */
+(()=>{if(!history.pushState)return;
+  const lop=()=>document.body.classList.contains('sheet')?()=>khay(false)
+    :!$('glleg').classList.contains('hide')?()=>$('glleg').classList.add('hide')
+    :document.body.classList.contains('full')?()=>toanMan(false)
+    :heptay()&&!document.body.classList.contains('tmap')?()=>tab('map'):null;
+  const chan=()=>{try{history.pushState({tcdt:1},'')}catch(e){}};
+  chan();
+  window.addEventListener('popstate',()=>{const f=lop();if(f){f();chan()}else history.back()});
+})();
 document.addEventListener('fullscreenchange',()=>{
   if(!document.fullscreenElement&&document.body.classList.contains('full'))toanMan(false);
 });
@@ -3804,7 +3868,7 @@ function dungKhay(){
     if(!dt)dich.insertBefore(c.el,c.ke&&c.ke.parentNode===dich?c.ke:null);
     else dich.appendChild(c.el);
   });
-  if(dt&&$('basewrap'))$('basewrap').open=true;
+  if($('basewrap'))$('basewrap').open=!!dt;
   if(!dt)khay(false);
 }
 dungKhay();
@@ -3844,6 +3908,7 @@ function chipThua(){
   $('chiptd').textContent=td?'Toạ độ: '+td:'';
   $('chipcp').dataset.td=td;$('chipcp').style.display=td?'':'none';
   $('chipdc').classList.toggle('an',khoi||(!moi&&!cuDc&&!td));
+  document.querySelectorAll('#gpsmsg .kothua').forEach(e=>e.remove());   // v64: đã có thửa thì câu «không nằm trong thửa nào» hết đúng
   box.classList.add('on');
 }
 $('chipcp').onclick=e=>{e.stopPropagation();const td=e.currentTarget.dataset.td;if(!td)return;
@@ -4726,7 +4791,8 @@ async function olNapTo(to){
   OLLOP=(await olGoi('/map_layers',{tinh_id:$('oltinh').value,huyen_id:$('olhuyen').value,xa_id:x,type:'dc',current:1,pageSize:200}))
     .filter(l=>l.type==='dc').sort((a,b)=>SXS(olSoTo(a),olSoTo(b))||(b.year||0)-(a.year||0));
   const dem={};OLLOP.forEach(l=>{const s=olSoTo(l);dem[s]=(dem[s]||0)+1});
-  olOpt($('olto'),OLLOP.map(l=>({v:l.id,t:`Tờ ${olSoTo(l)}${l.ghichu?' — '+l.ghichu:''}${dem[olSoTo(l)]>1&&l.year?' ('+l.year+')':''}`})),
+  const gcChung=OLLOP.length>1&&OLLOP.every(l=>(l.ghichu||'')===(OLLOP[0].ghichu||''));   // v64: ghi chú giống nhau ở mọi tờ («Dữ liệu mới») thì không ghi, đỡ cắt chữ
+  olOpt($('olto'),OLLOP.map(l=>({v:l.id,t:`Tờ ${olSoTo(l)}${l.ghichu&&!gcChung?' — '+l.ghichu:''}${dem[olSoTo(l)]>1&&l.year?' ('+l.year+')':''}`})),
     OLLOP.length?`— chọn tờ (${OLLOP.length} tờ) —`:'— xã này chưa có tờ địa chính —',to);
   $('olto').disabled=!OLLOP.length;
 }
@@ -4990,7 +5056,7 @@ $('olgo').onclick=async()=>{
   const chuaTra=dungHoi?ds.filter(s=>!cho[s]&&!khong.includes(s)):[];
   if(chuaTra.length)dong.push(`Đã dừng theo yêu cầu — chưa tra xong thửa ${chuaTra.map(esc).join(', ')}.`);
   if(trenBD){                                                  // khung tiến độ trên bản đồ: thay bằng lời tóm tắt, hoặc tắt khi mọi số đều ra
-    if(khong.length||chuaTra.length)pickBar(`Tìm được ${ds.length-khong.length-chuaTra.length}/${ds.length} thửa trên tờ ${esc(to)}.${khong.length?` Không thấy thửa ${khong.map(esc).join(', ')}.`:''}${chuaTra.length?` Đã dừng, chưa tra thửa ${chuaTra.map(esc).join(', ')}.`:''} Chi tiết ở thẻ «Bảng điều khiển».`,'warn');
+    if(khong.length||chuaTra.length)pickBar(`Tìm được ${ds.length-khong.length-chuaTra.length}/${ds.length} thửa trên tờ ${esc(to)}.${khong.length?` Không thấy thửa ${khong.map(esc).join(', ')}.`:''}${chuaTra.length?` Đã dừng, chưa tra thửa ${chuaTra.map(esc).join(', ')}.`:''} Chi tiết ở thẻ «Tra cứu».`,'warn');
     else $('pickbar').style.display='none';
   }
   nut.disabled=false;
@@ -5518,7 +5584,10 @@ async function vnTech(t,w,sh){
       for(const {l,j} of rs){
         if(!j||!(j.geojsonWGS84||j.polygon_bound))continue;
         const tt=olThua(j,olSoTo(l),lonCua(l),l.id,true);if(!tt||!tt.r||!inPoly(w,tt.r))continue;
-        if(Math.abs(tt.a-t.a)>Math.max(3,t.a*0.08))continue;          // không phải cùng thửa
+        if(t.gan===1){                                                 // v64: ranh nhanh bị cắt ở mép ô (thiếu một phần) → thửa thật chỉ có thể LỚN hơn; không so ±8 % (ca 9.633484, 106.491669: mảnh 9.454 m² của thửa 28 tờ 13 rộng 10.392,7 m²)
+          const cungSo=coSo(t)&&coSo(tt)&&tt.s===t.s;                  // khác số → loại; không rõ số → chỉ nhận khi không lớn quá 3 lần mảnh (chặn hình bao lớn)
+          if(tt.a<t.a*0.92||(coSo(t)&&coSo(tt)&&!cungSo)||(!cungSo&&tt.a>t.a*3))continue;
+        }else if(Math.abs(tt.a-t.a)>Math.max(3,t.a*0.08))continue;     // không phải cùng thửa
         if(!tot||(nodau(olSoTo(l))===nodau(t.to)&&nodau(olSoTo(tot.l))!==nodau(t.to)))tot={l,tt};
       }
     }
@@ -6589,6 +6658,22 @@ async function olKeTaDiem(){
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.olkepick');if(!b||b.tagName==='A')return;   // đường dẫn (Mở ở nguồn 2) tự mở tab mới
   if(b.dataset.do)olDoLech();else if(b.dataset.luuchung)olLuuChung();else if(b.dataset.dung)olDungLech(b.dataset.dung==='2');else if(b.dataset.lai)olHoanBaoSai(1);else if(b.dataset.hoan)olHoanBaoSai(0);else if(b.dataset.nac)olNacTiep();else if(b.dataset.dunghoi){if(OLHOIDUNG)OLHOIDUNG();b.disabled=true;b.textContent='Đang dừng…'}else if(b.dataset.dungvung){OLVUNGDUNG=true;b.disabled=true;b.textContent='Đang dừng…'}else if(b.dataset.xuat)$(b.dataset.xuat==='kmz'?'bkmz':'bdgn').click();else (b.dataset.sai?olBaoSai:olKeTaDiem)()});
 if($('dol').open)olNapTinh();                   // mục Mạnh Lắm mở sẵn khi vào ứng dụng
+/* v65 [QĐ 11/10]: mở app là thấy bản đồ — về chỗ xem lần trước (lưu trong máy: vĩ độ, kinh độ, tỷ lệ), chưa có thì TP Trà Vinh.
+   Kinh tuyến trục lúc này chỉ là tạm (KTTMD): định vị / đặt toạ độ ở nơi khác thì kttTheoViTri tính lại */
+(()=>{
+  const luu=()=>{try{if(!VW||LON0==null)return;const [la,lo]=conv(VW.cx,VW.cy,LON0,K0||0.9999);
+    if(la>7&&la<24&&lo>100&&lo<112)localStorage.setItem('xemcuoi',JSON.stringify({la:+la.toFixed(6),lo:+lo.toFixed(6),sc:+VW.sc.toPrecision(4)}))}catch(e){}};
+  addEventListener('pagehide',luu);document.addEventListener('visibilitychange',()=>{if(document.hidden)luu()});setInterval(luu,5000);
+  if(VW||SHEETS.length||location.hash.length>1)return;
+  let s=null;try{s=JSON.parse(localStorage.getItem('xemcuoi')||'null')}catch(e){}
+  if(!(s&&s.la>7&&s.la<24&&s.lo>100&&s.lo<112&&s.sc>0))s={la:9.9347,lo:106.3453,sc:0.06};
+  const tam=LON0==null;
+  if(!kttTheoViTri(s.la,s.lo))return;
+  if(tam)KTTMD=true;
+  const w=toVN(s.la,s.lo,LON0,K0);VW={cx:w[0],cy:w[1],sc:Math.max(SCMIN,Math.min(80,s.sc))};VWok=true;
+  drawMap();
+})();
+$('mtim').onclick=()=>{tab('side');const q=$('q');try{q.focus();q.select()}catch(e){}};
 </script>
 </body>
 </html>

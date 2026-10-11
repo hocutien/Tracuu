@@ -339,6 +339,7 @@ body.full #mfbtn{display:none!important}
 #mapchip .cb{font-size:12.5px;font-weight:600;color:#16211c;background:#f1ece0;border:1px solid var(--rule);border-radius:6px;padding:5px 9px;min-height:32px}
 @media (pointer:coarse){#mapchip .cb{min-height:36px}}
 #mapchip #chipqh{background:#ffd34d;border-color:#e2b100}
+#mapchip .cv{min-width:36px;font-size:19px;font-weight:700;line-height:1;padding:4px 8px}#chipdem{font-style:normal;font-size:12.5px;font-weight:700;color:#16211c;white-space:nowrap}
 #mapchip a.cb{display:inline-flex;align-items:center;text-decoration:none;box-sizing:border-box}
 #mapchip b{font-family:ui-monospace,Menlo,Consolas,monospace}
 #mapchip span{flex:1;color:var(--dim);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -351,6 +352,7 @@ body.full #mfbtn{display:none!important}
   #mapchip.on:not(.khoi)>span{flex:1 1 100%;order:3;white-space:normal;overflow:visible;color:#16211c;font-size:14px;font-weight:600}
   #mapchip .cb,#mapchip #chipdir{min-height:44px}
   #mapchip #chipx{min-width:44px;min-height:44px;font-size:22px}
+  #mapchip .cv{min-width:44px;font-size:22px}
   #glctl{top:40%}
 }
 /* khối chưa tách ranh: dòng 1 "⚠ Khối" + nút, dòng 2 nội dung đầy đủ (không cắt chữ, khổ điện thoại chỉ còn ~77 px nếu để một dòng) */
@@ -423,7 +425,7 @@ fieldset,.sheet,.cand,#sidebody>details{border-radius:var(--r)}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v65 · 11/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v66 · 11/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Số thửa · 32: 459-470 · tên · toạ độ" spellcheck="false" autocomplete="off">
@@ -701,7 +703,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div style="flex:1 1 100%"><button id="btam" title="Lấy toạ độ và địa chỉ ngay tâm màn hình bản đồ, không cần dán tay" style="width:100%;min-height:44px;padding:10px 8px;font-size:14px;border:0;background:#12283a;color:#fff;border-radius:6px;cursor:pointer;font-weight:700">⌖ Lấy vị trí ngay tâm màn hình</button></div>
 </div>
 <div id="gpsmsg"></div>
-<div id="mapchip"><b></b><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button><button id="chipgl" class="cb" title="Lấy thêm số tờ, số thửa, loại đất, diện tích ghi cho các thửa đang chọn (tối đa 10)">🔎 Bổ sung</button></div></div></div>
+<div id="mapchip"><b></b><button id="chiplui" class="cb cv" title="Thửa trước" aria-label="Thửa trước">‹</button><i id="chipdem"></i><button id="chiptoi" class="cb cv" title="Thửa kế" aria-label="Thửa kế">›</button><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button><button id="chipgl" class="cb" title="Lấy thêm số tờ, số thửa, loại đất, diện tích ghi cho các thửa đang chọn (tối đa 10)">🔎 Bổ sung</button></div></div></div>
 <div id="printbox" class="hide" style="border:1px solid var(--rule);border-radius:3px;padding:10px;margin-top:8px;background:#fff">
   <p class="note" id="pscale" style="margin:0 0 8px">Kéo một khung trên bản đồ để chọn vùng in.</p>
   <div class="row">
@@ -1759,7 +1761,7 @@ function ganId(sh){                       // mỗi thửa một mã riêng, kể
 /* danh sách phẳng mọi thửa — chỉ dựng lại khi dữ liệu đổi, không sao chép mỗi lần gọi */
 let DATAVER=0,ALLV=-1,ALLC=[];
 const allThua=()=>{
-  if(ALLV!==DATAVER){ALLC=SHEETS.flatMap(sh=>sh.thua.map(t=>({...t,to:sh.to,dc:sh.dc||''})));ALLV=DATAVER}
+  if(ALLV!==DATAVER){ALLC=SHEETS.flatMap(sh=>sh.thua.map(t=>({...t,to:sh.to,dc:t.dcR||sh.dc||''})));ALLV=DATAVER}   // v66: dcR = địa chỉ riêng của thửa tìm theo tên nơi (tờ cùng số của xã khác còn gộp chung một mục)
   return ALLC;
 };
 const SXS=new Intl.Collator(undefined,{numeric:true}).compare;
@@ -2168,12 +2170,17 @@ provSel.onchange=()=>{if(provSel.value){LON0=parseFloat(provSel.value);SAVED=LON
 /* v52: các cách gõ thửa + tờ → dạng "tờ: số"; phần chữ còn lại phía sau là tên xã (để lọc khi tìm rộng) */
 function chuanQ(raw){
   const r=String(raw||'').trim();
-  let m=r.match(/^(?:thửa|thua)?\s*(\d{1,5}[a-zA-Z]?)\s*[,;]?\s*(?:tờ|to)\s*(?:số\s*)?(\d{1,4}[a-zA-Z0-9]*)\s*[,;]?\s*(.*)$/i);
+  /* v66: nhận cả «số thửa 95 trên tờ bản đồ số 8 phường 1…» */
+  let m=r.match(/^(?:(?:số|so)\s+)?(?:thửa|thua)?\s*(?:(?:số|so)\s+)?(\d{1,5}[a-zA-Z]?)\s*[,;]?\s*(?:trên\s+|tren\s+)?(?:tờ|to)\s*(?:(?:bản đồ|ban do)\s*)?(?:(?:số|so)\s*)?(\d{1,4}[a-zA-Z0-9]*)\s*[,;]?\s*(.*)$/i);
   if(m)return {q:m[2]+': '+m[1],xa:m[3].trim()};
   m=r.match(/^(?:tờ|to)\s*(?:số\s*)?(\d{1,4}[a-zA-Z0-9]*)\s*[,;:]?\s*(?:thửa|thua)\s*(\d{1,5}[a-zA-Z]?)\s*[,;]?\s*(.*)$/i);
   if(m)return {q:m[1]+': '+m[2],xa:m[3].trim()};
   m=r.match(/^(?:tờ|to)?\s*(\d{1,4}[a-zA-Z0-9]*)\s*[::]\s*(\d{1,5}[a-zA-Z]?)\s*[,;]?\s*([A-Za-zÀ-ỹ].*)$/i);   // "14: 872 phường 1"
   if(m)return {q:m[1]+': '+m[2],xa:m[3].trim()};
+  /* v66: «195 long thành duyên hải» — số thửa + tên nơi, không có số tờ. Trước đây phần chữ bị bỏ, app tìm ở tờ đang chọn của xã khác
+     [ĐÃ THỬ 11/10, v65: đang chọn Ngãi Xuyên, gõ «195 long thạnh duyên hải» → trả thửa 195 tờ 1 Ngãi Xuyên] */
+  m=r.match(/^(?:(?:số|so)\s+)?(?:thửa|thua)?\s*(?:(?:số|so)\s+)?(\d{1,5}[a-zA-Z]?)\s*[,;]?\s+(?!(?:tờ|to|trên|tren)(?:\s|$))([A-Za-zÀ-ỹ]{2,}.*)$/i);
+  if(m)return {q:m[1],xa:m[2].trim()};
   return {q:r,xa:''};
 }
 function parseQuery(q){
@@ -2232,7 +2239,7 @@ function drawResults(){
   /* v51: ô tìm kiếm tìm thêm trong lớp ranh đã tải trên bản đồ (thửa thấy trên bản đồ nhưng chưa vào danh sách).
      [ĐÃ THỬ 09/10] gõ "872" ở Phường 1 Duyên Hải: thửa 872 tờ 14 có trong ô ranh (bộ 1667) và onland.tech (DC14) nhưng
      ô tìm chỉ lọc allThua() nên không ra. */
-  const qv=parseQuery(q),vnKq=(qv&&qv.want.size&&!/[A-Za-zÀ-ỹ]{2,}/.test(q.replace(/^\s*(tờ|to)\s*\d+\s*[::]/i,'')))?vnTimTrongLop(qv,list):null;
+  const qv=parseQuery(q),vnKq=(!chuanQ($('q').value).xa&&qv&&qv.want.size&&!/[A-Za-zÀ-ỹ]{2,}/.test(q.replace(/^\s*(tờ|to)\s*\d+\s*[::]/i,'')))?vnTimTrongLop(qv,list):null;
   if(vnKq&&vnKq.length){
     $('res').insertAdjacentHTML('beforeend',`<div class="togrp mo"><div class="tohead"><b style="padding:6px 2px">Trên lớp ranh — bấm để chọn</b></div><div class="chips">${
       vnKq.map((h,i)=>`<button class="chip c2 vnchip" data-i="${i}" title="Tờ ${esc(h.f.to||'?')} · ${fmt(h.f.a,1)} m² theo ranh">${esc(h.f.so||'?')}<small> tờ ${esc(h.f.to||'?')}</small></button>`).join('')}</div></div>`);
@@ -2247,23 +2254,35 @@ function drawResults(){
     });
   }
   /* v61: danh sách và lớp ranh đang tải chưa có → tra sổ «vùng đã xem» trước (không tốn lời gọi nào nếu ô còn trong bộ nhớ đệm) */
-  const choSo=!!(q&&qv&&qv.want.size&&qv.want.size<=5&&!list.length&&!(vnKq&&vnKq.length)&&typeof soTimNap==='function'&&soTimNap(q,qv));
+  const coNoi=!!chuanQ($('q').value).xa;       // v66: gõ kèm tên nơi → tìm theo nơi đó, không để thửa cùng số của xã khác (đã có trong danh sách) chặn
+  const choSo=!!(!coNoi&&q&&qv&&qv.want.size&&qv.want.size<=5&&!list.length&&!(vnKq&&vnKq.length)&&typeof soTimNap==='function'&&soTimNap(q,qv));
   if(choSo)$('res').insertAdjacentHTML('beforeend','<p class="note">Đang tìm trong các vùng đã xem…</p>');
   /* v52: gõ có số tờ mà danh sách + lớp ranh chưa có → tìm rộng theo tờ quanh vùng đang biết (timRong) */
   const raw2=$('q').value.trim();
   const toChon=$('olto')&&$('olto').value?OLLOP.find(l=>String(l.id)===$('olto').value):null;   // v52: tờ đang chọn ở mục Tra cứu từ Mạnh Lắm
-  if(!choSo&&qv&&(qv.to||toChon)&&qv.want.size&&qv.want.size<=5&&!list.length&&!(vnKq&&vnKq.length)){
+  if(!choSo&&qv&&(qv.to||toChon||coNoi)&&qv.want.size&&qv.want.size<=5&&(coNoi||(!list.length&&!(vnKq&&vnKq.length)))){
     if(TRKQ&&TRKQ.raw===raw2){
+      const nutTo='min-height:44px;padding:8px 10px;margin:4px 0;width:100%;text-align:left;font-size:13.5px;border:1px solid var(--rule);border-radius:8px;background:#fffdf8;color:#16211c;cursor:pointer';
       if(TRKQ.dang)$('res').insertAdjacentHTML('beforeend',`<p class="note">${esc(TRKQ.dang)}</p>`);
-      else if(TRKQ.ds.length){
-        $('res').insertAdjacentHTML('beforeend',`<div class="togrp mo"><div class="tohead"><b style="padding:6px 2px">Kết quả tìm theo tờ — bấm để chọn</b></div><div class="chips">${
-          TRKQ.ds.map((x,i)=>`<button class="chip c1 trchip" data-i="${i}" title="${esc(x.dc)}">${esc(x.t.s)}<small> tờ ${esc(x.t.to)} · ${esc(x.l.tenxa||'')}</small></button>`).join('')}</div></div>`);
+      else if(TRKQ.hoi){                        // v66: tên nơi chưa rõ → hỏi người dùng là nơi nào rồi mới hỏi Mạnh Lắm
+        $('res').insertAdjacentHTML('beforeend',`<div class="togrp mo"><div class="tohead"><b style="padding:6px 2px">${esc(TRKQ.cau)}</b></div><div style="padding:2px 6px 6px">${
+          TRKQ.hoi.map((y,i)=>`<button type="button" class="trhoi" data-i="${i}" style="${nutTo}">${esc(y.nhan)}</button>`).join('')}</div></div>`);
         $('res').querySelectorAll(':scope>p.note').forEach(n=>n.remove());
+        $('res').querySelectorAll('.trhoi').forEach(b=>b.onclick=()=>timNoiChay(TRKQ.raw,TRKQ.hoi[+b.dataset.i],0,[]));
+      }else if(TRKQ.ds.length){
+        $('res').insertAdjacentHTML('beforeend',`<div class="togrp mo"><div class="tohead"><b style="padding:6px 2px">${TRKQ.noi?esc('Kết quả ở '+TRKQ.noi.ngan):'Kết quả tìm theo tờ'} — bấm để chọn</b></div><div class="chips">${
+          TRKQ.ds.map((x,i)=>`<button class="chip c1 trchip" data-i="${i}" title="${esc(x.dc)}">${esc(x.t.s)}<small> ${esc([x.t.l,(x.t.d||x.t.a)?fmt(x.t.d||x.t.a,1)+' m²':''].filter(Boolean).join(' '))} · tờ ${esc(x.t.to)} · ${esc(x.l.tenxa||'')}</small></button>`).join('')}</div></div>`);
+        $('res').querySelectorAll(':scope>p.note').forEach(n=>n.remove());
+        if(TRKQ.ds.length>1)$('res').insertAdjacentHTML('beforeend',`<p class="note">Có ${TRKQ.ds.length} thửa cùng số ${esc(TRKQ.ds[0].t.s)}: xem loại đất, diện tích để nhận đúng thửa; trên bản đồ bấm ‹ › ở thẻ thửa để chuyển qua lại.</p>`);
         $('res').querySelectorAll('.trchip').forEach(b=>b.onclick=()=>trChon(TRKQ.ds[+b.dataset.i]));
       }else $('res').insertAdjacentHTML('beforeend',`<p class="note">${esc(TRKQ.ly||'Không tìm thấy.')}</p>`);
-    }else{clearTimeout(window.__trT);window.__trT=setTimeout(()=>timRong(raw2),500)}
+      if(!TRKQ.dang&&TRKQ.tiep){                 // v66: gõ thiếu số tờ → hỏi 8 tờ một lượt
+        $('res').insertAdjacentHTML('beforeend',`<button type="button" id="trtiep" style="${nutTo};text-align:center;font-weight:700">Tìm tiếp ${Math.min(8,TRKQ.tiep.con)} tờ nữa (còn ${TRKQ.tiep.con} tờ chưa hỏi)</button>`);
+        $('trtiep').onclick=()=>timNoiChay(TRKQ.raw,TRKQ.noi,TRKQ.tiep.tu,TRKQ.ds);
+      }
+    }else{clearTimeout(window.__trT);window.__trT=setTimeout(()=>timRong(raw2),coNoi?800:500)}
   }
-  if(choSo){}
+  if(choSo||coNoi){}
   else if(TRKQ&&TRKQ.raw===raw2&&TRKQ.ds.length){}
   else if(qv&&(qv.to||toChon)&&!list.length&&!(vnKq&&vnKq.length)){}
   else if(vnKq&&!vnKq.length&&!list.length&&q&&vnNapQuanhTim(q)){   // v61: đã thấy trên lớp ranh thì không tải thêm ô quanh tâm bản đồ
@@ -3880,8 +3899,29 @@ window.addEventListener('resize',()=>{
 
 /* ===== Thẻ thửa đang chỏ tới ===== */
 let CHIPID=null;
+/* v66: nút ‹ › trên thẻ thửa — đi vòng qua các thửa ĐÃ CHỌN và các thửa TRÙNG SỐ với thửa đang xem (cùng tờ, cùng số);
+   chỉ chuyển chỗ xem, không đổi danh sách đã chọn */
+let CHIPVK='';
+function chipVong(){
+  const all=allThua(),cur=FLASH&&all.find(x=>x.id===FLASH.id);if(!cur)return [];
+  const kq=new Set((typeof TRVONG!=='undefined'&&TRVONG||[]).map(t=>t.id));   // các thửa của lượt tìm ra nhiều kết quả gần nhất (có thể khác tờ)
+  return all.filter(x=>x.id===cur.id||SEL.has(x.id)||kq.has(x.id)||(coSo(cur)&&x.to===cur.to&&x.s===cur.s));
+}
+function chipNut(){
+  const id=FLASH?FLASH.id:null,k=id+'|'+SEL.size+'|'+DATAVER+'|'+(typeof TRVONG!=='undefined'&&TRVONG?TRVONG.length:0);if(k===CHIPVK)return;CHIPVK=k;
+  const v=id?chipVong():[],i=v.findIndex(x=>x.id===id),co=v.length>1&&i>=0;
+  $('chiplui').style.display=$('chiptoi').style.display=$('chipdem').style.display=co?'':'none';
+  $('chipdem').textContent=co?(i+1)+'/'+v.length:'';
+}
+function chipDi(d){
+  const v=chipVong(),i=v.findIndex(x=>FLASH&&x.id===FLASH.id);if(v.length<2||i<0)return;
+  const t=v[(i+d+v.length)%v.length];
+  FLASH={id:t.id,z:1};CHIPID=null;CHIPVK='';
+  gotoParcel(t,true);if(FLASH)FLASH.z=1;drawResults();
+}
 function chipThua(){
   const id=FLASH?FLASH.id:null;
+  chipNut();
   if(id===CHIPID)return;
   CHIPID=id;
   const box=$('mapchip');
@@ -3892,7 +3932,7 @@ function chipThua(){
   const khoi=!!(t.khoi&&t.khoi.length);
   box.classList.toggle('khoi',khoi);
   box.title=khoi?`Khối chưa tách ranh, có nhãn các thửa ${t.khoi.join(', ')}: Mạnh Lắm không có ranh riêng từng thửa, diện tích là của cả khối.`:'';
-  box.querySelector('b').textContent=khoi?'⚠ Khối':(coSo(t)?'Thửa '+t.s:'Thửa chưa rõ số')+(t.tong>1?' ('+t.stt+'/'+t.tong+')':'');
+  box.querySelector('b').textContent=khoi?'⚠ Khối':(coSo(t)?'Thửa '+t.s:'Thửa chưa rõ số')+(t.tong>1&&!$('chipdem').textContent?' ('+t.stt+'/'+t.tong+')':'');   // v66: đã có ô đếm «2/3» cạnh nút ‹ › thì không ghi lặp
   box.querySelector('span').textContent=(khoi?[
     'chưa tách ranh', 'tờ '+t.to, t.a?fmt(t.a,1)+' m² cả khối':'', 'nhãn '+t.khoi.join(', ')
   ]:[
@@ -3917,6 +3957,7 @@ $('chipcp').onclick=e=>{e.stopPropagation();const td=e.currentTarget.dataset.td;
 $('chipqh').onclick=e=>{e.stopPropagation();const c=$('glon');if(!c.checked){c.checked=true;c.onchange({target:c})}
   pickBar('Đã bật lớp quy hoạch. Kéo thanh độ đậm bên trái bản đồ để xem rõ hơn.','ok');setTimeout(()=>{if($('picktxt').textContent.startsWith('Đã bật lớp quy hoạch'))$('pickbar').style.display='none'},5000)};
 $('chipgl').onclick=e=>{e.stopPropagation();if(FLASH&&!SEL.has(FLASH.id))SEL.add(FLASH.id);glMoLay()};   // v61: bổ sung thông tin từ nguồn 2 (thẻ mới + tiện ích tự chạy / dấu trang)
+$('chiplui').onclick=e=>{e.stopPropagation();chipDi(-1)};$('chiptoi').onclick=e=>{e.stopPropagation();chipDi(1)};
 $('chipx').onclick=()=>{
   if(FLASH){SEL.delete(FLASH.id);FLASH=null}
   drawResults();
@@ -5629,6 +5670,7 @@ async function vnTaiDiem(w){                 // tra tại điểm khi Mạnh L�
    hỏi số thửa trên từng tờ (/map_parcels, song song); không ra thì tìm trong lớp ranh quanh tờ (vnTimSo, 3 tờ đầu).
    1 kết quả → tự chọn và bay tới; nhiều → liệt kê theo xã. Gõ kèm tên xã ("872 tờ 14 phường 1") thì lọc theo xã. */
 let TRKQ=null;
+var TRVONG=null;                                // v66: các thửa của lượt tìm ra nhiều kết quả gần nhất — nút ‹ › trên thẻ thửa đi qua chúng (var: thẻ thửa vẽ trước dòng này)
 function trMoc(){
   if(VW&&LON0!=null)return conv(VW.cx,VW.cy,LON0,K0||0.9999);
   if(ME&&isFinite(ME.la))return [ME.la,ME.lo];
@@ -5639,7 +5681,12 @@ function trMoc(){
 async function timRong(raw){
   const cq=chuanQ(raw),qv=parseQuery(raw);if(!qv||!qv.want.size)return;
   const toChon=$('olto').value?OLLOP.find(l=>String(l.id)===$('olto').value):null;
-  if(!qv.to&&!toChon)return;
+  if(!qv.to&&!toChon&&!cq.xa)return;
+  if(cq.xa){                                    // v66: có tên nơi → tìm theo tên (Trà Vinh cũ), không lấy xã / tờ đang chọn
+    let xong=false;try{xong=await timNoi(raw,cq,qv)}catch(e){TRKQ={raw,ds:[],ly:'Không gọi được Mạnh Lắm: '+e.message};return drawResults()}
+    if(xong||$('q').value.trim()!==raw)return;
+    if(!qv.to){TRKQ={raw,ds:[],ly:`Chưa nhận ra tên nơi «${cq.xa}» (hiện mới nhận tên xã, phường của Trà Vinh cũ). Gõ kèm số tờ, ví dụ «${[...qv.want][0]} tờ 8 ${cq.xa}», hoặc chọn xã ở mục «Tra cứu thửa từ Mạnh Lắm».`};return drawResults()}
+  }
   const so=[...qv.want][0],to=qv.to||olSoTo(toChon),xa=cq.xa;
   TRKQ={raw,dang:`Đang tìm thửa ${so} tờ ${to}${xa?' · '+xa:''}…`,ds:[]};drawResults();
   const moc=trMoc();
@@ -5653,16 +5700,18 @@ async function timRong(raw){
     ls=qv.to?OLLOP.filter(l=>toK(olSoTo(l))===toK(qv.to)):(toChon?[toChon]:[]);
     if(ls.length){TRKQ={raw,dang:`Đang tìm thửa ${so} tờ ${to} · ${olTen($('olxa'))}…`,ds:[]};drawResults()}
   }
+  /* v66: tên xã gõ kèm có thể dài hơn tên trên Mạnh Lắm («phường 1 thị xã duyên hải trà vinh») → so theo cụm từ, hai chiều;
+     chữ còn lại có tên huyện của tờ nào thì chỉ giữ các tờ đó [ĐÃ THỬ 11/10, v65: câu trên ra «Không có tờ 8…»] */
+  const xaT=xa?noiChu(xa):'',coCum=(t,k)=>!!k&&(' '+t+' ').includes(' '+k+' ');
   if(!ls.length)try{ls=(await olGoi('/map_layers',{type:'dc',current:1,pageSize:OLPICKMAX,x:moc[1],y:moc[0]}))
-    .filter(l=>l.type==='dc'&&l.dis>=0&&l.dis<=25000&&toK(olSoTo(l))===toK(to)&&(!xa||nodau(l.tenxa||'').includes(nodau(xa).replace(/^(xa|phuong|thi tran)\s+/,''))))
-    .sort((a,b)=>a.dis-b.dis).slice(0,8)}catch(e){TRKQ={raw,ds:[],ly:'Không gọi được Mạnh Lắm: '+e.message};return drawResults()}
+    .filter(l=>l.type==='dc'&&l.dis>=0&&l.dis<=25000&&toK(olSoTo(l))===toK(to)&&(!xa||coCum(xaT,noiKXa(l.tenxa))||noiKXa(l.tenxa).includes(xaT)))
+    .sort((a,b)=>a.dis-b.dis);
+    if(xa){const h=ls.filter(l=>coCum(xaT,noiHuyen(l.tenhuyen).k));if(h.length)ls=h}
+    ls=ls.slice(0,8)}catch(e){TRKQ={raw,ds:[],ly:'Không gọi được Mạnh Lắm: '+e.message};return drawResults()}
   if($('q').value.trim()!==raw)return;
   if(!ls.length){TRKQ={raw,ds:[],ly:`Không có tờ ${to}${xa?' của '+xa:''} trong 25 km quanh vùng đang xem / vị trí của anh. Kéo bản đồ tới xã đó, hoặc gõ kèm tên xã.`};return drawResults()}
-  const ds=[];
-  const kq=await Promise.all(ls.map(l=>olGoi('/map_parcels',{idmaplayer:l.id,searchString:so,exactly:true,current:1,pageSize:10})
-    .then(async a=>{const it=a.find(x=>String(x.text)===so);return {l,it:it?(await olHinhTuNhan(it,l.id))||it:null}}).catch(()=>({l}))));
   const dcCua=l=>[l.tenxa||olTen($('olxa')),l.tenhuyen||olTen($('olhuyen')),l.tentinh||olTen($('oltinh'))].filter(Boolean).join(', ');
-  for(const {l,it} of kq)if(it){const t=olThua(it,olSoTo(l),lonCua(l),l.id,!!it.__nhan);if(t&&t.r){if(!coSo(t))t.s=so;ds.push({l,t,dc:dcCua(l),lon0:lonCua(l)})}}
+  const ds=await trHoiTo(ls,so,lonCua,dcCua);
   if(!ds.length){
     TRKQ={raw,dang:`Hỏi theo số không ra — đang tìm thêm trên lớp ranh quanh tờ ${to}…`,ds:[]};drawResults();
     for(const l of ls.slice(0,3)){try{const v=await vnTimSo(l,olSoTo(l),so,lonCua(l));if(v&&v.t){if(!coSo(v.t))v.t.s=so;ds.push({l,t:v.t,dc:dcCua(l),lon0:lonCua(l)});break}}catch(e){}}
@@ -5671,21 +5720,143 @@ async function timRong(raw){
   if(!ds.length&&ls[0])vnHienTo(ls[0],to,ls[0].tenxa||olTen($('olxa')));   // v55: không ra → mở ranh của tờ
   TRKQ={raw,ds,ly:ds.length?'':`Không tìm thấy thửa ${so} trên ${ls.length} tờ ${to} quanh đây (${[...new Set(ls.map(l=>l.tenxa))].join(', ')}).`};
   drawResults();
-  if(ds.length===1)trChon(ds[0]);
+  if(ds.length===1)trChon(ds[0]);else if(ds.length>1)trNhieu(ds);
 }
-function trChon(x){                             // đưa thửa tìm được vào danh sách, chọn, bay tới
-  if(!x)return;
+/* v66: hỏi số thửa trên các tờ (≤ 8, song song) → MỌI thửa mang số đó, bỏ thửa lặp do một tờ có hai lớp dữ liệu.
+   [ĐÃ THỬ 11/10] tờ 8 Phường 1 TX Duyên Hải (lớp 129447) có 3 thửa cùng số 95: ODT 95 m², CLN 249 m² (9.641187, 106.503380 — người dùng
+   xác nhận là thửa đúng), ODT 401 m²; bản v65 chỉ lấy thửa đầu. Phường 1 TP Trà Vinh tờ 8 có 2 lớp → cùng một thửa 2.553,4 m² ra hai lần. */
+async function trHoiTo(ls,so,lonCua,dcCua){
+  const ds=[];
+  const kq=await Promise.all(ls.slice(0,8).map(l=>olGoi('/map_parcels',{idmaplayer:l.id,searchString:so,exactly:true,current:1,pageSize:10})
+    .then(async a=>{const its=[];for(const it of a.filter(x=>String(x.text)===so).slice(0,6))its.push((await olHinhTuNhan(it,l.id))||it);return {l,its}}).catch(()=>({l,its:[]}))));
+  for(const {l,its} of kq)for(const it of its){const t=olThua(it,olSoTo(l),lonCua(l),l.id,!!it.__nhan);if(!t||!t.r)continue;
+    if(!coSo(t))t.s=so;
+    if(ds.some(y=>y.t.c&&t.c&&Math.hypot(y.t.c[0]-t.c[0],y.t.c[1]-t.c[1])<0.5&&Math.abs(y.t.a-t.a)<=Math.max(1,t.a*0.01)))continue;
+    ds.push({l,t,dc:dcCua(l),lon0:lonCua(l)})}
+  return ds;
+}
+function trThem(x){                             // đưa thửa tìm được vào danh sách (chưa chọn)
   if(LON0==null){LON0=x.lon0;K0=0.9999}
   const t=x.t,to=t.to;let sh=SHEETS.find(q=>q.to===to);
   if(!sh){sh={to,ten:'Mạnh Lắm',thua:[],tay:1,ol:1,dc:x.dc,lon0:x.lon0,k0:0.9999};SHEETS.push(sh)}
   if(!sh.dc)sh.dc=x.dc;
   let ct=sh.thua.find(q=>q.c&&t.c&&Math.hypot(q.c[0]-t.c[0],q.c[1]-t.c[1])<0.5);
-  if(!ct){sh.thua.push(t);ganId(sh);ct=t}
+  if(!ct){t.dcR=x.dc;sh.thua.push(t);ganId(sh);ct=t}
+  return ct;
+}
+function trChon(x){                             // đưa thửa tìm được vào danh sách, chọn, bay tới
+  if(!x)return;
+  const ct=trThem(x);
   SEL.add(ct.id);FLASH={id:ct.id,z:0};CHIPID=null;
   if(!BASEKEY)datNen('esri',0);
   drawSheets();autoKTT();
   if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
   gotoParcel(ct,true);drawResults();drawMap();
+}
+function trNhieu(ds){                           // v66: nhiều thửa cùng số → đưa cả vào danh sách (chưa chọn), tới thửa đầu; nút ‹ › trên thẻ thửa để chuyển
+  const cts=ds.map(trThem);TRVONG=cts;
+  FLASH={id:cts[0].id,z:0};CHIPID=null;
+  if(!BASEKEY)datNen('esri',0);
+  drawSheets();autoKTT();
+  if(heptay()&&!document.body.classList.contains('tmap'))tab('map');
+  gotoParcel(allThua().find(q=>q.id===cts[0].id)||cts[0],true);drawResults();drawMap();
+}
+/* ===== v66: tìm theo TÊN NƠI — tỉnh Trà Vinh cũ [QĐ 11/10: làm Trà Vinh trước] =====
+   Mạnh Lắm chỉ có đơn vị hành chính CŨ [ĐÃ THỬ 11/10: /provinces 63 tỉnh, còn cấp huyện; tờ ghi tenxa / tenhuyen / tentinh cũ, không có tên mới]
+   → danh mục xã cũ lấy từ /districts/84 + /communes/<huyện> (10 lời gọi, nhớ 30 ngày); tên MỚI suy từ bảng XAMOI_TV (NQ 1687).
+   Gõ tên cũ → đúng xã đó; gõ tên mới → mọi xã cũ đã nhập vào; một tên ra nhiều nơi → hỏi người dùng rồi mới hỏi Mạnh Lắm. */
+const noiChu=s=>(' '+nodau(s).replace(/[.,;:()\-_/]+/g,' ')+' ').replace(/ (?:p|phuong) ?(\d+) /g,' phuong $1 ')
+  .replace(/ (?:thi xa|tx) /g,' thixa ').replace(/ (?:thanh pho|tp) /g,' thanhpho ')
+  .replace(/ (?:xa|thi tran|tt|tinh|o|tai|thuoc|cua) /g,' ').replace(/ (?:xa|thi tran|tt|tinh|o|tai|thuoc|cua) /g,' ').replace(/ phuong (?!\d)/g,' ').replace(/\s+/g,' ').trim();
+const noiKXa=s=>noiChu(s||'');
+const noiHuyen=s=>{const t=noiChu(String(s||'').replace(/\(\s*thị xã\s*\)/i,' thị xã '));
+  return /(^| )thixa( |$)/.test(t)?{k:t.replace(/(^| )thixa( |$)/,' ').trim(),loai:'thixa'}:/^thanhpho /.test(t)?{k:t.replace(/^thanhpho /,''),loai:'thanhpho'}:{k:t.replace(/^huyen /,''),loai:'huyen'}};
+let NOIDM=null;
+function noiDanhMuc(){
+  if(NOIDM)return NOIDM;
+  try{const c=JSON.parse(localStorage.getItem('dmtv')||'null');if(c&&c.ds&&c.ds.length>50&&Date.now()-c.t<30*86400000)return NOIDM=Promise.resolve(c.ds)}catch(e){}
+  return NOIDM=(async()=>{const hs=await olGoi('/districts/84'),ds=[];
+    for(const h of hs)for(const x of await olGoi('/communes/'+h.id))ds.push({id:String(x.id),ten:x.name,hid:String(h.id),huyen:h.name});
+    try{localStorage.setItem('dmtv',JSON.stringify({t:Date.now(),ds}))}catch(e){}
+    return ds})().catch(e=>{NOIDM=null;throw e});
+}
+function noiSua(a,b){                           // khoảng cách sửa chữ (gợi ý tên gần giống)
+  const d=[...Array(b.length+1).keys()];
+  for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const q=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=q}}
+  return d[b.length];
+}
+function noiGiai(xa,dm){                        // → null (không nhận ra) | {hoi:[{nhan,ngan,xas}],goiY}
+  const T=noiChu(xa);if(!T)return null;
+  const xas=dm.map(c=>({...c,k:noiKXa(c.ten),h:noiHuyen(c.huyen),moi:xaMoi(c.ten+', '+c.huyen+', Trà Vinh')}));
+  const dv=new Map();                           // đơn vị mới → các xã cũ nhập vào
+  for(const c of xas)if(c.moi){if(!dv.has(c.moi))dv.set(c.moi,[]);dv.get(c.moi).push(c)}
+  const tenC=c=>`${/^\d/.test(c.ten)?'Phường '+c.ten:c.ten}, ${c.huyen}`;
+  const yCu=c=>({xas:[c],ngan:tenC(c),nhan:`${tenC(c)}, Trà Vinh (cũ)${c.moi?' — nay thuộc '+c.moi:''}`});
+  const yMoi=(ten,cs)=>({xas:cs,moi:1,ngan:ten.replace(/, tỉnh.*$/,''),nhan:`${ten} (mới) — gồm ${cs.map(c=>c.ten).join(', ')} của Trà Vinh cũ`});
+  const vt=k=>k?(' '+T+' ').indexOf(' '+k+' '):-1;
+  const ung=[];
+  for(const c of xas){const p=vt(c.k);if(p>=0)ung.push({p,n:c.k.length,y:yCu(c),hid:[c.hid],cu:c})}
+  for(const [ten,cs] of dv){const k=noiChu(ten.replace(/, tỉnh.*$/,'')),p=vt(k);if(p>=0)ung.push({p,n:k.length,y:yMoi(ten,cs),hid:cs.map(c=>c.hid)})}
+  if(!ung.length){                              // không khớp → gợi ý tên gần giống (sai 1–2 chữ)
+    const tu=T.split(' '),gy=[],da=new Set();
+    const thu=(k,y)=>{const a=tu.slice(0,k.split(' ').length).join(' '),d=noiSua(a,k);if(d>0&&d<=(k.length>=7?2:1)&&!da.has(y.nhan)){da.add(y.nhan);gy.push({d,y})}};
+    for(const c of xas)thu(c.k,yCu(c));
+    return gy.length?{goiY:1,hoi:gy.sort((a,b)=>a.d-b.d).slice(0,6).map(g=>g.y)}:null;
+  }
+  const p0=Math.min(...ung.map(u=>u.p));let cs=ung.filter(u=>u.p===p0);
+  const n0=Math.max(...cs.map(u=>u.n));cs=cs.filter(u=>u.n===n0);      // «mỹ long bắc» không khớp «Mỹ Long»
+  const du=T.slice(p0+n0).trim(),hs=new Set();                           // chữ còn lại: tên huyện / tỉnh
+  for(const c of xas){const h=c.h,m=(' '+du+' ').match(new RegExp(' (thixa |thanhpho |huyen )?'+h.k.replace(/[^a-z0-9 ]/g,'')+' '));if(!m)continue;
+    if(m[1]?m[1].trim()===h.loai:!(h.loai==='thanhpho'&&h.k==='tra vinh'))hs.add(c.hid)}
+  if(hs.size){const l=cs.filter(u=>u.hid.some(h=>hs.has(h)));if(l.length)cs=l;
+    if(cs.some(u=>u.cu))cs=cs.filter(u=>u.cu)}                           // đã gõ tên huyện cũ → hiểu theo đơn vị cũ, không hỏi thêm đơn vị mới cùng tên
+  if(/(^| )vinh long( |$)/.test(du)&&cs.some(u=>u.y.moi))cs=cs.filter(u=>u.y.moi);
+  cs=cs.filter(u=>!(u.y.moi&&u.y.xas.length===1&&cs.some(v=>v.cu&&v.cu.id===u.y.xas[0].id)));   // đơn vị mới chỉ gồm đúng xã cũ đó → một lựa chọn
+  return {hoi:cs.map(u=>u.y)};
+}
+function noiTrongTV(xa){                        // có nên hiểu tên nơi theo danh mục Trà Vinh không
+  if(/tra vinh|vinh long/.test(nodau(xa)))return true;
+  const m=trMoc();
+  if(m){const kc=Math.cos(m[0]*Math.PI/180),p=PROV.map(q=>({q,d:Math.hypot(m[0]-q[2],(m[1]-q[3])*kc)})).sort((a,b)=>a.d-b.d)[0];return !!p&&p.q[0]==='Trà Vinh'}
+  return !$('oltinh').value||$('oltinh').value==='84';
+}
+async function timNoi(raw,cq,qv){               // true = đã xử lý (đang hỏi lại người dùng hoặc đã tìm)
+  if(!noiTrongTV(cq.xa))return false;
+  TRKQ={raw,dang:`Đang nhận tên nơi «${cq.xa}»…`,ds:[]};drawResults();
+  const g=noiGiai(cq.xa,await noiDanhMuc());
+  if($('q').value.trim()!==raw)return true;
+  if(!g||!g.hoi.length)return false;
+  if(g.hoi.length>1||g.goiY){TRKQ={raw,ds:[],hoi:g.hoi,cau:g.goiY?`Không thấy nơi nào tên «${cq.xa}» ở Trà Vinh cũ. Có phải:`:`«${cq.xa}» có thể là ${g.hoi.length} nơi — thửa ở nơi nào?`};drawResults();return true}
+  await timNoiChay(raw,g.hoi[0],0,[]);return true;
+}
+async function timNoiChay(raw,y,tu,dsCu){       // tìm số thửa trong các xã cũ của lựa chọn y; không có số tờ thì mỗi lượt 8 tờ, từ tờ thứ tu
+  const qv=parseQuery(raw);if(!qv||!qv.want.size||$('q').value.trim()!==raw)return;
+  const so=[...qv.want][0],toK=v=>nodau(String(v)).replace(/^dc/,'').replace(/vn2000$/,'');
+  const lonCua=l=>{let md=l.metadata;if(typeof md==='string'){try{md=JSON.parse(md)}catch(e){md=null}}const cm=md&&parseFloat(md.centralmeridian);return cm>100&&cm<112?cm:105.5};
+  const dcCua=l=>[l.tenxa,l.tenhuyen,l.tentinh].filter(Boolean).join(', ');
+  TRKQ={raw,dang:`Đang tìm thửa ${so}${qv.to?' tờ '+qv.to:''} ở ${y.ngan}…`,ds:dsCu||[],noi:y};drawResults();
+  let tat=[];
+  try{for(const c of y.xas)tat.push(...(await olGoi('/map_layers',{tinh_id:'84',huyen_id:c.hid,xa_id:c.id,type:'dc',current:1,pageSize:200})).filter(l=>l.type==='dc'))}
+  catch(e){TRKQ={raw,ds:dsCu||[],noi:y,ly:'Không gọi được Mạnh Lắm: '+e.message};return drawResults()}
+  if($('q').value.trim()!==raw)return;
+  tat.sort((a,b)=>SXS(olSoTo(a),olSoTo(b))||(b.year||0)-(a.year||0));
+  if(!tat.length){TRKQ={raw,ds:[],noi:y,ly:`${y.ngan}: Mạnh Lắm chưa có tờ địa chính nào.`};return drawResults()}
+  const ls=qv.to?tat.filter(l=>toK(olSoTo(l))===toK(qv.to)).slice(0,8):tat.slice(tu,tu+8);
+  if(!ls.length){TRKQ={raw,ds:[],noi:y,ly:`${y.ngan} không có tờ ${qv.to}. Các tờ đang có: ${[...new Set(tat.map(l=>toK(olSoTo(l))))].slice(0,60).join(', ')}.`};return drawResults()}
+  const ds=(dsCu||[]).slice();
+  for(const x of await trHoiTo(ls,so,lonCua,dcCua))if(!ds.some(q=>q.t.c&&x.t.c&&Math.hypot(q.t.c[0]-x.t.c[0],q.t.c[1]-x.t.c[1])<0.5))ds.push(x);
+  if(!ds.length&&qv.to){
+    TRKQ={raw,dang:`Hỏi theo số không ra — đang tìm thêm trên lớp ranh quanh tờ ${qv.to}…`,ds:[],noi:y};drawResults();
+    for(const l of ls.slice(0,3)){try{const v=await vnTimSo(l,olSoTo(l),so,lonCua(l));if(v&&v.t){if(!coSo(v.t))v.t.s=so;ds.push({l,t:v.t,dc:dcCua(l),lon0:lonCua(l)});break}}catch(e){}}
+  }
+  if($('q').value.trim()!==raw)return;
+  const con=qv.to?0:Math.max(0,tat.length-tu-8);
+  if(!ds.length&&qv.to)vnHienTo(ls[0],qv.to,ls[0].tenxa);
+  TRKQ={raw,ds,noi:y,tiep:con?{tu:tu+8,con}:null,
+    ly:ds.length?'':qv.to?`Không tìm thấy thửa ${so} trên tờ ${qv.to} của ${y.ngan}.`:`Chưa thấy thửa ${so} trên ${Math.min(tu+8,tat.length)}/${tat.length} tờ đầu của ${y.ngan}${con?'':' (đã hỏi hết các tờ)'}. Gõ kèm số tờ sẽ nhanh hơn.`};
+  drawResults();
+  const moi=ds.slice((dsCu||[]).length);
+  if(ds.length===1&&!con)trChon(ds[0]);else if(moi.length)trNhieu(ds);
 }
 /* ===== v55: không tìm ra thửa → mở ranh của tờ đã chọn (xã cố định theo mục tìm kiếm), tô vàng các thửa của tờ =====
    Vị trí tờ: tâm tờ (olTamTo) có thể cách vùng có thửa 3–3,5 km → tải 5 × 5 ô mức 14 quanh tâm, gom thửa có số tờ trùng → khung tờ → bay tới

@@ -430,7 +430,7 @@ fieldset,.sheet,.cand,#sidebody>details{border-radius:var(--r)}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v67 · 15/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v68 · 15/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Số thửa · 32: 459-470 · tên · toạ độ" spellcheck="false" autocomplete="off">
@@ -476,6 +476,17 @@ fieldset,.sheet,.cand,#sidebody>details{border-radius:var(--r)}
           <div id="khoranh" style="margin:6px 0;font-size:13px"></div>
           <div class="row" style="gap:6px;flex-wrap:wrap"><button id="khoxuat" type="button" style="min-height:44px">Xuất kho ranh (tải file)</button><button id="khochep" type="button" style="min-height:44px">Chép mã bộ ranh</button></div>
           <div id="khomsg" style="font-size:12px;margin-top:4px"></div>
+          <div style="margin-top:10px;border-top:1px solid var(--rule);padding-top:8px">
+            <b>📤 Gửi lên kho</b>
+            <div id="khogui" style="font-size:13px;margin:4px 0"></div>
+            <button id="khoguinut" type="button" style="min-height:44px">📤 Gửi lên kho (GitHub)</button>
+          </div>
+          <div style="margin-top:10px;border-top:1px solid var(--rule);padding-top:8px">
+            <b>⭐ Tỉnh ưu tiên rà</b>
+            <div style="font-size:12px;margin:2px 0 4px">Chọn tỉnh cần có ranh trước. Bấm «Mở trang nguồn ↗» rồi kéo, phóng bản đồ quanh các xã còn thiếu; máy có tiện ích «tự thu bộ ranh» sẽ ghi lại để gửi lên kho (xem docs/TU-CAP-NHAT-BO-RANH.md).</div>
+            <div id="khouu" style="font-size:13px"></div>
+            <details><summary style="font-size:13px">Thêm tỉnh</summary><div id="khouuchon" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div></details>
+          </div>
         </details>
         <div style="margin:6px 0"><button id="demxoa" type="button">Xoá bộ nhớ đệm ranh</button> <span id="demmsg" style="font-size:12px"></span></div>
       </div>
@@ -5392,11 +5403,22 @@ const VNBOMD=[
   {id:2218,b:[9.812,106.293,9.888,106.364]},{id:2219,b:[9.817,106.304,9.861,106.359]},{id:2220,b:[9.834,106.293,9.877,106.32]},{id:2221,b:[9.866,106.397,9.877,106.403]},{id:2222,b:[9.877,106.221,9.926,106.265]},{id:2223,b:[9.899,106.364,9.969,106.419]},
   {id:2224,b:[9.899,106.397,9.936,106.469]},{id:2225,b:[9.899,106.458,9.909,106.469]},{id:2237,b:[9.936,106.298,9.99,106.392]},{id:2238,b:[9.877,106.293,9.974,106.375]},{id:2250,b:[9.866,106.057,9.877,106.062]},{id:2251,b:[9.823,106.057,9.877,106.133]},
   {id:2253,b:[9.931,106.106,9.942,106.117]},{id:2254,b:[9.877,106.002,9.909,106.035]},{id:2256,b:[9.877,106.002,9.909,106.035]},{id:2257,b:[9.866,106.057,9.877,106.062]},{id:2258,b:[9.866,106.057,9.877,106.062]},{id:2259,b:[9.839,106.122,9.85,106.133]},
-  {id:2260,b:[9.823,106.084,9.828,106.095]},{id:2261,b:[9.785,106.078,9.828,106.095]},{id:2262,b:[9.931,106.106,9.942,106.117]},{id:2271,b:[9.926,106.348,9.98,106.392]},{id:2617,b:[10.358,105.518,10.364,105.524]},{id:2826,b:[9.617,106.15,9.785,106.293]},
-  {id:2845,b:[9.731,106.161,9.785,106.254]}];   // chép từ du-lieu/bo-ranh.json (121 bộ) bằng cong-cu/gop_bo_ranh.py
-const VNKHO=[{"t":"Vĩnh Long mới (Trà Vinh, Vĩnh Long, Bến Tre cũ)","d":26,"b":65,"n":"2026-10-10","h":["Châu Thành - Châu Thành","Châu Thành - Hòa Lợi","Châu Thành - Hòa Minh","Châu Thành - Hòa Thuận","Châu Thành - Hưng Mỹ","Châu Thành - Lương Hoà A","Châu Thành - Mỹ Chánh","Châu Thành - Nguyệt Hóa","Châu Thành - Song Lộc","Châu Thành - Thanh Mỹ","Châu Thành - Đa Lộc","Càng Long - An Trường","Càng Long - An Trường A","Càng Long - Càng Long","Càng Long - Huyền Hội","Càng Long - Nhị Long","Càng Long - Nhị Long Phú","Càng Long - Phương Thạnh","Càng Long - Tân An","Càng Long - Tân Bình","Càng Long - Đại Phúc","Càng Long - Đại Phước","Càng Long - Đức Mỹ","Cầu Kè - An Phú Tân","Cầu Kè - Ninh Thới","Cầu Kè - Phong Phú","Cầu Kè - Phong Thạnh","Cầu Kè - Tam Ngãi","Cầu Kè - Thạnh Phú","Cầu Ngang - Cầu Ngang","Cầu Ngang - Mỹ Long Bắc","Duyên Hải TX - Hiệp Thạnh","Duyên Hải TX - Trường Long Hòa","TP Trà Vinh - Long Đức","TP Trà Vinh - Phường 3","Tiểu Cần - Hiếu Tử","Tiểu Cần - Hùng Hòa","Tiểu Cần - Tân Hòa","Tiểu Cần - Tập Ngãi","Trà Cú - An Quảng Hữu","Trà Cú - Định An (Thị trấn)","Trà Cú - Định An (Xã)"],"r":[],"k":[]},{"t":"Đồng Tháp mới","d":13,"b":38,"n":"2026-10-09","h":["Châu Thành ĐT","H Cao Lãnh","H Hồng Ngự","Lai Vung","Lấp Vò","TP Cao Lãnh","TP Hồng Ngự","TP Sa Đéc","Tam Nông","Thanh Bình","Tháp Mười","Tân Hồng","Tân Phú Đông"],"r":["10 huyện ở phần Tiền Giang cũ"],"k":[]},{"t":"Cần Thơ mới (Cần Thơ, Hậu Giang, Sóc Trăng cũ)","d":21,"b":25,"n":"2026-10-09","h":["Bình Thủy","Châu Thành (Sóc Trăng)","Châu Thành A","Cái Răng","Cù Lao Dung","H Long Mỹ","Kế Sách","Long Phú","Mỹ Tú","Mỹ Xuyên","Ninh Kiều","Phong Điền","Phụng Hiệp","TP Ngã Bảy","TP Sóc Trăng","TX Long Mỹ","TX Ngã Năm","TX Vĩnh Châu","Thạnh Trị","Trần Đề","Ô Môn"],"r":["Cờ Đỏ"],"k":["Thốt Nốt","Thới Lai","Vĩnh Thạnh","TP Vị Thanh","Vị Thủy","Châu Thành (Hậu Giang)"]}];   // chép từ du-lieu/bo-ranh.json bằng cong-cu/gop_bo_ranh.py
+  {id:2260,b:[9.823,106.084,9.828,106.095]},{id:2261,b:[9.785,106.078,9.828,106.095]},{id:2262,b:[9.931,106.106,9.942,106.117]},{id:2271,b:[9.926,106.348,9.98,106.392]},{id:2617,b:[10.358,105.518,10.364,105.524]},{id:2845,b:[9.731,106.161,9.785,106.254]},
+  {id:3173,b:[9.617,106.15,9.785,106.364]},{id:3174,b:[9.731,106.15,9.736,106.205]}];   // chép từ du-lieu/bo-ranh.json (122 bộ) bằng cong-cu/gop_bo_ranh.py
+const VNKHO=[{"t":"Vĩnh Long mới (Trà Vinh, Vĩnh Long, Bến Tre cũ)","d":26,"b":66,"n":"2026-10-15","h":["Châu Thành - Châu Thành","Châu Thành - Hòa Lợi","Châu Thành - Hòa Minh","Châu Thành - Hòa Thuận","Châu Thành - Hưng Mỹ","Châu Thành - Lương Hoà A","Châu Thành - Mỹ Chánh","Châu Thành - Nguyệt Hóa","Châu Thành - Song Lộc","Châu Thành - Thanh Mỹ","Châu Thành - Đa Lộc","Càng Long - An Trường","Càng Long - An Trường A","Càng Long - Càng Long","Càng Long - Huyền Hội","Càng Long - Nhị Long","Càng Long - Nhị Long Phú","Càng Long - Phương Thạnh","Càng Long - Tân An","Càng Long - Tân Bình","Càng Long - Đại Phúc","Càng Long - Đại Phước","Càng Long - Đức Mỹ","Cầu Kè - An Phú Tân","Cầu Kè - Ninh Thới","Cầu Kè - Phong Phú","Cầu Kè - Phong Thạnh","Cầu Kè - Tam Ngãi","Cầu Kè - Thạnh Phú","Cầu Ngang - Cầu Ngang","Cầu Ngang - Mỹ Long Bắc","Duyên Hải TX - Hiệp Thạnh","Duyên Hải TX - Trường Long Hòa","TP Trà Vinh - Long Đức","TP Trà Vinh - Phường 3","Tiểu Cần - Hiếu Tử","Tiểu Cần - Hùng Hòa","Tiểu Cần - Tân Hòa","Tiểu Cần - Tập Ngãi","Trà Cú (thay bộ 2826 bị nguồn xoá)","Trà Cú - An Quảng Hữu","Trà Cú - giáp Tiểu Cần","Trà Cú - Định An (Thị trấn)","Trà Cú - Định An (Xã)"],"r":[],"k":[]},{"t":"Đồng Tháp mới","d":13,"b":38,"n":"2026-10-09","h":["Châu Thành ĐT","H Cao Lãnh","H Hồng Ngự","Lai Vung","Lấp Vò","TP Cao Lãnh","TP Hồng Ngự","TP Sa Đéc","Tam Nông","Thanh Bình","Tháp Mười","Tân Hồng","Tân Phú Đông"],"r":["10 huyện ở phần Tiền Giang cũ"],"k":[]},{"t":"Cần Thơ mới (Cần Thơ, Hậu Giang, Sóc Trăng cũ)","d":21,"b":25,"n":"2026-10-09","h":["Bình Thủy","Châu Thành (Sóc Trăng)","Châu Thành A","Cái Răng","Cù Lao Dung","H Long Mỹ","Kế Sách","Long Phú","Mỹ Tú","Mỹ Xuyên","Ninh Kiều","Phong Điền","Phụng Hiệp","TP Ngã Bảy","TP Sóc Trăng","TX Long Mỹ","TX Ngã Năm","TX Vĩnh Châu","Thạnh Trị","Trần Đề","Ô Môn"],"r":["Cờ Đỏ"],"k":["Thốt Nốt","Thới Lai","Vĩnh Thạnh","TP Vị Thanh","Vị Thủy","Châu Thành (Hậu Giang)"]}];   // chép từ du-lieu/bo-ranh.json bằng cong-cu/gop_bo_ranh.py
+/* v68: bộ nguồn đã xoá (ô trả 404 «Dataset not found») — bỏ khỏi danh sách nhớ trong máy và file bo-ranh.json cũ trên GitHub.
+   [ĐÃ THỬ 15/10] 2826 (Trà Cú) bị thay bằng 3173. Bộ khác trả 404 lúc dùng thì vnBoXoa tự bỏ. */
+const VNBOXOA=new Set([2826]);
 let VNR={on:true,bo:VNBOMD.map(b=>({...b,b:[...b.b]})),o:new Map(),cho:[],dang:0,loi:'',tb:false};
-try{const q=JSON.parse(localStorage.getItem('vnbo')||'null');if(Array.isArray(q))for(const b of q)vnThemBo(b.id,b.b,true)}catch(e){}
+try{const q=JSON.parse(localStorage.getItem('vnbo')||'null');if(Array.isArray(q)){for(const b of q)vnThemBo(b.id,b.b,true);if(q.some(b=>VNBOXOA.has(+b.id)))vnLuu()}}catch(e){}
+/* VNXOATHAY: bộ chết chính máy này gặp (trạm trả «Dataset not found»), chưa có trong bo_xoa của kho → gửi kèm nút «Gửi lên kho» */
+let VNXOATHAY=new Set();try{VNXOATHAY=new Set(JSON.parse(localStorage.getItem('vnxoathay')||'[]').map(Number))}catch(e){}
+function vnBoXoa(id,thay){id=+id;
+  if(thay&&!VNBOXOA.has(id)){VNXOATHAY.add(id);try{localStorage.setItem('vnxoathay',JSON.stringify([...VNXOATHAY]))}catch(e){}}
+  if(VNBOXOA.has(id)&&!VNR.bo.some(b=>b.id===id))return;VNBOXOA.add(id);VNR.bo=VNR.bo.filter(b=>b.id!==id);vnLuu()}
+const vnLaXoa=r=>r.clone().text().then(t=>/dataset not found/i.test(t)).catch(()=>false);   // 404 thật của nguồn (bản trong bộ nhớ đệm không có thân → false)
+const VNGOC=new Map(VNBOMD.map(b=>[b.id,b.b]));   // kho chung (VNBOMD + du-lieu/bo-ranh.json): để biết máy này có gì mới
+let VNUUKHO=null;
 try{VNR.on=localStorage.getItem('vnon')!=='0'}catch(e){}
 /* v40: ưu tiên ranh khi cả hai nguồn cùng có — gop: vẽ cả hai (xanh .vn, cam nguồn 2); vn: nguồn 2 chỉ ở chỗ .vn trống;
    gl: .vn chỉ ở chỗ ô nguồn 2 trống; chivn / chigl: một nguồn */
@@ -5440,7 +5462,7 @@ function glrCo(x,y){                          // ô mức 16 (x,y) của nguồn
 }
 function vnLuu(){try{localStorage.setItem('vnbo',JSON.stringify(VNR.bo.map(b=>({id:b.id,b:b.b.map(v=>+v.toFixed(5))}))))}catch(e){}}
 function vnThemBo(id,b,im){                 // thêm / nới phạm vi đã biết của một bộ: b = [vĩ nhỏ, kinh nhỏ, vĩ lớn, kinh lớn]
-  id=+id;if(!(id>0)||!Array.isArray(b)||b.length!==4||!b.every(Number.isFinite))return false;
+  id=+id;if(!(id>0)||VNBOXOA.has(id)||!Array.isArray(b)||b.length!==4||!b.every(Number.isFinite))return false;
   const c=VNR.bo.find(x=>x.id===id);
   if(c){c.b=[Math.min(c.b[0],b[0]),Math.min(c.b[1],b[1]),Math.max(c.b[2],b[2]),Math.max(c.b[3],b[3])]}else VNR.bo.push({id,b:[...b]});
   if(!im)vnLuu();return !c;
@@ -5531,7 +5553,8 @@ function vnChay(){
   while(VNR.dang<VNSONG&&VNR.cho.length){
     const o=VNR.cho.shift();VNR.dang++;
     demFetch(`${VNTRAM}/${o.bo}/${VNZ}/${o.x}/${o.y}.mvt`,DEM_NGAY,6*DEM_NGAY).then(async r=>{
-      if(!r.ok)throw new Error(r.status===404?'trạm chưa cập nhật (xem tram/HUONG-DAN.md)':'trạm trả mã '+r.status);
+      if(r.status===404){vnBoXoa(o.bo,await vnLaXoa(r));Object.assign(o,{st:'ok',f:[]});return}   // v68: bộ đã bị nguồn xoá → bỏ, không báo lỗi
+      if(!r.ok)throw new Error('trạm trả mã '+r.status);
       const ds=vnGiai(await r.arrayBuffer());
       Object.assign(o,{st:'ok'},vnDungO(ds,VNZ,o.x,o.y));VNR.loi='';soGhi(o);
       if(o.f.length){const [la1,lo0]=vnTileLL(VNZ,o.x,o.y),[la0,lo1]=vnTileLL(VNZ,o.x+1,o.y+1);vnThemBo(o.bo,[la0,lo0,la1,lo1])}
@@ -5675,7 +5698,7 @@ function vnLayO(bo,z,x,y){
   const key=`${bo}/${z}/${x}/${y}`;
   if(z===VNZ&&VNR.o.has(key)&&VNR.o.get(key).st==='ok')return Promise.resolve(VNR.o.get(key));
   if(VNO2.has(key))return VNO2.get(key);
-  const p=demFetch(`${VNTRAM}/${bo}/${z}/${x}/${y}.mvt`,DEM_NGAY,6*DEM_NGAY).then(async r=>{if(!r.ok)throw new Error('trạm trả mã '+r.status);
+  const p=demFetch(`${VNTRAM}/${bo}/${z}/${x}/${y}.mvt`,DEM_NGAY,6*DEM_NGAY).then(async r=>{if(r.status===404)vnBoXoa(bo,await vnLaXoa(r));if(!r.ok)throw new Error('trạm trả mã '+r.status);
     const o={st:'ok',bo,x,y,z,...vnDungO(vnGiai(await r.arrayBuffer()),z,x,y)};if(z===VNZ){VNR.o.set(key,o);soGhi(o)}return o})
     .catch(e=>{VNO2.delete(key);throw e});
   VNO2.set(key,p);if(VNO2.size>80)VNO2.delete(VNO2.keys().next().value);
@@ -6098,7 +6121,9 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
      Không đọc được (ngoại tuyến, chưa tải file) thì vẫn dùng danh sách nạp sẵn VNBOMD. */
   fetch('du-lieu/bo-ranh.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{
     if(!j||!Array.isArray(j.bo))return;let n=0;
-    for(const b of j.bo)if(vnThemBo(b.id,b.b,true))n++;
+    for(const id of j.bo_xoa||[]){vnBoXoa(id);if(VNXOATHAY.delete(+id))try{localStorage.setItem('vnxoathay',JSON.stringify([...VNXOATHAY]))}catch(e){}}   // v68: kho đã ghi bộ chết
+    if(Array.isArray(j.uu_tien))VNUUKHO=j.uu_tien;
+    for(const b of j.bo){if(Array.isArray(b.b)&&b.b.length===4)VNGOC.set(+b.id,b.b);if(vnThemBo(b.id,b.b,true))n++}
     if(n){vnLuu();vnMsg();drawMap()}
   }).catch(()=>{});
   const hg=location.hash.match(/glkq=([^&]+)/);
@@ -6136,6 +6161,43 @@ window.addEventListener('message',e=>{if(e.origin!=='https://guland.vn'||!e.data
     const ma=VNR.bo.map(b=>b.id+':'+b.b.map(v=>v.toFixed(5)).join(',')).join(';');
     try{await navigator.clipboard.writeText(ma);$('khomsg').textContent=`Đã chép mã của ${VNR.bo.length} bộ. Trên máy khác: dán vào ô «Hoặc dán mã bộ ranh» rồi bấm Nhận.`}
     catch(e){$('vnma').value=ma;$('khomsg').textContent='Không chép được vào bộ nhớ tạm — mã đã nằm trong ô «dán mã bộ ranh» ở trên, hãy tự chép.'}};
+  /* v68: «Gửi lên kho» — bộ mới / phạm vi rộng hơn mà máy này nhặt được khi xem bản đồ (vnThemBo khi ô có thửa, nút dấu trang, tiện ích),
+     bộ chết máy này gặp, thứ tự tỉnh ưu tiên → mở trang tạo issue GitHub điền sẵn; GitHub Actions (cong-cu/gop_tu_issue.py) gộp, tăng phiên bản, phát hành.
+     Không gọi onland.vn: chỉ gửi những gì người dùng đã thấy. */
+  const KHOISSUE='https://github.com/hocutien/Tracuu/issues/new',KHOLE=0.002,KHOTOI=150;
+  const uuDoc=()=>{try{const a=JSON.parse(localStorage.getItem('vnuutien')||'null');if(Array.isArray(a))return a}catch(e){}return VNUUKHO||[]};
+  const uuGhi=a=>{try{localStorage.setItem('vnuutien',JSON.stringify(a))}catch(e){}khoGuiVe();uuVe()};
+  const khoMoi=()=>VNR.bo.filter(b=>{const g=VNGOC.get(b.id);return !g||b.b[0]<g[0]-KHOLE||b.b[1]<g[1]-KHOLE||b.b[2]>g[2]+KHOLE||b.b[3]>g[3]+KHOLE});
+  const uuKhac=()=>{const a=uuDoc(),k=VNUUKHO||[];return a.length!==k.length||a.some((t,i)=>t!==k[i])};
+  function khoGuiVe(){const el=$('khogui');if(!el)return;
+    const m=khoMoi(),moi=m.filter(b=>!VNGOC.has(b.id)).length,x=[...VNXOATHAY],u=uuKhac();
+    el.innerHTML=m.length||x.length||u?`Máy này có: ${[moi?`<b>${moi}</b> bộ mới`:'',m.length-moi?`<b>${m.length-moi}</b> bộ rộng hơn kho`:'',x.length?`<b>${x.length}</b> bộ nguồn đã xoá (${x.join(', ')})`:'',u?'thứ tự tỉnh ưu tiên mới':''].filter(Boolean).join(' · ')}. Bấm gửi → trang GitHub mở sẵn nội dung → bấm «Submit new issue» (Tạo). Sau 1–2 phút mọi máy nhận bản mới.`
+      :'Máy này không có gì mới so với kho chung.'}
+  const kg=$('khoguinut');if(kg)kg.onclick=()=>{
+    const m=khoMoi().slice(0,KHOTOI),x=[...VNXOATHAY],u=uuKhac();
+    if(!m.length&&!x.length&&!u){$('khomsg').textContent='Không có gì mới để gửi.';return}
+    const dong=[];
+    if(m.length)dong.push('moi '+m.map(b=>b.id+':'+b.b.map(v=>(+v).toFixed(5)).join(',')).join(';'));
+    if(x.length)dong.push('xoa '+x.join(','));
+    if(u)dong.push('uu_tien '+uuDoc().join('|'));
+    const body=`<!-- bo-ranh v1 -->\nGửi từ app ${($('appver')||{}).textContent||''} ngày ${new Date().toLocaleDateString('vi-VN')}. Bấm «Submit new issue» (Tạo) để gửi; GitHub tự gộp vào app sau 1–2 phút.\n\n\`\`\`\n${dong.join('\n')}\n\`\`\`\n`;
+    const tieu=`Bộ ranh: ${[m.length?m.length+' bộ':'',x.length?x.length+' bộ chết':'',u?'ưu tiên':''].filter(Boolean).join(', ')}`;
+    window.open(KHOISSUE+'?title='+encodeURIComponent(tieu)+'&body='+encodeURIComponent(body),'_blank');
+    $('khomsg').textContent=`Đã mở trang gửi (${m.length} bộ${khoMoi().length>KHOTOI?`; còn ${khoMoi().length-KHOTOI} bộ, gửi tiếp lần sau`:''}). Nhớ bấm «Submit new issue» trên trang GitHub.`};
+  /* tỉnh ưu tiên rà: danh sách tỉnh cũ (PROV), bộ đã biết trong ~40 km quanh tâm tỉnh, nút mở trang nguồn ở tâm tỉnh */
+  const uuDem=p=>VNR.bo.filter(b=>!(b.b[2]<p[2]-0.35||b.b[0]>p[2]+0.35||b.b[3]<p[3]-0.35||b.b[1]>p[3]+0.35)).length;
+  function uuVe(){const el=$('khouu'),ch=$('khouuchon');if(!el||!ch)return;const a=uuDoc();
+    const nut='min-height:44px;min-width:44px;padding:4px 10px;border-radius:6px;border:1px solid var(--rule);background:var(--paper,#fff);cursor:pointer';
+    el.innerHTML=a.length?a.map((t,i)=>{const p=PROV.find(q=>q[0]===t);if(!p)return '';const n=uuDem(p);
+      return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:3px 0"><b style="min-width:9em">${i+1}. ${esc(t)}</b><span style="font-size:12px;color:${n?'#3d6b4f':'#a8700f'}">${n?n+' bộ đã biết quanh tâm':'chưa có bộ nào'}</span>
+        <a href="https://onland.vn/quy-hoach?lat=${p[2]}&lng=${p[3]}&zoom=17" target="_blank" rel="noopener" style="${nut};text-decoration:none;display:inline-flex;align-items:center">Mở trang nguồn ↗</a>
+        <button type="button" data-uulen="${i}" style="${nut}" ${i?'':'disabled'} aria-label="Lên">▲</button><button type="button" data-uubo="${i}" style="${nut}" aria-label="Bỏ">✕</button></div>`}).join('')
+      :'<span style="font-size:12px">Chưa chọn tỉnh nào.</span>';
+    ch.innerHTML=PROV.map(q=>q[0]).filter(t=>!a.includes(t)).sort((x,y)=>x.localeCompare(y,'vi')).map(t=>`<button type="button" data-uuthem="${esc(t)}" style="${nut}">+ ${esc(t)}</button>`).join('')}
+  const ub=$('khobox');if(ub)ub.addEventListener('click',e=>{const b=e.target.closest('[data-uulen],[data-uubo],[data-uuthem]');if(!b)return;const a=[...uuDoc()];
+    if(b.dataset.uuthem){a.push(b.dataset.uuthem)}else if(b.dataset.uubo!=null){a.splice(+b.dataset.uubo,1)}else{const i=+b.dataset.uulen;if(i>0)[a[i-1],a[i]]=[a[i],a[i-1]]}
+    uuGhi(a)});
+  if(kb)kb.addEventListener('toggle',()=>{if(kb.open){khoGuiVe();uuVe()}});
   const dx=$('demxoa');if(dx)dx.onclick=async()=>{dx.disabled=true;await demXoa();await soXoa();GLR.clear();VNO2.clear();GLRNHO.clear();$('demmsg').textContent='Đã xoá bộ nhớ đệm và sổ vùng đã xem. Ranh sẽ tải lại mới.';dx.disabled=false};
   vnMsg();
 })();
@@ -6218,7 +6280,7 @@ async function demFetch(url,ttl,cuaSo,opt,khoa){   // như fetch; ttl, cuaSo tí
   const k=khoa||((opt&&opt.method==='POST'?'P ':'')+url+(opt&&opt.body?'#'+opt.body:''));
   let d=null;try{d=await demDoc(k)}catch(e){}
   if(d){const tuoi=Date.now()-d.t;
-    if(tuoi<ttl||(cuaSo&&tuoi<ttl+cuaSo)){if(tuoi>=ttl)demLam(k,url,opt);return new Response(d.s===404?null:d.b,{status:d.s})}}
+    if(tuoi<ttl||(cuaSo&&tuoi<ttl+cuaSo)){if(tuoi>=ttl)demLam(k,url,opt);return new Response(d.s===404||d.s===204?null:d.b,{status:d.s})}}   // v68: 204 (ô trống) không được có thân
   return demLay(k,url,opt);
 }
 

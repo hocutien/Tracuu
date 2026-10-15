@@ -20,6 +20,10 @@ def ghi_json(cu):
         f.write('  "mo_ta": ' + json.dumps(cu['mo_ta'], ensure_ascii=False) + ',\n')
         f.write('  "cap_nhat": "' + cu['cap_nhat'] + '",\n')
         f.write('  "da_thu": [\n' + ',\n'.join('    ' + json.dumps(d, ensure_ascii=False) for d in cu['da_thu']) + '\n  ],\n')
+        # v68: bộ nguồn đã xoá (app bỏ khỏi danh sách nhớ trong máy) và thứ tự tỉnh ưu tiên rà (mục Kho ranh)
+        for k in ('bo_xoa', 'uu_tien'):
+            if cu.get(k):
+                f.write('  "' + k + '": ' + json.dumps(cu[k], ensure_ascii=False) + ',\n')
         f.write('  "bo": [\n' + ',\n'.join('    ' + json.dumps(b, ensure_ascii=False) for b in cu['bo']) + '\n  ]\n}\n')
 
 
@@ -49,9 +53,12 @@ def kho_ranh():
     return list(out.values())
 
 
-def dong_bo_index(bo):
-    """Viết lại khối const VNBOMD=[…] trong index.html và tăng phiên bản (index.html + sw.js)."""
+def dong_bo_index(bo, bo_xoa=None):
+    """Viết lại khối const VNBOMD=[…] (và VNBOXOA) trong index.html và tăng phiên bản (index.html + sw.js)."""
     s = open('index.html', encoding='utf-8').read()
+    if bo_xoa is None:
+        bo_xoa = json.load(open(DICH, encoding='utf-8')).get('bo_xoa', [])
+    s = re.sub(r'const VNBOXOA=new Set\(\[[\d,]*\]\);', lambda _: 'const VNBOXOA=new Set([' + ','.join(str(int(i)) for i in sorted(set(bo_xoa))) + ']);', s, count=1)
     i = s.index('const VNBOMD=[')
     j = s.index('];', i) + 2
     k = s.index('\n', j)
@@ -77,39 +84,44 @@ def dong_bo_index(bo):
     return so
 
 
-if len(sys.argv) >= 2 and sys.argv[1] == '--chi-dong-bo':
+def main():
+    if len(sys.argv) >= 2 and sys.argv[1] == '--chi-dong-bo':
+        cu = json.load(open(DICH, encoding='utf-8'))
+        so = dong_bo_index(cu['bo'])
+        print(f'Đã chép {len(cu["bo"])} bộ vào index.html, phiên bản v{so}. Tải index.html + sw.js lên GitHub.')
+        return
+    if len(sys.argv) < 3:
+        sys.exit(__doc__)
+    nguon, tinh = sys.argv[1], sys.argv[2]
+    ghi = sys.argv[3] if len(sys.argv) > 3 else ''
     cu = json.load(open(DICH, encoding='utf-8'))
+    moi = json.load(open(nguon, encoding='utf-8'))
+    bo = {b['id']: b for b in cu['bo']}
+    them = nori = 0
+    for x in moi['bo']:
+        noi = [tinh + ': ' + n.split('|', 1)[-1] for n in x.get('noi', [])]
+        if x['id'] in bo:
+            b, c = bo[x['id']]['b'], x['b']
+            bo[x['id']]['b'] = [min(b[0], c[0]), min(b[1], c[1]), max(b[2], c[2]), max(b[3], c[3])]
+            bo[x['id']]['noi'] = list(dict.fromkeys(bo[x['id']]['noi'] + noi))
+            nori += 1
+        else:
+            bo[x['id']] = {'id': x['id'], 'b': x['b'], 'noi': noi}
+            them += 1
+    hom = datetime.date.today().isoformat()
+    muc = {'tinh': tinh, 'ngay': hom, 'so_diem': moi.get('so_diem', 0)}
+    if moi.get('diem_rong'):
+        muc['ghi_chu'] = 'điểm không có ranh: ' + ', '.join(moi['diem_rong'])
+    if ghi:
+        muc['ghi_chu'] = (muc.get('ghi_chu', '') + '; ' + ghi).strip('; ')
+    cu['da_thu'].append(muc)
+    cu['cap_nhat'] = hom
+    cu['bo'] = sorted(bo.values(), key=lambda b: b['id'])
+    ghi_json(cu)
     so = dong_bo_index(cu['bo'])
-    print(f'Đã chép {len(cu["bo"])} bộ vào index.html, phiên bản v{so}. Tải index.html + sw.js lên GitHub.')
-    sys.exit(0)
-if len(sys.argv) < 3:
-    sys.exit(__doc__)
-nguon, tinh = sys.argv[1], sys.argv[2]
-ghi = sys.argv[3] if len(sys.argv) > 3 else ''
-cu = json.load(open(DICH, encoding='utf-8'))
-moi = json.load(open(nguon, encoding='utf-8'))
-bo = {b['id']: b for b in cu['bo']}
-them = nori = 0
-for x in moi['bo']:
-    noi = [tinh + ': ' + n.split('|', 1)[-1] for n in x.get('noi', [])]
-    if x['id'] in bo:
-        b, c = bo[x['id']]['b'], x['b']
-        bo[x['id']]['b'] = [min(b[0], c[0]), min(b[1], c[1]), max(b[2], c[2]), max(b[3], c[3])]
-        bo[x['id']]['noi'] = list(dict.fromkeys(bo[x['id']]['noi'] + noi))
-        nori += 1
-    else:
-        bo[x['id']] = {'id': x['id'], 'b': x['b'], 'noi': noi}
-        them += 1
-hom = datetime.date.today().isoformat()
-muc = {'tinh': tinh, 'ngay': hom, 'so_diem': moi.get('so_diem', 0)}
-if moi.get('diem_rong'):
-    muc['ghi_chu'] = 'điểm không có ranh: ' + ', '.join(moi['diem_rong'])
-if ghi:
-    muc['ghi_chu'] = (muc.get('ghi_chu', '') + '; ' + ghi).strip('; ')
-cu['da_thu'].append(muc)
-cu['cap_nhat'] = hom
-cu['bo'] = sorted(bo.values(), key=lambda b: b['id'])
-ghi_json(cu)
-so = dong_bo_index(cu['bo'])
-print(f'Thêm {them} bộ mới, nới {nori} bộ đã có; tổng {len(cu["bo"])} bộ. Đã chép vào index.html, phiên bản v{so}.')
-print('Tải lên GitHub: index.html, sw.js (và du-lieu/bo-ranh.json nếu muốn giữ bản gốc trên trang).')
+    print(f'Thêm {them} bộ mới, nới {nori} bộ đã có; tổng {len(cu["bo"])} bộ. Đã chép vào index.html, phiên bản v{so}.')
+    print('Tải lên GitHub: index.html, sw.js (và du-lieu/bo-ranh.json nếu muốn giữ bản gốc trên trang).')
+
+
+if __name__ == '__main__':
+    main()

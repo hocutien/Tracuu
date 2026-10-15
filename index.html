@@ -299,7 +299,7 @@ body.full #bthoat{display:block;position:absolute;left:10px;top:calc(10px + env(
 #mfbtn #mfcham{color:var(--red);font-size:12px}
 #mfbtn #mfcham.hide{display:none}
 #mapfoot.thu #locrow,#mapfoot.thu #gpsmsg{display:none!important}
-body.full #mfbtn{display:none!important}
+body.full #mfbtn,#mfbtn.hide{display:none!important}
 /* thanh trượt độ đậm lớp quy hoạch, nổi bên mép trái bản đồ (mép phải đã có cụm nút công cụ) */
 #glctl{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:6px;
   touch-action:none;user-select:none}
@@ -333,6 +333,8 @@ body.full #mfbtn{display:none!important}
 #mapchip>span{min-width:0}
 #chipdc{flex:1 1 100%;order:9;font-size:12.5px;line-height:1.4;border-top:1px solid var(--rule);padding-top:5px}
 #chipdc:empty,#chipdc.an{display:none}
+/* v67: nút ▾ thu gọn thẻ thửa (ẩn dòng xã, toạ độ, Chép, Quy hoạch, Bổ sung); nhớ trạng thái */
+#mapchip.gon #chipdc,#mapchip #chipgon.an{display:none}
 #chipxa{color:#2f7a3d;font-weight:700}#chipcu{color:var(--dim)}
 #chipdc .chipto{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px}
 #chipdc .chipto span{flex:1 1 auto;white-space:nowrap;color:#16211c;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
@@ -349,11 +351,14 @@ body.full #mfbtn{display:none!important}
 /* v64: khổ điện thoại — dòng tờ · diện tích · loại đất xuống hàng riêng, không cắt chữ; nút đủ lớn cho ngón tay; thanh độ đậm quy hoạch nhích lên khỏi nút «Toạ độ & vị trí» */
 @media(max-width:900px){
   #mapchip.on:not(.khoi)>b{flex:1 1 auto;font-size:14px}
-  #mapchip.on:not(.khoi)>span{flex:1 1 100%;order:3;white-space:normal;overflow:visible;color:#16211c;font-size:14px;font-weight:600}
+  #mapchip.on:not(.khoi)>span{flex:1 1 calc(100% - 60px);order:3;white-space:normal;overflow:visible;color:#16211c;font-size:14px;font-weight:600}
   #mapchip .cb,#mapchip #chipdir{min-height:44px}
   #mapchip #chipx{min-width:44px;min-height:44px;font-size:22px}
   #mapchip .cv{min-width:44px;font-size:22px}
+  #mapchip #chipgon{order:3}
   #glctl{top:40%}
+  /* v67: khung thông báo trên bản đồ không cao quá ~1/4 màn hình, dài hơn thì cuộn trong khung */
+  #pickbar{max-height:26dvh;overflow-y:auto;overscroll-behavior:contain;font-size:12.5px;line-height:1.4;padding:8px 10px}
 }
 /* khối chưa tách ranh: dòng 1 "⚠ Khối" + nút, dòng 2 nội dung đầy đủ (không cắt chữ, khổ điện thoại chỉ còn ~77 px nếu để một dòng) */
 #mapchip.khoi{border-color:#a8700f;background:#fdf3e1;flex-wrap:wrap;row-gap:4px}
@@ -425,7 +430,7 @@ fieldset,.sheet,.cand,#sidebody>details{border-radius:var(--r)}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v66 · 11/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v67 · 15/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Số thửa · 32: 459-470 · tên · toạ độ" spellcheck="false" autocomplete="off">
@@ -703,7 +708,7 @@ Nạp xong bấm <b>Lưu chỉ mục</b> để cất file .json vào Drive — l
   <div style="flex:1 1 100%"><button id="btam" title="Lấy toạ độ và địa chỉ ngay tâm màn hình bản đồ, không cần dán tay" style="width:100%;min-height:44px;padding:10px 8px;font-size:14px;border:0;background:#12283a;color:#fff;border-radius:6px;cursor:pointer;font-weight:700">⌖ Lấy vị trí ngay tâm màn hình</button></div>
 </div>
 <div id="gpsmsg"></div>
-<div id="mapchip"><b></b><button id="chiplui" class="cb cv" title="Thửa trước" aria-label="Thửa trước">‹</button><i id="chipdem"></i><button id="chiptoi" class="cb cv" title="Thửa kế" aria-label="Thửa kế">›</button><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button><button id="chipgl" class="cb" title="Lấy thêm số tờ, số thửa, loại đất, diện tích ghi cho các thửa đang chọn (tối đa 10)">🔎 Bổ sung</button></div></div></div>
+<div id="mapchip"><b></b><button id="chiplui" class="cb cv" title="Thửa trước" aria-label="Thửa trước">‹</button><i id="chipdem"></i><button id="chiptoi" class="cb cv" title="Thửa kế" aria-label="Thửa kế">›</button><span></span><button id="chipdir" title="Mở Google Maps chỉ đường tới thửa này">🧭 Chỉ đường</button><button id="chipgon" class="cb cv" title="Thu gọn thẻ thửa" aria-label="Thu gọn thẻ thửa" aria-expanded="true">▾</button><button id="chipx" title="Bỏ chọn">×</button><div id="chipdc"><div id="chipxa"></div><div id="chipcu"></div><div class="chipto"><span id="chiptd"></span><button id="chipcp" class="cb" title="Chép toạ độ">📋 Chép</button><button id="chipqh" class="cb" title="Bật lớp quy hoạch tại đây">🗺 Quy hoạch</button><button id="chipgl" class="cb" title="Lấy thêm số tờ, số thửa, loại đất, diện tích ghi cho các thửa đang chọn (tối đa 10)">🔎 Bổ sung</button></div></div></div>
 <div id="printbox" class="hide" style="border:1px solid var(--rule);border-radius:3px;padding:10px;margin-top:8px;background:#fff">
   <p class="note" id="pscale" style="margin:0 0 8px">Kéo một khung trên bản đồ để chọn vùng in.</p>
   <div class="row">
@@ -3744,7 +3749,11 @@ function mfDat(mo,nho){
 }
 $('mfbtn').onclick=()=>mfDat($('mapfoot').classList.contains('thu'),true);
 try{mfDat(localStorage.getItem('mfmo')==='1',false)}catch(e){mfDat(false,false)}
+/* v67: trên điện thoại ô dán toạ độ nằm trong khay (dungKhay), khối này chỉ còn thông báo vị trí →
+   chưa có thông báo thì ẩn nút (trước đây bấm chỉ đổi mũi tên, không ẩn / hiện gì) */
+function mfNut(){$('mfbtn').classList.toggle('hide',heptay()&&!$('gpsmsg').textContent.trim())}
 new MutationObserver(()=>{
+  mfNut();
   const g=$('gpsmsg');if(!g.textContent.trim())return $('mfcham').classList.add('hide');
   if(!$('mapfoot').classList.contains('thu'))return;
   if(g.querySelector('.warn,.caution'))mfDat(true,false);          // lỗi, cảnh báo: phải thấy ngay
@@ -3889,6 +3898,7 @@ function dungKhay(){
   });
   if($('basewrap'))$('basewrap').open=!!dt;
   if(!dt)khay(false);
+  mfNut();
 }
 dungKhay();
 let __bk=heptay();
@@ -3948,6 +3958,7 @@ function chipThua(){
   $('chiptd').textContent=td?'Toạ độ: '+td:'';
   $('chipcp').dataset.td=td;$('chipcp').style.display=td?'':'none';
   $('chipdc').classList.toggle('an',khoi||(!moi&&!cuDc&&!td));
+  $('chipgon').classList.toggle('an',$('chipdc').classList.contains('an'));   // v67: không có phần chi tiết thì không cần nút thu gọn
   document.querySelectorAll('#gpsmsg .kothua').forEach(e=>e.remove());   // v64: đã có thửa thì câu «không nằm trong thửa nào» hết đúng
   box.classList.add('on');
 }
@@ -3957,6 +3968,15 @@ $('chipcp').onclick=e=>{e.stopPropagation();const td=e.currentTarget.dataset.td;
 $('chipqh').onclick=e=>{e.stopPropagation();const c=$('glon');if(!c.checked){c.checked=true;c.onchange({target:c})}
   pickBar('Đã bật lớp quy hoạch. Kéo thanh độ đậm bên trái bản đồ để xem rõ hơn.','ok');setTimeout(()=>{if($('picktxt').textContent.startsWith('Đã bật lớp quy hoạch'))$('pickbar').style.display='none'},5000)};
 $('chipgl').onclick=e=>{e.stopPropagation();if(FLASH&&!SEL.has(FLASH.id))SEL.add(FLASH.id);glMoLay()};   // v61: bổ sung thông tin từ nguồn 2 (thẻ mới + tiện ích tự chạy / dấu trang)
+/* v67: thu gọn / mở phần chi tiết của thẻ thửa — ▾ thu xuống, ▴ mở lên; nhớ trạng thái cho các lần chọn sau */
+function chipGon(g,nho){
+  $('mapchip').classList.toggle('gon',g);
+  const b=$('chipgon'),t=g?'Mở chi tiết thửa (xã, toạ độ, quy hoạch)':'Thu gọn thẻ thửa';
+  b.textContent=g?'▴':'▾';b.title=t;b.setAttribute('aria-label',t);b.setAttribute('aria-expanded',g?'false':'true');
+  if(nho){try{localStorage.setItem('chipgon',g?'1':'0')}catch(e){}}
+}
+$('chipgon').onclick=e=>{e.stopPropagation();chipGon(!$('mapchip').classList.contains('gon'),true)};
+try{chipGon(localStorage.getItem('chipgon')==='1',false)}catch(e){chipGon(false,false)}
 $('chiplui').onclick=e=>{e.stopPropagation();chipDi(-1)};$('chiptoi').onclick=e=>{e.stopPropagation();chipDi(1)};
 $('chipx').onclick=()=>{
   if(FLASH){SEL.delete(FLASH.id);FLASH=null}
@@ -5171,7 +5191,8 @@ function xuatDGN(ds,ten){
    3. vẫn chưa có thửa chứa điểm: hỏi tiếp tới OLPICKMAX tờ trong OLPICKKM km, gặp thửa chứa điểm là dừng;
    4. đang tra mà người dùng bấm điểm khác: bỏ lượt cũ, tra điểm mới. */
 const OLPICKMAX=200, OLPICKKM=8, OLPICKGAN=60, OLPICKLO=8;
-let OLHUY=null;                                 // điểm bấm mới trong lúc đang tra
+let OLHUY=null;                                 // điểm bấm mới trong lúc đang tra; 'bo' = chỉ bỏ lượt cũ (lượt mới đã ra thửa bằng lớp ranh), không tra lại
+let OLDIEM=false;                               // v67: việc đang chạy là tra tại điểm (olTaiDiem / olNacTiep), không phải khoanh vùng
 const OLNONG=[];let OLXANONG=null;               // id các tờ vừa cho thửa thật và xã của tờ trúng gần nhất — cú bấm sau hỏi trước, trúng là dừng
 /* [v28] phạm vi đã thấy của từng tờ (khung bao các thửa đã trúng, toạ độ bản đồ theo kinh tuyến trục đang dùng), lưu trong máy:
    tờ có phạm vi (nới 30 m) chứa điểm bấm được hỏi trước. Chỉ đổi thứ tự hỏi, không bớt tờ nào. */
@@ -5194,7 +5215,7 @@ function olTamTo(l){try{const g=JSON.parse(l.geojson);return g&&g.type==='Point'
 async function olTaiDiem(w){
   if(OLBUSY){OLHUY=w;return}                     // đang tra dở: ghi nhận điểm mới, vòng lặp sẽ tự dừng
   const {lon0:lon0Chon}=olLon0();
-  OLBUSY=true;OLHUY=null;
+  OLBUSY=true;OLHUY=null;OLDIEM=true;
   try{
     const [la,lo]=conv(w[0],w[1],LON0!=null?LON0:lon0Chon,K0||0.9999);
     /* hỏi Mạnh Lắm các tờ gần điểm bấm nhất cả nước — không phụ thuộc tỉnh/huyện/xã đang chọn ở mục Hỏi thửa */
@@ -5207,6 +5228,7 @@ async function olTaiDiem(w){
         .map(x=>({...x,d:Math.hypot((x.c[0]-lo)*kc,x.c[1]-la)*111.32}))
         .filter(x=>x.d<=OLPICKKM).sort((a,b)=>a.d-b.d).slice(0,OLPICKMAX);
     }
+    if(OLHUY)return;                                               // v67: bị bỏ lúc đang chờ danh sách tờ → không ghi «Đang tra…» đè lên lượt mới
     const lonCua=l=>{let md=l.metadata;if(typeof md==='string'){try{md=JSON.parse(md)}catch(e){md=null}}
       const cm=md&&parseFloat(md.centralmeridian);if(cm>100&&cm<112)return cm;                // tờ tự ghi kinh tuyến trục của nó
       const p=OLTINH.find(q=>String(q.id)===String(l.idtinh))||{};
@@ -5254,6 +5276,7 @@ async function olTaiDiem(w){
         if(OLHUY){dung=true;return}
         const x=cand[i++];
         const j=await hoiTo(x);
+        if(OLHUY){dung=true;return}                              // v67: lượt đã bị bỏ thì không ghi tiến độ đè lên kết quả mới
         const dn=olDiemNhan(j);if(dn)ganTo.push({l:x.l,dn});
         await xet(x,j);xong++;
         if(xong%OLPICKLO===0)olmsg(`Đang tra tại điểm ${la.toFixed(6)}, ${lo.toFixed(6)} — đã hỏi ${xong}/${cand.length} tờ quanh đó${xong>=OLPICKGAN?' (mở rộng tìm xa hơn)':''}… Bấm điểm khác để bỏ lượt này.`);
@@ -5330,7 +5353,7 @@ async function olTaiDiem(w){
     if(k.t)olmsg(glMoTa(k.t,w,''),'ok');
     else olmsg('Không gọi được Mạnh Lắm: '+esc(e.message)+'.'+glLyDo(k)+glNut(w),'warn');
   }
-  finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}else setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}
+  finally{OLBUSY=false;OLDIEM=false;if(OLHUY&&OLHUY!=='bo'){const p=OLHUY;OLHUY=null;olTaiDiem(p)}else{OLHUY=null;setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}}
 }
 /* ===== v37: Ranh nhanh — ô ranh vector như trang onland.vn (giao diện ghi "Ranh nhanh Mạnh Lắm") =====
    [ĐÃ THỬ 08/10/2026] onland.vn vẽ ranh thửa bằng ô vector MVT theo "bộ dữ liệu" (mỗi bộ ≈ một huyện/thị xã):
@@ -5941,7 +5964,10 @@ async function traNhanh(w){
   try{
     let h=vnTrung(w);
     if(!h)h=await vnTimTaiDiem(w);
-    if(h){await vnChon(h,w);return}
+    if(h){
+      /* v67: lượt tra cũ (bấm chỗ khác trước đó) còn chạy thì dừng nó, kẻo xong muộn ghi «Không có thửa…» đè lên thửa vừa chọn */
+      if(OLBUSY&&OLDIEM){OLHUY='bo';$('pickbar').style.display='none'}
+      await vnChon(h,w);return}
   }catch(e){}
   finally{if(!OLBUSY)setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}
   /* v57: ranh ảnh (Guland) tách CÙNG LÚC với chuỗi Mạnh Lắm: về trước thì hiện làm thửa tạm (chưa rõ số), Mạnh Lắm ra thửa thật thì thay.
@@ -6491,9 +6517,9 @@ async function olTruyVet(N){
 }
 async function olNacTiep(){
   if(!OLNAC||OLBUSY)return;
-  OLBUSY=true;OLHUY=null;document.querySelectorAll('.olkepick').forEach(b=>b.disabled=true);
+  OLBUSY=true;OLHUY=null;OLDIEM=true;document.querySelectorAll('.olkepick').forEach(b=>b.disabled=true);
   try{await olNacDo()}catch(e){olmsg('Không dò được quanh điểm: '+esc(e.message)+'.','warn')}
-  finally{OLBUSY=false;if(OLHUY){const p=OLHUY;OLHUY=null;olTaiDiem(p)}else setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}
+  finally{OLBUSY=false;OLDIEM=false;if(OLHUY&&OLHUY!=='bo'){const p=OLHUY;OLHUY=null;olTaiDiem(p)}else{OLHUY=null;setTimeout(()=>{if(!OLBUSY)OLTAM=false},50)}}
 }
 
 /* ===== Khoanh vùng: kéo khung chữ nhật trên bản đồ → lấy toàn bộ thửa Mạnh Lắm trong khung (v33) =====

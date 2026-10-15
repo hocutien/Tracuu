@@ -430,7 +430,7 @@ fieldset,.sheet,.cand,#sidebody>details{border-radius:var(--r)}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v68 · 15/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v69 · 15/10/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Số thửa · 32: 459-470 · tên · toạ độ" spellcheck="false" autocomplete="off">
@@ -3978,7 +3978,7 @@ $('chipcp').onclick=e=>{e.stopPropagation();const td=e.currentTarget.dataset.td;
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(td).then(xong,()=>prompt('Chép toạ độ:',td));else prompt('Chép toạ độ:',td)};
 $('chipqh').onclick=e=>{e.stopPropagation();const c=$('glon');if(!c.checked){c.checked=true;c.onchange({target:c})}
   pickBar('Đã bật lớp quy hoạch. Kéo thanh độ đậm bên trái bản đồ để xem rõ hơn.','ok');setTimeout(()=>{if($('picktxt').textContent.startsWith('Đã bật lớp quy hoạch'))$('pickbar').style.display='none'},5000)};
-$('chipgl').onclick=e=>{e.stopPropagation();if(FLASH&&!SEL.has(FLASH.id))SEL.add(FLASH.id);glMoLay()};   // v61: bổ sung thông tin từ nguồn 2 (thẻ mới + tiện ích tự chạy / dấu trang)
+$('chipgl').onclick=e=>{e.stopPropagation();glMoLay(FLASH&&FLASH.id)};   // v61: bổ sung thông tin từ nguồn 2 (thẻ mới + tiện ích tự chạy / dấu trang); v69: thửa đang xem đứng đầu
 /* v67: thu gọn / mở phần chi tiết của thẻ thửa — ▾ thu xuống, ▴ mở lên; nhớ trạng thái cho các lần chọn sau */
 function chipGon(g,nho){
   $('mapchip').classList.toggle('gon',g);
@@ -6066,17 +6066,21 @@ function vnNhanMa(s){                        // "1663:9.6,106.4,9.7,106.5;1667:�
 const GLMAX=10, GLBM="(async()=>{const h=location.hash.match(/tcdt=([^&]+)/);if(!h)return alert('Mở trang này bằng nút «Bổ sung thông tin» trong app Tra cứu thửa đất.');\nlet q;try{q=JSON.parse(decodeURIComponent(h[1]))}catch(e){return alert('Mã trong địa chỉ bị hỏng.')}\nif(!window.jQuery)return alert('Trang chưa tải xong, đợi vài giây rồi bấm lại.');\nconst B=document.createElement('div');B.style.cssText='position:fixed;z-index:2147483647;top:70px;left:50%;transform:translateX(-50%);background:#12283a;color:#fbeed0;font:14px/1.4 Arial,sans-serif;padding:10px 14px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:92vw';document.body.appendChild(B);\nconst kq=[];for(let i=0;i<q.d.length&&i<10;i++){const p=q.d[i];B.textContent='Đang lấy thửa '+(i+1)+'/'+q.d.length+'…';\nlet j=null;try{j=await new Promise((ok,er)=>jQuery.ajax({url:'/get-bound-2',method:'POST',data:{marker_lat:p.la,marker_lng:p.lo,area:'',shape:'',force_remap_id:'',force_hcm_bddc_id:'',province_id:p.t||''},dataType:'json',success:ok,error:(x,s)=>er(new Error(s+' '+x.status))}))}catch(e){kq.push({k:p.k,loi:String(e.message)});continue}\nconst d=document.createElement('div');d.innerHTML=String(j&&j.html||'');const txt=d.textContent.replace(/\\s+/g,' ').replace(/Tên chủ.*?(?=Dữ liệu|$)/,' ');\nconst ma=(txt.match(/\\b([0-9]?[A-Z]{2,4}(?:[+-][A-Z]{2,4})*)\\s+[0-9.,]+\\s*m²\\s*([^0-9]*?)(?=Dữ liệu|Xem đầy đủ|$)/)||[]);\nconst A=[...d.querySelectorAll('a')].map(x=>x.textContent.trim()),ix=A.findIndex(x=>/^(Xã|Phường|Thị trấn)\\s/.test(x)),ok3=x=>x&&x.length<40&&!/[0-9]/.test(x)&&!/Chỉ đường|Đo vẽ|Bảng|Ký hiệu|Xem/.test(x),dc=ix<0?[]:['',A[ix],ok3(A[ix+1])?A[ix+1]:'',ok3(A[ix+2])?A[ix+2]:''];\nkq.push({k:p.k,j:{status:j&&j.status,points:j&&j.points,address:j&&j.address,district_id:j&&j.district_id,ward_id:j&&j.ward_id,ma:ma[0]||'',loai:(ma[2]||'').trim(),xa:dc[1]||'',huyen:dc[2]||'',tinh:dc[3]||''}});\nif(i+1<q.d.length)await new Promise(r=>setTimeout(r,800))}\nconst n=kq.filter(x=>x.j&&x.j.points).length;\nif(window.opener&&!window.opener.closed){window.opener.postMessage({tcdt:'gl',kq},q.o);B.textContent='Đã gửi '+n+'/'+kq.length+' thửa có số liệu về app. Tab này tự đóng…';setTimeout(()=>window.close(),1500)}\nelse{B.textContent='Đã lấy '+n+'/'+kq.length+' thửa — đang mở app…';location.href=q.a+'#glkq='+encodeURIComponent(JSON.stringify(kq))}})()";
 const glDauTrang=()=>'javascript:'+encodeURIComponent(GLBM);
 const GLDANG={};                              // k → mã thửa trong app, chờ kết quả từ tab Guland
-function glMoLay(){
-  const ds=allThua().filter(t=>SEL.has(t.id)&&t.r&&t.r.length>=3).slice(0,GLMAX);
+let GLLUOT=0;                                 // v69: mỗi lần bấm một tiền tố khoá riêng — thẻ cũ gửi về muộn không ghép nhầm vào thửa của lần bấm sau
+/* v69 [LỖI 15/10: chọn 4664 rồi 515 tờ 3 Cầu Ngang, đang xem 515 mà Guland mở tại 4664]: thửa đang xem (dau) đứng đầu danh sách
+   → Guland mở tại thửa đó, hỏi trước tiên, và luôn có mặt dù đã chọn hơn GLMAX thửa. Không đổi danh sách chọn. */
+function glMoLay(dau){
+  const ok=t=>t&&t.r&&t.r.length>=3,all=allThua(),t0=dau!=null?all.find(t=>t.id===dau):null;
+  const ds=[...(ok(t0)?[t0]:[]),...all.filter(t=>SEL.has(t.id)&&t!==t0&&ok(t))].slice(0,GLMAX);
   if(!ds.length)return pickBar('Chọn ít nhất một thửa trên bản đồ trước.','warn');
   if(LON0==null)return pickBar('Chưa có kinh tuyến trục.','warn');
   const d=ds.map((t,i)=>{const w=diemTrongThua(t),u=glLink(w,t.ol&&OLHUYENLOP[t.ol]?OLHUYENLOP[t.ol][0]:''),m=u.match(/lat=([-\d.]+)&lng=([-\d.]+)/);
-    GLDANG['g'+i]=t.id;return {k:'g'+i,la:m[1],lo:m[2]}});
+    const k='g'+GLLUOT+'_'+i;GLDANG[k]=t.id;return {k,la:m[1],lo:m[2]}});GLLUOT++;
   const q={d,o:location.origin,a:location.href.split('#')[0]};
   const url=`https://guland.vn/soi-quy-hoach?lat=${d[0].la}&lng=${d[0].lo}#tcdt=${encodeURIComponent(JSON.stringify(q))}`;
   const tab=window.open(url,'_blank');
   /* v61: máy đã cài tiện ích tự chạy (cong-cu/bo-sung-tu-dong.user.js, Tampermonkey) thì thẻ đó tự lấy, tự gửi về, tự đóng; chưa cài thì bấm dấu trang */
-  pickBar(`Đã mở thẻ bổ sung cho ${ds.length} thửa đang chọn. Máy đã cài <b>tiện ích tự động</b> thì chờ vài giây, số liệu tự về đây và thẻ tự đóng. Chưa cài: trên thẻ đó bấm dấu trang <b>📥 Bổ sung thửa</b>.<div><a class="olkepick olphu" href="cong-cu/bo-sung-tu-dong.user.js" target="_blank" rel="noopener">⚙ Cài tiện ích tự động</a><a class="olkepick olphu" href="${glDauTrang()}" onclick="event.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark) một lần là dùng được mãi.')">📥 Bổ sung thửa (kéo lên thanh dấu trang)</a></div>`,tab?'ok':'warn');
+  pickBar(`Đã mở thẻ bổ sung cho ${ds.length>1?ds.length+' thửa, bắt đầu từ ':''}${esc(nhanThua(ds[0]))} tờ ${esc(ds[0].to)}. Máy đã cài <b>tiện ích tự động</b> thì chờ vài giây, số liệu tự về đây và thẻ tự đóng. Chưa cài: trên thẻ đó bấm dấu trang <b>📥 Bổ sung thửa</b>.<div><a class="olkepick olphu" href="cong-cu/bo-sung-tu-dong.user.js" target="_blank" rel="noopener">⚙ Cài tiện ích tự động</a><a class="olkepick olphu" href="${glDauTrang()}" onclick="event.preventDefault();alert('Kéo nút này lên thanh dấu trang (bookmark) một lần là dùng được mãi.')">📥 Bổ sung thửa (kéo lên thanh dấu trang)</a></div>`,tab?'ok':'warn');
 }
 function glGhep(kq){                          // ghép kết quả nguồn 2 vào thửa đang có
   const dong=[];let n=0;

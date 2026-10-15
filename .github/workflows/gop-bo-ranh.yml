@@ -1,0 +1,69 @@
+# Gộp bộ ranh do app / tiện ích gửi lên (issue có dấu «<!-- bo-ranh v1 -->») vào du-lieu/bo-ranh.json + index.html, tăng phiên bản,
+# lưu vào kho → GitHub Pages tự phát hành. KHÔNG gọi onland.vn (robots.txt của họ cấm máy tự động vào /api/).
+# Chỉ gộp issue của chủ kho / người được cấp quyền ghi; issue của người khác: chủ kho gắn nhãn «gop-bo-ranh» thì mới gộp.
+name: Gộp bộ ranh
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+
+concurrency:
+  group: gop-bo-ranh
+  cancel-in-progress: false
+
+jobs:
+  gop:
+    if: >-
+      contains(github.event.issue.body, '<!-- bo-ranh v1 -->') &&
+      (
+        (github.event.action == 'opened' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'gop-bo-ranh')
+      )
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Ho_Chi_Minh
+      GH_TOKEN: ${{ github.token }}
+      SO: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Gộp
+        id: gop
+        env:
+          NOI_DUNG: ${{ github.event.issue.body }}
+          SO_ISSUE: ${{ github.event.issue.number }}
+        run: |
+          set +e
+          python -I cong-cu/gop_tu_issue.py > kq.txt 2>&1
+          ma=$?
+          cat kq.txt
+          echo "ma=$ma" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Lưu vào kho
+        if: steps.gop.outputs.ma == '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898099+github-actions[bot]@users.noreply.github.com"
+          git add du-lieu/bo-ranh.json index.html sw.js
+          git commit -m "Gộp bộ ranh từ #${SO} (${{ steps.gop.outputs.phien }})"
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" > /dev/null 2>&1 || true
+
+      - name: Báo kết quả
+        if: always()
+        run: |
+          kq=$(grep '^KQ:' kq.txt 2>/dev/null | tail -1 | sed 's/^KQ: //')
+          [ -z "$kq" ] && kq="Lỗi khi gộp, xem nhật ký: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ "${{ steps.gop.outputs.ma }}" = "0" ]; then kq="$kq Trang sẽ cập nhật sau 1–2 phút."; fi
+          gh issue comment "$SO" --body "$kq"
+          case "${{ steps.gop.outputs.ma }}" in 0|3) gh issue close "$SO" ;; esac

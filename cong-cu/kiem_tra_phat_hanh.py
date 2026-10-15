@@ -7,6 +7,7 @@ import hashlib, os, re, sys, time, urllib.request, urllib.error
 
 GOC = 'https://hocutien.github.io/Tracuu/'
 TEP = ['index.html', 'sw.js', 'manifest.webmanifest', 'du-lieu/bo-ranh.json', 'cong-cu/bo-sung-tu-dong.user.js',
+       'cong-cu/thu-bo-ranh.user.js', 'cong-cu/gop_bo_ranh.py', 'cong-cu/gop_tu_issue.py',   # v68: tự cập nhật bộ ranh (docs/TU-CAP-NHAT-BO-RANH.md)
        'icon-192.png', 'icon-512.png', 'icon-maskable-512.png']
 
 

@@ -1,14 +1,16 @@
 {
   "mo_ta": "Danh sách bộ ranh thửa đã biết (số bộ + phạm vi vĩ/kinh độ đã thấy). App tự đọc file này khi mở; thêm vùng mới chỉ cần thay file. Không chứa dữ liệu cá nhân.",
-  "cap_nhat": "2026-10-10",
+  "cap_nhat": "2026-10-15",
   "da_thu": [
     {"tinh": "Vĩnh Long mới (Trà Vinh, Vĩnh Long, Bến Tre cũ)", "ngay": "2026-10-08", "so_diem": 26, "ghi_chu": "thêm bộ 1905 tại 10.234161, 105.823816 ngày 09/10"},
     {"tinh": "Đồng Tháp mới — phần Đồng Tháp cũ", "ngay": "2026-10-09", "so_diem": 12},
     {"tinh": "Đồng Tháp mới — phần Tiền Giang cũ", "ngay": "2026-10-09", "so_diem": 11, "ghi_chu": "10/11 điểm không có ranh trên trang nguồn (chưa có dữ liệu Tiền Giang); Tân Phú Đông thuộc bộ 1816"},
     {"tinh": "Cần Thơ mới (Cần Thơ, Hậu Giang, Sóc Trăng cũ)", "ngay": "2026-10-09", "so_diem": 28, "ghi_chu": "điểm không có ranh: CT|Cờ Đỏ; o_rong = trang nguồn có tải ô ranh nhưng ô tại trung tâm huyện không có thửa nào (kiểm 09/10 qua trạm thật)", "o_rong": ["Thốt Nốt", "Thới Lai", "Vĩnh Thạnh", "TP Vị Thanh", "Vị Thủy", "Châu Thành (Hậu Giang)"]},
     {"tinh": "Vĩnh Long mới — bổ sung Trà Vinh theo xã", "ngay": "2026-10-09", "so_diem": 0, "ghi_chu": "thu theo xã cho 31 xã Trà Vinh mà khảo sát 09/10 chưa thấy thửa; trang nguồn không tải ô ranh ở: Càng Long - Đại Phước, Cầu Kè - Thông Hòa", "xa_bo_sung": 29},
-    {"tinh": "Vĩnh Long mới — bổ sung Trà Vinh theo tờ", "ngay": "2026-10-10", "so_diem": 0, "ghi_chu": "thu tại 125 điểm quanh tâm 291 tờ thiếu của 15 xã yếu (rà soát 10/10); 7 điểm trang nguồn không tải ô ranh: Đại Phước #73, Hiệp Thạnh ×4, Trường Long Hòa ×2", "diem_bo_sung": 125}
+    {"tinh": "Vĩnh Long mới — bổ sung Trà Vinh theo tờ", "ngay": "2026-10-10", "so_diem": 0, "ghi_chu": "thu tại 125 điểm quanh tâm 291 tờ thiếu của 15 xã yếu (rà soát 10/10); 7 điểm trang nguồn không tải ô ranh: Đại Phước #73, Hiệp Thạnh ×4, Trường Long Hòa ×2", "diem_bo_sung": 125},
+    {"tinh": "Vĩnh Long mới — rà lại Trà Cú, Duyên Hải", "ngay": "2026-10-15", "so_diem": 0, "ghi_chu": "15/10: bộ 2826 bị nguồn xoá (404 Dataset not found), thay bằng 3173; thêm 3174; rà 55 điểm lưới ~5 km ở Trà Cú, TX + huyện Duyên Hải: các bộ 1662, 1663, 1664, 1667, 1788, 1790, 2845 vẫn dùng"}
   ],
+  "bo_xoa": [2826],
   "bo": [
     {"id": 1662, "b": [9.671, 106.337, 9.888, 106.562], "noi": ["Vĩnh Long mới (Trà Vinh, Vĩnh Long, Bến Tre cũ)", "Vĩnh Long mới — bổ sung Trà Vinh theo xã: Châu Thành - Mỹ Chánh", "Vĩnh Long mới — bổ sung Trà Vinh theo xã: Châu Thành - Đa Lộc", "Vĩnh Long mới — bổ sung Trà Vinh theo xã: Cầu Ngang - Cầu Ngang", "Vĩnh Long mới — bổ sung Trà Vinh theo xã: Cầu Ngang - Mỹ Long Bắc", "Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Châu Thành - Châu Thành", "Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Duyên Hải TX - Trường Long Hòa"]},
     {"id": 1663, "b": [9.617, 106.282, 9.675, 106.445], "noi": ["Vĩnh Long mới (Trà Vinh, Vĩnh Long, Bến Tre cũ)", "Vĩnh Long mới — bổ sung Trà Vinh theo xã: Trà Cú - Định An (Thị trấn)"]},
@@ -129,7 +131,8 @@
     {"id": 2262, "b": [9.931, 106.106, 9.942, 106.117], "noi": ["Vĩnh Long mới — bổ sung Trà Vinh theo xã: Cầu Kè - Thạnh Phú"]},
     {"id": 2271, "b": [9.926, 106.348, 9.98, 106.392], "noi": ["Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Châu Thành - Hòa Thuận"]},
     {"id": 2617, "b": [10.358, 105.518, 10.364, 105.524], "noi": ["Đồng Tháp mới: Lấp Vò"]},
-    {"id": 2826, "b": [9.617, 106.15, 9.785, 106.293], "noi": ["Vĩnh Long mới (Trà Vinh, Vĩnh Long, Bến Tre cũ)", "Vĩnh Long mới — bổ sung Trà Vinh theo xã: Trà Cú - Định An (Thị trấn)", "Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Tiểu Cần - Hùng Hòa", "Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Trà Cú - An Quảng Hữu"]},
-    {"id": 2845, "b": [9.731, 106.161, 9.785, 106.254], "noi": ["Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Tiểu Cần - Hùng Hòa", "Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Trà Cú - An Quảng Hữu"]}
+    {"id": 2845, "b": [9.731, 106.161, 9.785, 106.254], "noi": ["Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Tiểu Cần - Hùng Hòa", "Vĩnh Long mới — bổ sung Trà Vinh theo tờ: Trà Cú - An Quảng Hữu"]},
+    {"id": 3173, "b": [9.617, 106.15, 9.785, 106.364], "noi": ["Vĩnh Long mới — rà lại Trà Cú, Duyên Hải: Trà Cú (thay bộ 2826 bị nguồn xoá)"]},
+    {"id": 3174, "b": [9.731, 106.15, 9.736, 106.205], "noi": ["Vĩnh Long mới — rà lại Trà Cú, Duyên Hải: Trà Cú - giáp Tiểu Cần"]}
   ]
 }

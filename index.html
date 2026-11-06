@@ -430,7 +430,7 @@ fieldset,.sheet,.cand,#sidebody>details{border-radius:var(--r)}
       <b>Tra cứu thửa đất</b>
       <span id="brandsub">chưa nạp tờ nào</span>
       <span class="mlbadge"><i>ML</i>design by 7410-Mạnh Lắm</span>
-      <small id="appver" style="color:#6d6a60;font-size:11px">v69 · 15/10/2026</small>
+      <small id="appver" style="color:#6d6a60;font-size:11px">v70 · 06/11/2026</small>
     </div>
     <div id="qbox">
       <input id="q" placeholder="Số thửa · 32: 459-470 · tên · toạ độ" spellcheck="false" autocomplete="off">
@@ -3730,6 +3730,7 @@ $('bwatch').onclick=e=>{
 
 /* nhập tay toạ độ: nhận WGS-84 (9.919, 106.353) hoặc VN-2000 (E, N) */
 $('bloc').onclick=()=>{
+  if(heptay()){khay(false);tab('map')}   // v70 [LỖI 06/11]: điện thoại — ô toạ độ nằm trong khay, bấm Đặt vị trí xong khay vẫn che kín bản đồ lẫn thông báo, tưởng không chỏ tới
   let s=($('mloc').value||'').trim();
   if((s.match(/\./g)||[]).length<2)s=s.replace(/,(\d{3,})/g,'.$1');
   const n=(s.match(/-?\d+(?:\.\d+)?/g)||[]).map(Number);
